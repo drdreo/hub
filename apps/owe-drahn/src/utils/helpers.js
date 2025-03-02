@@ -1,9 +1,7 @@
 export const debounce = (func, delay) => {
     let inDebounce;
-    return function () {
-        const context = this;
-        const args = arguments;
+    return function (...args) {
         clearTimeout(inDebounce);
-        inDebounce = setTimeout(() => func.apply(context, args), delay);
+        inDebounce = setTimeout(() => func.apply(this, args), delay);
     };
 };

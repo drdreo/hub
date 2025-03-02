@@ -7,10 +7,10 @@ import { gameReset } from "../game/game.actions";
 import SignInGoogle from "../auth/SignIn/SignIn";
 import { debounce } from "../utils/helpers";
 
-const API_URL = import.meta.env.VITE_API_URL;
-
 import "./Home.scss";
 import { gameOverview } from "./home.actions.js";
+
+const API_URL = import.meta.env.VITE_API_URL;
 
 const Home = () => {
     const [room, setRoom] = useState("");

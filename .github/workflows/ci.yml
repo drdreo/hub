@@ -45,7 +45,7 @@ jobs:
               shell: bash
               run: pnpm exec nx format:check
 
-            - name: "nx: affected lint, test, generate-build-info"
+            - name: "nx: affected lint, test"
               shell: bash
               run: pnpm exec nx affected -t lint, test
 
