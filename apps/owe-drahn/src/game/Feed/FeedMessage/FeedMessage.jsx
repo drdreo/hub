@@ -5,32 +5,26 @@ import "./FeedMessage.scss";
 const RolledDiceMessage = ({ username, dice, total }) => {
     return (
         <div className="message message__rolled">
-            {username} rolled{" "}
-            <span className="message__rolled__dice">{dice}</span> to {total}
+            {username} rolled <span className="message__rolled__dice">{dice}</span> to {total}
         </div>
     );
 };
 
 const LostLifeMessage = ({ username }) => {
-    return (
-        <div className="message message__lost-life">{username} draht owe!</div>
-    );
+    return <div className="message message__lost-life">{username} draht owe!</div>;
 };
 
 const LostMessage = ({ username, dice, total }) => {
     return (
         <div className="message message__lost">
-            {username} rolled{" "}
-            <span className="message__rolled__dice">{dice}</span> and lost with{" "}
+            {username} rolled <span className="message__rolled__dice">{dice}</span> and lost with{" "}
             {total}!
         </div>
     );
 };
 
 const LeftMessage = ({ username }) => {
-    return (
-        <div className="message message__left">{username} left the game!</div>
-    );
+    return <div className="message message__left">{username} left the game!</div>;
 };
 
 const GameOverMessage = ({ winner }) => {

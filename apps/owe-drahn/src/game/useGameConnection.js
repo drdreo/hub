@@ -3,10 +3,10 @@ import { useEffect } from "react";
 import { handshake } from "../socket/socket.actions.js";
 import { initializeGameSocketListeners } from "../socket/socket.js";
 
-export const useGameConnection = (room) => {
+export const useGameConnection = room => {
     const dispatch = useDispatch();
-    const authUser = useSelector((state) => state.auth.authUser); // Redux hook for state
-    const socket = useSelector((state) => state.socket.socket);
+    const authUser = useSelector(state => state.auth.authUser); // Redux hook for state
+    const socket = useSelector(state => state.socket.socket);
 
     useEffect(() => {
         // Initialize socket listeners

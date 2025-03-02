@@ -6,15 +6,11 @@ import "./GameInfo.scss";
 class GameInfo extends Component {
     render() {
         const message = this.props.message;
-        return (
-            <div className={`info ${message.length === 0 ? "hidden" : ""}`}>
-                {message}
-            </div>
-        );
+        return <div className={`info ${message.length === 0 ? "hidden" : ""}`}>{message}</div>;
     }
 }
 
-const mapStateToProps = (state) => {
+const mapStateToProps = state => {
     return { ...state.game.gameInfo };
 };
 

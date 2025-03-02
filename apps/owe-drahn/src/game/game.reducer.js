@@ -67,8 +67,7 @@ const gameReducer = (state = initialState, action) => {
         case "PLAYER_LOST_LIFE": {
             const currentPlayerId = localStorage.getItem("playerId");
             const playersTurn = state.players.some(
-                (player) =>
-                    player.id === currentPlayerId && player.isPlayersTurn
+                player => player.id === currentPlayerId && player.isPlayersTurn
             );
             const message = playersTurn ? "Choose next Player or roll" : "";
             return {

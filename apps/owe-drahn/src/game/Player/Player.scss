@@ -30,9 +30,8 @@ $color-lost: #c5c5c5ad;
         display: flex;
         justify-content: center;
 
-        $bar-colors: $color-lost, utils.$danger-color, utils.$orange-dark,
-            utils.$warning-color, utils.$warning-color, utils.$success-color,
-            utils.$success-color;
+        $bar-colors: $color-lost, utils.$danger-color, utils.$orange-dark, utils.$warning-color,
+            utils.$warning-color, utils.$success-color, utils.$success-color;
         @for $i from 1 through list.length($bar-colors) {
             $level-color: list.nth($bar-colors, $i);
 

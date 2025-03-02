@@ -38,6 +38,8 @@ jobs:
 
             - name: "nx: set shas"
               uses: nrwl/nx-set-shas@v4
+              with:
+                  main-branch-name: master
 
             - name: "nx: format check"
               shell: bash

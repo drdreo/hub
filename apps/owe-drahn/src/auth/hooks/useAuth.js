@@ -15,7 +15,7 @@ export const useAuth = () => {
 
         // Optional auth listener
         firebase.onAuthUserListener(
-            (authUser) => {
+            authUser => {
                 localStorage.setItem("authUser", JSON.stringify(authUser));
                 dispatch({ type: "AUTH_USER_SET", authUser });
             },

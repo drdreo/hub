@@ -11,12 +11,7 @@ import Feed from "./Feed/Feed";
 import Settings from "../settings/Settings";
 import RolledDice from "./RolledDice/RolledDice.jsx";
 
-import {
-    chooseNextPlayer,
-    loseLife,
-    ready,
-    rollDice
-} from "../socket/socket.actions";
+import { chooseNextPlayer, loseLife, ready, rollDice } from "../socket/socket.actions";
 import { animatedDice } from "./game.actions";
 import { feedMessage } from "./Feed/feed.actions";
 
@@ -34,17 +29,9 @@ const Game = () => {
     const { room } = useParams();
     useGameConnection(room);
 
-    const settings = useSelector((state) => state.settings);
-    const {
-        diceRoll,
-        currentValue,
-        ui_currentValue,
-        ui_players,
-        players,
-        started,
-        over,
-        error
-    } = useSelector((state) => state.game);
+    const settings = useSelector(state => state.settings);
+    const { diceRoll, currentValue, ui_currentValue, ui_players, players, started, over, error } =
+        useSelector(state => state.game);
 
     const [animatingDice, setAnimatingDice] = useState(false);
     const [animatingHeart, setAnimatingHeart] = useState(false);
@@ -59,7 +46,7 @@ const Game = () => {
 
     const getPlayer = () => {
         const currentPlayerId = localStorage.getItem("playerId");
-        return players.find((player) => player.id === currentPlayerId);
+        return players.find(player => player.id === currentPlayerId);
     };
 
     const player = getPlayer();
@@ -98,11 +85,7 @@ const Game = () => {
 
         if (!animatingDice) {
             // If it's the player's turn and the sound hasn't played yet, play it
-            if (
-                player.isPlayersTurn &&
-                !player.choosing &&
-                !sfx.yourTurn.played
-            ) {
+            if (player.isPlayersTurn && !player.choosing && !sfx.yourTurn.played) {
                 sfx.yourTurn.played = true;
                 sfx.yourTurn.audio.play();
             }
@@ -160,11 +143,7 @@ const Game = () => {
 
     const handleLoseLife = () => {
         const player = getPlayer();
-        if (
-            player.isPlayersTurn &&
-            player.life > 1 &&
-            currentValue >= MIN_VAL_TO_OWE_DRAHN
-        ) {
+        if (player.isPlayersTurn && player.life > 1 && currentValue >= MIN_VAL_TO_OWE_DRAHN) {
             if (!animatingHeart) {
                 setAnimatingHeart(true);
                 // remove the animation class after some arbitrary time. Player won't trigger this again soon
@@ -176,7 +155,7 @@ const Game = () => {
         }
     };
 
-    const handleChooseNextPlayer = (playerId) => {
+    const handleChooseNextPlayer = playerId => {
         const player = getPlayer();
         if (player.isPlayersTurn && player.choosing) {
             dispatch(chooseNextPlayer(playerId));
@@ -186,7 +165,7 @@ const Game = () => {
     const animateDice = (dice, total) => {
         setAnimatingDice(true);
 
-        return new Promise((resolve) => {
+        return new Promise(resolve => {
             diceRoller({
                 element: diceRef.current,
                 numberOfDice: 1,
@@ -229,11 +208,8 @@ const Game = () => {
                 } else {
                     controlButton = (
                         <button
-                            className={`button ${
-                                player.ready ? "success" : "primary"
-                            }`}
-                            onClick={() => handleReady()}
-                        >
+                            className={`button ${player.ready ? "success" : "primary"}`}
+                            onClick={() => handleReady()}>
                             Ready
                         </button>
                     );
@@ -246,8 +222,7 @@ const Game = () => {
                 controlButton = (
                     <div
                         style={{ display: "flex" }}
-                        className={`${isWaiting ? "waiting" : ""}`}
-                    >
+                        className={`${isWaiting ? "waiting" : ""}`}>
                         <RollButton
                             rolling={isRolling}
                             disabled={isWaiting}
@@ -256,9 +231,7 @@ const Game = () => {
                         <LifeLoseBtn
                             animating={animatingHeart}
                             disabled={
-                                isWaiting ||
-                                player.life <= 1 ||
-                                ui_currentValue < MIN_VAL_TO_OWE_DRAHN
+                                isWaiting || player.life <= 1 || ui_currentValue < MIN_VAL_TO_OWE_DRAHN
                             }
                             onClick={handleLoseLife}
                         />
@@ -288,7 +261,10 @@ const Game = () => {
                 ))}
             </div>
 
-            <div className="dice" ref={diceRef} />
+            <div
+                className="dice"
+                ref={diceRef}
+            />
             <Feed />
             <Settings className="settings" />
             <GameInfo />

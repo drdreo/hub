@@ -23,9 +23,14 @@ class Feed extends Component {
             }, 10);
         }
         return (
-            <div className="feed" ref={this.feedRef}>
+            <div
+                className="feed"
+                ref={this.feedRef}>
                 {messages.map((message, key) => (
-                    <FeedMessage message={message} key={key} />
+                    <FeedMessage
+                        message={message}
+                        key={key}
+                    />
                 ))}
             </div>
         );
@@ -36,7 +41,7 @@ class Feed extends Component {
     }
 }
 
-const mapStateToProps = (state) => {
+const mapStateToProps = state => {
     return { ...state.feed, enabled: state.settings.feed.enabled };
 };
 

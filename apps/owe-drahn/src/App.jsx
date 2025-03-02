@@ -11,8 +11,14 @@ const App = () => {
 
     return (
         <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/game/:room" element={<Game />} />
+            <Route
+                path="/"
+                element={<Home />}
+            />
+            <Route
+                path="/game/:room"
+                element={<Game />}
+            />
         </Routes>
     );
 };

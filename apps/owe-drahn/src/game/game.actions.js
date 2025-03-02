@@ -6,7 +6,7 @@ export const gameReset = () => {
     };
 };
 
-export const gameInit = (data) => {
+export const gameInit = data => {
     return {
         type: "GAME_INIT",
         payload: data
@@ -19,35 +19,35 @@ export const gameStarted = () => {
     };
 };
 
-export const gameUpdate = (data) => {
+export const gameUpdate = data => {
     return {
         type: "GAME_UPDATE",
         payload: data
     };
 };
 
-export const gameOver = (winner) => {
+export const gameOver = winner => {
     return {
         type: "GAME_OVER",
         payload: winner
     };
 };
 
-export const gameError = (data) => {
+export const gameError = data => {
     return {
         type: "GAME_ERROR",
         payload: data
     };
 };
 
-export const playerUpdate = (data) => {
+export const playerUpdate = data => {
     return {
         type: "PLAYER_UPDATE",
         payload: data
     };
 };
 
-export const playerLeft = (username) => {
+export const playerLeft = username => {
     return {
         type: "PLAYER_LEFT",
         payload: username
@@ -60,21 +60,21 @@ export const lostLife = () => {
     };
 };
 
-export const playerLost = (data) => {
+export const playerLost = data => {
     return {
         type: "PLAYER_LOST",
         payload: data
     };
 };
 
-export const rolledDice = (data) => {
+export const rolledDice = data => {
     return {
         type: ROLLED_DICE,
         payload: data
     };
 };
 
-export const animatedDice = (data) => {
+export const animatedDice = data => {
     return {
         type: "ANIMATED_DICE",
         payload: data

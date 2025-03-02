@@ -1,17 +1,6 @@
 import { initializeApp } from "firebase/app";
-import {
-    getAuth,
-    GoogleAuthProvider,
-    signInWithPopup,
-    getAdditionalUserInfo
-} from "firebase/auth";
-import {
-    collection,
-    doc,
-    getDoc,
-    getFirestore,
-    onSnapshot
-} from "firebase/firestore";
+import { getAuth, GoogleAuthProvider, signInWithPopup, getAdditionalUserInfo } from "firebase/auth";
+import { collection, doc, getDoc, getFirestore, onSnapshot } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
 
 const env = import.meta.env;
@@ -45,13 +34,13 @@ class Firebase {
         return signInWithPopup(this.auth, this.googleProvider);
     }
 
-    getAdditionalUserInfo = (user) => getAdditionalUserInfo(user);
+    getAdditionalUserInfo = user => getAdditionalUserInfo(user);
 
     doSignOut = () => this.auth.signOut();
 
     // *** Merge Auth and DB User API *** //
     onAuthUserListener = (cb, fallback) => {
-        this.auth.onAuthStateChanged(async (authUser) => {
+        this.auth.onAuthStateChanged(async authUser => {
             if (authUser) {
                 const userRef = doc(this.firestore, "users", authUser.uid);
                 const userSnap = await getDoc(userRef);
@@ -86,14 +75,14 @@ class Firebase {
 
     onUserListener = (uid, cb) => {
         const userRef = doc(this.firestore, "users", uid);
-        return onSnapshot(userRef, (docSnap) => {
+        return onSnapshot(userRef, docSnap => {
             cb(docSnap.exists() ? docSnap.data() : null);
         });
     };
 
     // *** User API ***
 
-    user = (uid) => doc(this.firestore, "users", uid);
+    user = uid => doc(this.firestore, "users", uid);
     users = () => collection(this.firestore, "users");
 
     // *** Message API ***

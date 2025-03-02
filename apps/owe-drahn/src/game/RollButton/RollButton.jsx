@@ -7,8 +7,7 @@ const Roll = () => (
         width="20"
         x="0px"
         y="0px"
-        viewBox="0 0 26.99 26.99"
-    >
+        viewBox="0 0 26.99 26.99">
         <path
             d="M24.844,0.616H2.146C0.96,0.616,0,1.577,0,2.761v21.467c0,1.184,0.96,2.145,2.146,2.145h22.698
       c1.182,0,2.146-0.961,2.146-2.145V2.761C26.99,1.577,26.025,0.616,24.844,0.616z M6.168,8.78c-1.533,0-2.779-1.244-2.779-2.779
@@ -24,15 +23,14 @@ const Roll = () => (
     </svg>
 );
 
-const RollButton = (props) => {
+const RollButton = props => {
     return (
         <div className="roll-button-container">
             <div
                 className={`roll-button ${props.rolling ? "rolling" : ""} ${
                     props.disabled ? "disabled" : ""
                 }`}
-                onClick={props.onClick}
-            >
+                onClick={props.onClick}>
                 <Roll />
                 <span className="text">Roll</span>
             </div>

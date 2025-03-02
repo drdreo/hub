@@ -16,12 +16,12 @@ const Home = () => {
     const [room, setRoom] = useState("");
     const [username, setUsername] = useState("");
     const [usernameSetFromDB, setUsernameSetFromDB] = useState(false);
-    const overview = useSelector((state) => state.home.overview);
+    const overview = useSelector(state => state.home.overview);
     const [formError, setFormError] = useState("");
 
     const navigate = useNavigate();
     const firebase = useFirebase();
-    const authUser = useSelector((state) => state.auth.authUser);
+    const authUser = useSelector(state => state.auth.authUser);
     const dispatch = useDispatch();
 
     useEffect(() => {
@@ -40,11 +40,11 @@ const Home = () => {
         }
     }, [authUser, usernameSetFromDB, username]);
 
-    const updateRoom = (room) => {
+    const updateRoom = room => {
         setRoom(room);
     };
 
-    const updateUsername = (evt) => {
+    const updateUsername = evt => {
         const newUsername = evt.target.value;
         setUsername(newUsername);
 
@@ -53,7 +53,7 @@ const Home = () => {
         }
     };
 
-    const updateDBUsername = debounce((username) => {
+    const updateDBUsername = debounce(username => {
         firebase.user(authUser.uid).update({ username });
     }, 200);
 
@@ -72,7 +72,7 @@ const Home = () => {
             .get(`${API_URL}/join?room=${roomEncoded}&username=${username}`, {
                 withCredentials: true
             })
-            .then((response) => {
+            .then(response => {
                 if (response.data.error) {
                     const { error } = response.data;
                     if (error.code === "GAME_STARTED") {
@@ -89,16 +89,14 @@ const Home = () => {
     const fetchOverview = () => {
         axios
             .get(`${API_URL}/games/overview`, { withCredentials: true })
-            .then((response) => {
+            .then(response => {
                 if (response.data) {
                     dispatch(gameOverview(response.data));
                 }
             })
-            .catch((error) => {
+            .catch(error => {
                 console.error("Error fetching overview:", error);
-                setFormError(
-                    "Failed to connect to game server. Please try again later."
-                );
+                setFormError("Failed to connect to game server. Please try again later.");
             });
     };
 
@@ -110,43 +108,35 @@ const Home = () => {
                 </div>
                 Rooms
                 <div className="overview__rooms">
-                    {overview.rooms.map((room) => (
+                    {overview.rooms.map(room => (
                         <div
                             key={room.room}
-                            className={`overview__rooms__entry ${
-                                room.started ? "has-started" : ""
-                            }`}
-                            onClick={() => onRoomClick(room.room, room.started)}
-                        >
-                            {room.started ? <span className="live"></span> : ""}{" "}
-                            {room.room}
+                            className={`overview__rooms__entry ${room.started ? "has-started" : ""}`}
+                            onClick={() => onRoomClick(room.room, room.started)}>
+                            {room.started ? <span className="live"></span> : ""} {room.room}
                         </div>
                     ))}
                 </div>
             </div>
             <h4>Owe Drahn</h4>
-            <SignInGoogle
-                className={`${authUser ? "is-hidden" : ""} sign-in-form`}
-            />
+            <SignInGoogle className={`${authUser ? "is-hidden" : ""} sign-in-form`} />
 
             {authUser && (
                 <>
                     <div>Hello {authUser.username}</div>
                     <button
                         className="link"
-                        onClick={() => firebase.doSignOut()}
-                    >
+                        onClick={() => firebase.doSignOut()}>
                         Logout?
                     </button>
                 </>
             )}
             <form
                 className="form"
-                onSubmit={(e) => {
+                onSubmit={e => {
                     e.preventDefault();
                     joinGame();
-                }}
-            >
+                }}>
                 <input
                     className="input username"
                     value={username}
@@ -156,21 +146,18 @@ const Home = () => {
                 <input
                     className="input room"
                     value={room}
-                    onChange={(evt) => updateRoom(evt.target.value)}
+                    onChange={evt => updateRoom(evt.target.value)}
                     placeholder="Room"
                 />
-                <button className="button join" disabled={!room} type="submit">
+                <button
+                    className="button join"
+                    disabled={!room}
+                    type="submit">
                     Join
                 </button>
             </form>
 
-            <div
-                className={`form__error ${
-                    !formError.length ? "is-invisible" : ""
-                }`}
-            >
-                {formError}
-            </div>
+            <div className={`form__error ${!formError.length ? "is-invisible" : ""}`}>{formError}</div>
         </div>
     );
 };

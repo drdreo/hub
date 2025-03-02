@@ -17,7 +17,9 @@ const PlayerStats = ({ username, stats }) => {
             <div className="username">{username}</div>
             <div className="stats-grid">
                 {Object.entries(highlightStats).map(([label, value]) => (
-                    <div key={label} className="stat-item">
+                    <div
+                        key={label}
+                        className="stat-item">
                         <div className="label">{label}</div>
                         <div className="value">{value}</div>
                     </div>

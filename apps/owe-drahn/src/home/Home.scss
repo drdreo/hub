@@ -13,10 +13,7 @@
     box-sizing: border-box;
 
     &:hover {
-        background-color: color.adjust(
-            utils.$input-background-color,
-            $alpha: -0.1
-        );
+        background-color: color.adjust(utils.$input-background-color, $alpha: -0.1);
     }
 
     @include utils.respond-to(tablet) {

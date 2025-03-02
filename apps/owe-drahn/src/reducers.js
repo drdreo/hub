@@ -8,7 +8,7 @@ import homeReducer from "./home/home.reducer.js";
 import socketReducer from "./socket/socket.reducer";
 import settingsReducer from "./settings/settings.reducer";
 
-export const createRootReducer = (history) =>
+export const createRootReducer = history =>
     combineReducers({
         router: connectRouter(history),
         auth: authReducer,

@@ -33,10 +33,7 @@
 
     &:hover,
     &:focus {
-        background-color: color.adjust(
-            utils.$button-background-color,
-            $alpha: -0.1
-        ); //#677bc4
+        background-color: color.adjust(utils.$button-background-color, $alpha: -0.1); //#677bc4
     }
 
     &[disabled] {

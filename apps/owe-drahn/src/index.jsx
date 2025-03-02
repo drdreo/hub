@@ -28,9 +28,7 @@ const composeEnhancers =
         ? window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__({})
         : compose;
 
-const enhancer = composeEnhancers(
-    applyMiddleware(settingsMiddleware, feedMiddleware)
-);
+const enhancer = composeEnhancers(applyMiddleware(settingsMiddleware, feedMiddleware));
 
 const store = createStore(createRootReducer(history), enhancer);
 

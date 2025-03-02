@@ -1,4 +1,4 @@
-export const settingsMiddleware = (store) => (next) => (action) => {
+export const settingsMiddleware = store => next => action => {
     const prevSettings = store.getState().settings;
     next(action);
     const nextSettings = store.getState().settings;

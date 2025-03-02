@@ -11,7 +11,7 @@ export const handshake = (room, uid) => {
     };
 };
 
-export const ready = (ready) => {
+export const ready = ready => {
     return {
         type: PLAYER_READY,
         payload: ready
@@ -30,7 +30,7 @@ export const loseLife = () => {
     };
 };
 
-export const chooseNextPlayer = (playerId) => {
+export const chooseNextPlayer = playerId => {
     return {
         type: PLAYER_CHOOSE_NEXT,
         payload: playerId

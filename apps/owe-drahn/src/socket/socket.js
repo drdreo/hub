@@ -12,58 +12,56 @@ import {
 } from "../game/game.actions";
 import { gameOverview } from "../home/home.actions.js";
 
-export default (store) => {
+export default store => {
     const { socket } = store.getState().socket;
 
     socket.on("connect", () => console.log("Socket connected!"));
     socket.on("disconnect", () => console.log("Socket disconnected!"));
 
-    socket.on("gameOverview", (data) => {
+    socket.on("gameOverview", data => {
         store.dispatch(gameOverview(data));
     });
 };
 
 export const initializeGameSocketListeners = (socket, dispatch) => {
-    socket.on("gameInit", (response) => {
+    socket.on("gameInit", response => {
         dispatch(gameInit(response));
     });
 
-    socket.on("gameStarted", (response) => {
+    socket.on("gameStarted", response => {
         dispatch(gameStarted(response));
     });
 
-    socket.on("gameUpdate", (response) => {
+    socket.on("gameUpdate", response => {
         dispatch(gameUpdate(response));
     });
 
-    socket.on("gameOver", (response) => {
+    socket.on("gameOver", response => {
         dispatch(gameOver(response));
     });
 
-    socket.on("gameError", (data) => {
+    socket.on("gameError", data => {
         dispatch(gameError(data));
     });
 
-    socket.on("playerUpdate", (data) => {
+    socket.on("playerUpdate", data => {
         dispatch(playerUpdate(data));
     });
 
-    socket.on("playerLeft", (data) => {
+    socket.on("playerLeft", data => {
         dispatch(playerLeft(data));
     });
 
-    socket.on("rolledDice", (data) => {
+    socket.on("rolledDice", data => {
         dispatch(rolledDice(data));
     });
 
-    socket.on("lostLife", (data) => {
+    socket.on("lostLife", data => {
         dispatch(lostLife());
-        dispatch(
-            feedMessage({ type: "LOST_LIFE", username: data.player.username })
-        );
+        dispatch(feedMessage({ type: "LOST_LIFE", username: data.player.username }));
     });
 
-    socket.on("lost", (data) => {
+    socket.on("lost", data => {
         // dispatch(playerLost(data.player.id));
         // dispatch(feedMessage({type: "LOST", username: data.player.username, dice: data.dice, total: data.total}));
     });
