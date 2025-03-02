@@ -1,36 +1,53 @@
 name: CI
 
 on:
-  push:
-    branches:
-      - master
-  pull_request:
+    push:
+        branches:
+            - master
+    pull_request:
 
 permissions:
-  actions: read
-  contents: read
+    actions: read
+    contents: read
 
 jobs:
-  main:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+    main:
+        runs-on: ubuntu-latest
+        env:
+            is-master: ${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
+        steps:
+            - name: "git: checkout"
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
 
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
+            - name: "pnpm: setup"
+              uses: pnpm/action-setup@v4
+              with:
+                  version: 9
 
-      # Cache node_modules
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'pnpm'
+            - name: "node: setup"
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 20
+                  cache: "pnpm"
 
-      - run: pnpm install --frozen-lockfile
-      - uses: nrwl/nx-set-shas@v4
+            - name: "pnpm: install"
+              run: pnpm install --frozen-lockfile
+              uses: nrwl/nx-set-shas@v4
 
-      - run: pnpm exec nx affected -t lint test build
+            - name: "nx: format check"
+              shell: bash
+              run: pnpm exec nx format:check
 
-      - run: pnpm exec nx affected -t deploy
+            - name: "nx: affected lint, test, generate-build-info"
+              shell: bash
+              run: pnpm exec nx affected -t lint, test
+
+            - name: "nx: affected deploy"
+              env:
+                  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_PAGES_API_TOKEN }}
+                  CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_PAGES_ACCOUNT_ID }}
+                  NX_BRANCH: ${{ github.head_ref || github.ref_name }}
+              shell: bash
+              run: pnpm exec nx affected -t deploy --configuration=${{ env.is-master == 'true' && 'production' || 'staging' }}
