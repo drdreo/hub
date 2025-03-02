@@ -1,14 +1,5 @@
 {
     "name": "owe-drahn",
-    "version": "2.0.0",
-    "private": true,
-    "type": "module",
-    "scripts": {
-        "dev": "vite",
-        "build": "vite build",
-        "lint": "eslint .",
-        "preview": "vite preview"
-    },
-    "dependencies": {},
-    "devDependencies": {}
+    "version": "0.0.1",
+    "private": true
 }

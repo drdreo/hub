@@ -1,12 +1,10 @@
 {
-  "extends": "./tsconfig.base.json",
-  "compileOnSave": false,
-  "files": [],
-  "references": [
-    // All projects in the repository
-    {
-      "path": "./apps/owe-drahn"
-    },
-    // Future generated projects will automatically be added here by the generator
-  ]
+    "extends": "./tsconfig.base.json",
+    "compileOnSave": false,
+    "files": [],
+    "references": [
+        {
+            "path": "./apps/owe-drahn"
+        }
+    ]
 }
