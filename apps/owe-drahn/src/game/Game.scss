@@ -1,0 +1,78 @@
+@use "../utils";
+
+$rolled-dice-color: utils.$primary-color;
+
+.settings {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.5rem;
+
+    .button {
+        margin: 0 1rem;
+    }
+}
+
+.controls {
+    position: absolute;
+    bottom: 20px;
+
+    button {
+        margin: 0 1.2rem;
+    }
+}
+
+.players-list {
+    position: absolute;
+    // Center both vertically and horizontally
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+
+    &.circle-board {
+        z-index: -1;
+        position: absolute;
+        height: 100%;
+        width: 100%;
+    }
+
+    // Optional: Add a subtle grid or guide circle
+    &::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 300px; // 2 * your translateY value
+        height: 300px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 50%;
+        pointer-events: none;
+    }
+
+
+}
+
+.current-value {
+    font-size: 5rem;
+    font-weight: bold;
+    color: white;
+
+    &.warning {
+        color: utils.$warning-color;
+    }
+
+    &.danger {
+        color: utils.$danger-color;
+    }
+}
+
+.rolled-dice {
+    font-size: 2.5rem;
+    color: $rolled-dice-color;
+    display: flex;
+    align-items: center;
+
+    &.number-3 {
+        color: utils.$gray;
+    }
+}

@@ -1,0 +1,140 @@
+@use "sass:color";
+@use "sass:list";
+
+@use "../../utils";
+
+$color-lost: #c5c5c5ad;
+
+.player {
+    position: absolute;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-width: 100px;
+
+    border-radius: 5px;
+    border: 1px solid grey;
+    padding: .5rem;
+
+    transition: all .5s ease;
+
+    &:not(.started) {
+        .life {
+            display: none;
+        }
+    }
+
+    .life {
+        position: absolute;
+        top: -2.5rem;
+        display: flex;
+        justify-content: center;
+
+        $bar-colors: $color-lost, utils.$danger-color, utils.$orange-dark, utils.$warning-color, utils.$warning-color, utils.$success-color, utils.$success-color;
+        @for $i from 1 through list.length($bar-colors) {
+            $level-color: list.nth($bar-colors, $i);
+
+            &.life-#{$i - 1} {
+                color: $level-color;
+            }
+        }
+
+    }
+
+    .name {
+        display: flex;
+        justify-content: center;
+        color: #fff;
+
+        span {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    }
+
+    &__rank {
+        display: block;
+        //position: absolute;
+        //top: 50%;
+        //transform: translateY(-50%);
+        //left: 5px;
+        margin-right: 6px;
+
+        img {
+            width: 2rem;
+            height: 2rem;
+        }
+    }
+
+    &.me {
+        outline: 2px solid utils.$white;
+    }
+
+    &.ready {
+        border-color: utils.$success-color;
+    }
+
+    &.turn {
+        border: 2px solid utils.$primary-color;
+        //outline: 2px solid utils.$primary-color;
+        //outline-offset: 2px;
+        animation: glow 1.5s ease-in-out infinite;
+    }
+
+    &.choosing {
+        cursor: pointer;
+
+        animation: highlight 1s infinite;
+
+        &:hover {
+            animation: none;
+            transform: translateY(-10px);
+        }
+    }
+
+    &.lost {
+        text-decoration: line-through;
+
+        .name {
+            color: $color-lost;
+        }
+    }
+}
+
+
+@keyframes highlight {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+@keyframes border {
+    0% {
+        border-color: color.adjust(white, $saturation: 25%);
+    }
+    50% {
+        border-color: transparent;
+    }
+    100% {
+        border-color: color.adjust(white, $saturation: 25%);
+    }
+}
+
+@keyframes glow {
+    0% {
+        box-shadow: 0 0 5px #2196f3;
+    }
+    50% {
+        box-shadow: 0 0 20px #2196f3;
+    }
+    100% {
+        box-shadow: 0 0 5px #2196f3;
+    }
+}

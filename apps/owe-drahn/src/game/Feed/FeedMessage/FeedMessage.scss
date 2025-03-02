@@ -1,0 +1,17 @@
+@use "../../../utils";
+
+.message {
+  &__rolled {
+    &__dice {
+      color: utils.$primary-color;
+    }
+  }
+
+  &__lost {
+    color: utils.$danger-color;
+  }
+
+  &__over {
+    color: utils.$warning-color;
+  }
+}

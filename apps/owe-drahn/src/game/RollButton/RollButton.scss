@@ -1,0 +1,86 @@
+@use "sass:color";
+@use "../../utils";
+
+$btn-width: 100px;
+$btn-width-rolling: 40px;
+$animation-time: 1.25s;
+
+.roll-button-container {
+    min-width: $btn-width;
+    display: flex;
+    justify-content: center;
+}
+
+.roll-button {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    height: 40px;
+    width: $btn-width;
+
+    border: 1px solid utils.$primary-color;
+    outline: none;
+    border-radius: 20px;
+    box-shadow: 0 7px 14px rgba(0, 0, 0, 0.25), 0 5px 5px rgba(0, 0, 0, 0.22);
+    cursor: pointer;
+
+    transition: transform 0.17s ease, all .26s ease;
+
+    &:not(.disabled):hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(63, 81, 181, 0.4);
+        background: utils.$primary-color;
+    }
+
+    &.disabled {
+        background: transparent;
+        cursor: default;
+        border-color: gray;
+        box-shadow: unset;
+
+        .text {
+            color: gray;
+        }
+
+        .dice {
+            path {
+                fill: gray;
+            }
+        }
+    }
+
+    &.rolling {
+        background-color: utils.$primary-color;
+        border-color: utils.$primary-color;
+        width: $btn-width-rolling;
+
+        .text {
+            display: none;
+        }
+
+        .dice {
+            path {
+                fill: #ffffff;
+            }
+        }
+    }
+
+    .text {
+        color: white;
+        user-select: none;
+        -moz-user-select: none;
+        margin-left: 0.5rem;
+
+    }
+
+    .dice {
+        width: 20px;
+        display: inline-block;
+
+        path {
+            fill: #ffffff;
+        }
+    }
+}
+
