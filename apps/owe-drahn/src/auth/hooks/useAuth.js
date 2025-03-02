@@ -1,6 +1,6 @@
-import {useDispatch} from "react-redux";
-import {useEffect} from "react";
-import {useFirebase} from "../Firebase/index.js";
+import { useDispatch } from "react-redux";
+import { useEffect } from "react";
+import { useFirebase } from "../Firebase/index.js";
 
 export const useAuth = () => {
     const dispatch = useDispatch();
@@ -8,20 +8,20 @@ export const useAuth = () => {
 
     useEffect(() => {
         // Only setup listener if there was a previous session
-        const storedAuthUser = JSON.parse(localStorage.getItem('authUser'));
+        const storedAuthUser = JSON.parse(localStorage.getItem("authUser"));
         if (storedAuthUser) {
-            dispatch({type: 'AUTH_USER_SET', authUser: storedAuthUser});
+            dispatch({ type: "AUTH_USER_SET", authUser: storedAuthUser });
         }
 
         // Optional auth listener
         firebase.onAuthUserListener(
             (authUser) => {
-                localStorage.setItem('authUser', JSON.stringify(authUser));
-                dispatch({type: 'AUTH_USER_SET', authUser});
+                localStorage.setItem("authUser", JSON.stringify(authUser));
+                dispatch({ type: "AUTH_USER_SET", authUser });
             },
             () => {
-                localStorage.removeItem('authUser');
-                dispatch({type: 'AUTH_USER_SET', authUser: null});
+                localStorage.removeItem("authUser");
+                dispatch({ type: "AUTH_USER_SET", authUser: null });
             }
         );
     }, [dispatch, firebase]);

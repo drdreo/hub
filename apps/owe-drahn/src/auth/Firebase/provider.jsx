@@ -1,8 +1,8 @@
-import { useState} from "react";
+import { useState } from "react";
 import Firebase from "./Firebase.js";
 import FirebaseContext from "./context.jsx";
 
-export const FirebaseProvider = ({children}) => {
+export const FirebaseProvider = ({ children }) => {
     const [firebase] = useState(() => new Firebase());
 
     return (

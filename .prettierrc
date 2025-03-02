@@ -1,4 +1,6 @@
 {
-  "singleQuote": false,
-  "tabWidth": 4
+    "singleQuote": false,
+    "tabWidth": 4,
+    "trailingComma": "none",
+    "endOfLine": "auto"
 }

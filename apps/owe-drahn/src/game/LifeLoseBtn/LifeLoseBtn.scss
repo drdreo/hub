@@ -1,7 +1,7 @@
 .button {
-  &.lose-life {
-    background-color: transparent;
-    padding: 0;
+    &.lose-life {
+        background-color: transparent;
+        padding: 0;
 
         &:hover {
             background-color: transparent;
@@ -29,7 +29,7 @@
 
 #heart {
     fill: none;
-    stroke: #D75A4A;
+    stroke: #d75a4a;
 
     &[disabled] {
         stroke: gray;
@@ -48,12 +48,12 @@
     }
 
     #minus {
-        fill: #D75A4A;
+        fill: #d75a4a;
         stroke: none;
     }
 
     &:hover {
-        fill: #D75A4A;
+        fill: #d75a4a;
 
         #minus {
             fill: white;
@@ -63,7 +63,7 @@
 
 #heart.animating {
     will-change: transform;
-    animation: heart .5s cubic-bezier(0.17, 0.89, 0.32, 1.49);
+    animation: heart 0.5s cubic-bezier(0.17, 0.89, 0.32, 1.49);
 }
 
 @keyframes heart {

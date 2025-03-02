@@ -1,8 +1,8 @@
 // client/src/home/home.reducer.js
-import {GAME_OVERVIEW} from './home.actions';
+import { GAME_OVERVIEW } from "./home.actions";
 
 const initialState = {
-    overview: {rooms: [], totalPlayers: 0},
+    overview: { rooms: [], totalPlayers: 0 }
 };
 
 const homeReducer = (state = initialState, action) => {

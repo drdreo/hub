@@ -1,7 +1,18 @@
-import {initializeApp} from "firebase/app";
-import {getAuth, GoogleAuthProvider, signInWithPopup, getAdditionalUserInfo} from "firebase/auth";
-import {collection, doc, getDoc, getFirestore, onSnapshot} from "firebase/firestore";
-import {getAnalytics} from "firebase/analytics";
+import { initializeApp } from "firebase/app";
+import {
+    getAuth,
+    GoogleAuthProvider,
+    signInWithPopup,
+    getAdditionalUserInfo
+} from "firebase/auth";
+import {
+    collection,
+    doc,
+    getDoc,
+    getFirestore,
+    onSnapshot
+} from "firebase/firestore";
+import { getAnalytics } from "firebase/analytics";
 
 const env = import.meta.env;
 const config = {

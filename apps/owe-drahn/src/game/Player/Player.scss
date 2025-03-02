@@ -14,9 +14,9 @@ $color-lost: #c5c5c5ad;
 
     border-radius: 5px;
     border: 1px solid grey;
-    padding: .5rem;
+    padding: 0.5rem;
 
-    transition: all .5s ease;
+    transition: all 0.5s ease;
 
     &:not(.started) {
         .life {
@@ -30,7 +30,9 @@ $color-lost: #c5c5c5ad;
         display: flex;
         justify-content: center;
 
-        $bar-colors: $color-lost, utils.$danger-color, utils.$orange-dark, utils.$warning-color, utils.$warning-color, utils.$success-color, utils.$success-color;
+        $bar-colors: $color-lost, utils.$danger-color, utils.$orange-dark,
+            utils.$warning-color, utils.$warning-color, utils.$success-color,
+            utils.$success-color;
         @for $i from 1 through list.length($bar-colors) {
             $level-color: list.nth($bar-colors, $i);
 
@@ -38,7 +40,6 @@ $color-lost: #c5c5c5ad;
                 color: $level-color;
             }
         }
-
     }
 
     .name {
@@ -101,7 +102,6 @@ $color-lost: #c5c5c5ad;
         }
     }
 }
-
 
 @keyframes highlight {
     0% {

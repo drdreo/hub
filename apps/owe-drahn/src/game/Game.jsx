@@ -1,8 +1,8 @@
-import {useEffect, useRef, useState} from "react";
-import {useDispatch, useSelector} from "react-redux";
+import { useEffect, useRef, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 
 import diceRoller from "dice-roller-3d";
-import {Howl} from "howler";
+import { Howl } from "howler";
 import yourTurnAudio from "../assets/sounds/your_turn.mp3";
 
 import Player from "./Player/Player";
@@ -11,26 +11,30 @@ import Feed from "./Feed/Feed";
 import Settings from "../settings/Settings";
 import RolledDice from "./RolledDice/RolledDice.jsx";
 
-import {chooseNextPlayer, loseLife, ready, rollDice} from "../socket/socket.actions";
-import {animatedDice} from "./game.actions";
-import {feedMessage} from "./Feed/feed.actions";
+import {
+    chooseNextPlayer,
+    loseLife,
+    ready,
+    rollDice
+} from "../socket/socket.actions";
+import { animatedDice } from "./game.actions";
+import { feedMessage } from "./Feed/feed.actions";
 
 import "./Game.scss";
 import RollButton from "./RollButton/RollButton";
 import GameInfo from "./GameInfo/GameInfo";
-import {useNavigate, useParams} from "react-router-dom";
-import {useGameConnection} from "./useGameConnection.js";
-
+import { useNavigate, useParams } from "react-router-dom";
+import { useGameConnection } from "./useGameConnection.js";
 
 const MIN_VAL_TO_OWE_DRAHN = 10;
 
 const Game = () => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
-    const {room} = useParams();
+    const { room } = useParams();
     useGameConnection(room);
 
-    const settings = useSelector(state => state.settings);
+    const settings = useSelector((state) => state.settings);
     const {
         diceRoll,
         currentValue,
@@ -40,7 +44,7 @@ const Game = () => {
         started,
         over,
         error
-    } = useSelector(state => state.game);
+    } = useSelector((state) => state.game);
 
     const [animatingDice, setAnimatingDice] = useState(false);
     const [animatingHeart, setAnimatingHeart] = useState(false);
@@ -48,14 +52,15 @@ const Game = () => {
     const diceRef = useRef(null);
     const sfx = {
         yourTurn: {
-            played: false, audio: new Howl({src: [yourTurnAudio]})
+            played: false,
+            audio: new Howl({ src: [yourTurnAudio] })
         }
     };
 
     const getPlayer = () => {
         const currentPlayerId = localStorage.getItem("playerId");
-        return players.find(player => player.id === currentPlayerId);
-    }
+        return players.find((player) => player.id === currentPlayerId);
+    };
 
     const player = getPlayer();
     const isChoosing = player && player.isPlayersTurn && player.choosing;
@@ -63,27 +68,26 @@ const Game = () => {
     useEffect(() => {
         if (!diceRoll || animatingDice) return;
 
-        animateDice(diceRoll.dice, diceRoll.total)
-            .then(() => {
-                let msg;
-                if (diceRoll.total > 15) {
-                    msg = {
-                        type: "LOST",
-                        username: diceRoll.player.username,
-                        dice: diceRoll.dice,
-                        total: diceRoll.total
-                    };
-                } else if (!over) {
-                    msg = {
-                        type: "ROLLED_DICE",
-                        username: diceRoll.player.username,
-                        dice: diceRoll.dice,
-                        total: diceRoll.total
-                    };
-                }
+        animateDice(diceRoll.dice, diceRoll.total).then(() => {
+            let msg;
+            if (diceRoll.total > 15) {
+                msg = {
+                    type: "LOST",
+                    username: diceRoll.player.username,
+                    dice: diceRoll.dice,
+                    total: diceRoll.total
+                };
+            } else if (!over) {
+                msg = {
+                    type: "ROLLED_DICE",
+                    username: diceRoll.player.username,
+                    dice: diceRoll.dice,
+                    total: diceRoll.total
+                };
+            }
 
-                dispatch(feedMessage(msg));
-            });
+            dispatch(feedMessage(msg));
+        });
     }, [diceRoll]);
 
     useEffect(() => {
@@ -94,7 +98,11 @@ const Game = () => {
 
         if (!animatingDice) {
             // If it's the player's turn and the sound hasn't played yet, play it
-            if (player.isPlayersTurn && !player.choosing && !sfx.yourTurn.played) {
+            if (
+                player.isPlayersTurn &&
+                !player.choosing &&
+                !sfx.yourTurn.played
+            ) {
                 sfx.yourTurn.played = true;
                 sfx.yourTurn.audio.play();
             }
@@ -106,7 +114,6 @@ const Game = () => {
         }
     }, [player, animatingDice, settings.sound.enabled]);
 
-
     useEffect(() => {
         if (!error) {
             return;
@@ -115,7 +122,7 @@ const Game = () => {
         switch (error.code) {
             case "NO_GAME": {
                 const timer = setTimeout(() => {
-                    navigate('/');
+                    navigate("/");
                 }, 2000);
                 return () => clearTimeout(timer);
             }
@@ -136,7 +143,7 @@ const Game = () => {
     const handleReady = () => {
         const isReady = !getPlayer().ready;
         dispatch(ready(isReady));
-    }
+    };
 
     const handleRollDice = () => {
         const player = getPlayer();
@@ -149,11 +156,15 @@ const Game = () => {
             }
             dispatch(rollDice());
         }
-    }
+    };
 
     const handleLoseLife = () => {
         const player = getPlayer();
-        if (player.isPlayersTurn && player.life > 1 && currentValue >= MIN_VAL_TO_OWE_DRAHN) {
+        if (
+            player.isPlayersTurn &&
+            player.life > 1 &&
+            currentValue >= MIN_VAL_TO_OWE_DRAHN
+        ) {
             if (!animatingHeart) {
                 setAnimatingHeart(true);
                 // remove the animation class after some arbitrary time. Player won't trigger this again soon
@@ -163,14 +174,14 @@ const Game = () => {
             }
             dispatch(loseLife());
         }
-    }
+    };
 
     const handleChooseNextPlayer = (playerId) => {
         const player = getPlayer();
         if (player.isPlayersTurn && player.choosing) {
             dispatch(chooseNextPlayer(playerId));
         }
-    }
+    };
 
     const animateDice = (dice, total) => {
         setAnimatingDice(true);
@@ -182,14 +193,14 @@ const Game = () => {
                 delay: 1250,
                 callback: () => {
                     setAnimatingDice(false);
-                    dispatch(animatedDice({dice, total}));
+                    dispatch(animatedDice({ dice, total }));
                     resolve();
                 },
                 values: [dice],
                 noSound: !settings.sound.enabled
             });
         });
-    }
+    };
 
     const getPlayerPosition = (index, totalPlayers) => {
         const vw = Math.min(window.innerWidth, window.innerHeight);
@@ -204,7 +215,7 @@ const Game = () => {
             rotate(-${degrees}deg)
             `
         };
-    }
+    };
 
     // maybe is spectator
     let controls;
@@ -216,51 +227,73 @@ const Game = () => {
                 if (players.length === 1) {
                     controlButton = "Waiting for Players";
                 } else {
-                    controlButton = <button className={`button ${player.ready ? "success" : "primary"}`}
-                                            onClick={() => handleReady()}>Ready</button>;
+                    controlButton = (
+                        <button
+                            className={`button ${
+                                player.ready ? "success" : "primary"
+                            }`}
+                            onClick={() => handleReady()}
+                        >
+                            Ready
+                        </button>
+                    );
                 }
             }
 
             if (started || animatingDice) {
                 const isWaiting = !player.isPlayersTurn || animatingDice;
 
-                controlButton = (<div style={{display: "flex"}} className={`${isWaiting ? "waiting" : ""}`}>
-                    <RollButton rolling={isRolling} disabled={isWaiting} onClick={handleRollDice}/>
-                    <LifeLoseBtn animating={animatingHeart}
-                                 disabled={isWaiting || player.life <= 1 || ui_currentValue < MIN_VAL_TO_OWE_DRAHN}
-                                 onClick={handleLoseLife}/>
-                </div>);
+                controlButton = (
+                    <div
+                        style={{ display: "flex" }}
+                        className={`${isWaiting ? "waiting" : ""}`}
+                    >
+                        <RollButton
+                            rolling={isRolling}
+                            disabled={isWaiting}
+                            onClick={handleRollDice}
+                        />
+                        <LifeLoseBtn
+                            animating={animatingHeart}
+                            disabled={
+                                isWaiting ||
+                                player.life <= 1 ||
+                                ui_currentValue < MIN_VAL_TO_OWE_DRAHN
+                            }
+                            onClick={handleLoseLife}
+                        />
+                    </div>
+                );
             }
-            controls = (<div className="controls">{controlButton}</div>);
+            controls = <div className="controls">{controlButton}</div>;
         }
     }
 
     return (
         <div className="page-container">
-            <RolledDice/>
+            <RolledDice />
 
             {controls}
 
             <div className="players-list">
-                {ui_players.map((player, index) =>
-                    <Player player={player}
-                            started={started}
-                            choosing={isChoosing}
-                            key={player.id}
-                            style={getPlayerPosition(index, players.length)}
-                            onClick={() => handleChooseNextPlayer(player.id)}/>
-                )}
+                {ui_players.map((player, index) => (
+                    <Player
+                        player={player}
+                        started={started}
+                        choosing={isChoosing}
+                        key={player.id}
+                        style={getPlayerPosition(index, players.length)}
+                        onClick={() => handleChooseNextPlayer(player.id)}
+                    />
+                ))}
             </div>
 
-
-            <div className="dice" ref={diceRef}/>
-            <Feed/>
-            <Settings className="settings"/>
-            <GameInfo/>
-
+            <div className="dice" ref={diceRef} />
+            <Feed />
+            <Settings className="settings" />
+            <GameInfo />
         </div>
     );
-}
-
+};
 
 export default Game;

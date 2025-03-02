@@ -6,7 +6,9 @@
         "targets": {
             "deploy": {
                 "executor": "nx:run-commands",
-                "dependsOn": ["build"],
+                "dependsOn": [
+                    "build"
+                ],
                 "inheritEnvironment": true,
                 "options": {
                     "parallel": false

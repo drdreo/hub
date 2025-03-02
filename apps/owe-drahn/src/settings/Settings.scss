@@ -73,16 +73,16 @@ $menu-color: #fff;
     width: 50px;
 }
 
-
 #Speaker {
-
     &:hover {
-        path, line {
+        path,
+        line {
             stroke: color.adjust(white, $alpha: -0.7);
         }
     }
 
-    path, line {
+    path,
+    line {
         fill: none;
         stroke: #000000;
         stroke-width: 3;
@@ -106,7 +106,8 @@ $menu-color: #fff;
         }
 
         &:hover {
-            path, line {
+            path,
+            line {
                 stroke: color.adjust(white, $alpha: -0.7);
             }
         }
@@ -114,8 +115,8 @@ $menu-color: #fff;
 }
 
 #Feed {
-
-    path, line {
+    path,
+    line {
         fill: none;
         stroke: #000000;
         stroke-width: 2;
@@ -124,7 +125,8 @@ $menu-color: #fff;
     }
 
     &:hover {
-        path, line {
+        path,
+        line {
             stroke: color.adjust(white, $alpha: -0.7);
         }
     }
@@ -139,13 +141,15 @@ $menu-color: #fff;
         }
 
         .messages {
-            path, line {
+            path,
+            line {
                 stroke: color.adjust(white, $alpha: -0.7);
             }
         }
 
         &:hover {
-            path, line {
+            path,
+            line {
                 stroke: color.adjust(white, $alpha: -0.7);
             }
         }

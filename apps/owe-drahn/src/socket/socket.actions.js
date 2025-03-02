@@ -7,7 +7,7 @@ export const PLAYER_CHOOSE_NEXT = "PLAYER_CHOOSE_NEXT";
 export const handshake = (room, uid) => {
     return {
         type: CONNECTION_HANDSHAKE,
-        payload: {room, uid}
+        payload: { room, uid }
     };
 };
 
@@ -36,4 +36,3 @@ export const chooseNextPlayer = (playerId) => {
         payload: playerId
     };
 };
-

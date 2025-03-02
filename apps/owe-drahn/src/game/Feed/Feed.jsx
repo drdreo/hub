@@ -1,18 +1,17 @@
-import {Component, createRef} from "react";
-import {connect} from "react-redux";
+import { Component, createRef } from "react";
+import { connect } from "react-redux";
 
 import FeedMessage from "./FeedMessage/FeedMessage";
 import "./Feed.scss";
 
 class Feed extends Component {
-
     constructor(props) {
         super(props);
         this.feedRef = createRef();
     }
 
     render() {
-        const {messages, enabled} = this.props;
+        const { messages, enabled } = this.props;
 
         if (!enabled) {
             return null;
@@ -25,9 +24,9 @@ class Feed extends Component {
         }
         return (
             <div className="feed" ref={this.feedRef}>
-                {messages.map((message, key) =>
-                    <FeedMessage message={message} key={key}/>
-                )}
+                {messages.map((message, key) => (
+                    <FeedMessage message={message} key={key} />
+                ))}
             </div>
         );
     }
@@ -38,7 +37,7 @@ class Feed extends Component {
 }
 
 const mapStateToProps = (state) => {
-    return {...state.feed, enabled: state.settings.feed.enabled};
+    return { ...state.feed, enabled: state.settings.feed.enabled };
 };
 
 export default connect(mapStateToProps)(Feed);

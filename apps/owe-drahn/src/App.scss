@@ -17,9 +17,8 @@
     }
 }
 
-
 .button {
-    padding: .75rem;
+    padding: 0.75rem;
     box-sizing: border-box;
 
     outline: none;
@@ -30,12 +29,15 @@
     font-size: 1rem;
     color: white;
     background-color: utils.$button-background-color;
-    transition: background-color .17s ease, color .17s ease;
+    transition: background-color 0.17s ease, color 0.17s ease;
 
-    &:hover, &:focus {
-        background-color: color.adjust(utils.$button-background-color, $alpha: -0.1); //#677bc4
+    &:hover,
+    &:focus {
+        background-color: color.adjust(
+            utils.$button-background-color,
+            $alpha: -0.1
+        ); //#677bc4
     }
-
 
     &[disabled] {
         background-color: gray;
@@ -50,7 +52,8 @@
         color: #080808;
         background-color: utils.$gray;
 
-        &:hover, &:focus {
+        &:hover,
+        &:focus {
             background-color: color.adjust(utils.$gray, $alpha: -0.1);
         }
     }
@@ -59,7 +62,8 @@
         color: white;
         background-color: utils.$success-color;
 
-        &:hover, &:focus {
+        &:hover,
+        &:focus {
             background-color: color.adjust(utils.$success-color, $alpha: -0.1);
         }
     }
@@ -68,12 +72,12 @@
         color: #080808;
         background-color: utils.$danger-color;
 
-        &:hover, &:focus {
+        &:hover,
+        &:focus {
             background-color: color.adjust(utils.$danger-color, $alpha: -0.1);
         }
     }
 }
-
 
 button {
     &.link {

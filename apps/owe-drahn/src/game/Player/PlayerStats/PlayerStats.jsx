@@ -1,9 +1,9 @@
 import "./PlayerStats.scss";
 
-const PlayerStats = ({username, stats}) => {
+const PlayerStats = ({ username, stats }) => {
     const highlightStats = {
         "Win Rate": `${Math.round((stats.wins / stats.totalGames) * 100)}%`,
-        "Games": stats.totalGames,
+        Games: stats.totalGames,
         "Dice Rolled": stats.rolledDice.reduce((a, b) => a + b, 0),
         "Max Life Loss": stats.maxLifeLoss,
         "Headshot (6 @9)": stats.perfectRoll,
@@ -14,9 +14,7 @@ const PlayerStats = ({username, stats}) => {
 
     return (
         <div className="stats-tooltip">
-            <div className="username">
-                {username}
-            </div>
+            <div className="username">{username}</div>
             <div className="stats-grid">
                 {Object.entries(highlightStats).map(([label, value]) => (
                     <div key={label} className="stat-item">
@@ -25,7 +23,6 @@ const PlayerStats = ({username, stats}) => {
                     </div>
                 ))}
             </div>
-
         </div>
     );
 };

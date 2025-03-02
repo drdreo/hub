@@ -1,6 +1,5 @@
 import { TOGGLE_FEED, TOGGLE_SOUND } from "./settings.actions";
 
-
 const storedSettings = JSON.parse(localStorage.getItem("settings"));
 
 let initialState = storedSettings ?? {
@@ -11,7 +10,6 @@ let initialState = storedSettings ?? {
         enabled: true
     }
 };
-
 
 const settingsReducer = (state = initialState, action) => {
     switch (action.type) {

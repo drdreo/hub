@@ -1,6 +1,6 @@
-import {useState} from "react";
+import { useState } from "react";
 
-import {useFirebase} from "../Firebase";
+import { useFirebase } from "../Firebase";
 
 const ERROR_CODE_ACCOUNT_EXISTS =
     "auth/account-exists-with-different-credential";
@@ -12,8 +12,7 @@ const ERROR_MSG_ACCOUNT_EXISTS = `
   your personal account page.
 `;
 
-
-const SignInGoogle = ({className}) => {
+const SignInGoogle = ({ className }) => {
     const [error, setError] = useState(null);
     const firebase = useFirebase();
 
@@ -22,7 +21,9 @@ const SignInGoogle = ({className}) => {
 
         try {
             const socialAuthUser = await firebase.doSignInWithGoogle();
-            const additionalUserInfo = await firebase.getAdditionalUserInfo(socialAuthUser);
+            const additionalUserInfo = await firebase.getAdditionalUserInfo(
+                socialAuthUser
+            );
 
             if (additionalUserInfo.isNewUser) {
                 await firebase.user(socialAuthUser.user.uid).set({
@@ -45,7 +46,9 @@ const SignInGoogle = ({className}) => {
 
     return (
         <form onSubmit={onSubmit} className={className}>
-            <button type="submit" className="button">Sign In</button>
+            <button type="submit" className="button">
+                Sign In
+            </button>
             {error && <p>{error.message}</p>}
         </form>
     );

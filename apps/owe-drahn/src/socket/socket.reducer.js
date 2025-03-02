@@ -10,18 +10,22 @@ import {
 const SERVER_URL = import.meta.env.VITE_DOMAIN;
 
 const io = socketIOClient(SERVER_URL, {
-    transports: ['websocket'],
+    transports: ["websocket"],
     withCredentials: true
 });
 
-const initialState = {socket: io};
+const initialState = { socket: io };
 const socketReducer = (state = initialState, action) => {
     switch (action.type) {
         case "GAME_RESET":
             state.socket.emit("leave");
             return state;
         case CONNECTION_HANDSHAKE:
-            state.socket.emit("handshake", {playerId: localStorage.getItem("playerId"), room: action.payload.room, uid: action.payload.uid});
+            state.socket.emit("handshake", {
+                playerId: localStorage.getItem("playerId"),
+                room: action.payload.room,
+                uid: action.payload.uid
+            });
             return state;
         case PLAYER_READY:
             state.socket.emit("ready", action.payload);

@@ -67,7 +67,6 @@ export const playerLost = (data) => {
     };
 };
 
-
 export const rolledDice = (data) => {
     return {
         type: ROLLED_DICE,

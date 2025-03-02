@@ -1,10 +1,10 @@
-import {ADD_FEED_MESSAGE} from "./feed.actions";
+import { ADD_FEED_MESSAGE } from "./feed.actions";
 
-const initialState = {enabled: true, messages: []};
+const initialState = { enabled: true, messages: [] };
 const feedReducer = (state = initialState, action) => {
     switch (action.type) {
         case "GAME_RESET":
-            return {...state, ...initialState};
+            return { ...state, ...initialState };
         case ADD_FEED_MESSAGE:
             return {
                 ...state,
