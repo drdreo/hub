@@ -16,7 +16,7 @@
                 "configurations": {
                     "production": {
                         "commands": [
-                            "wrangler pages deploy dist/apps/{projectName}/browser --project-name={projectName} --branch=$NX_BRANCH --commit-dirty=true"
+                            "wrangler pages deploy apps/{projectName}/dist --project-name={projectName} --branch=$NX_BRANCH --commit-dirty=true"
                         ]
                     }
                 },
