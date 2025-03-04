@@ -42,6 +42,7 @@
         "@nx/eslint": "20.4.6",
         "@nx/eslint-plugin": "20.4.6",
         "@nx/js": "20.4.6",
+        "@nx/nest": "20.4.6",
         "@nx/react": "20.4.6",
         "@nx/vite": "20.4.6",
         "@nx/web": "20.4.6",

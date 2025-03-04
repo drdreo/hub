@@ -5,6 +5,9 @@
     "references": [
         {
             "path": "./apps/owe-drahn"
+        },
+        {
+            "path": "./apps/owe-drahn-api"
         }
     ]
 }
