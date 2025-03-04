@@ -87,9 +87,9 @@ export class SocketGateway implements OnModuleDestroy, OnGatewayConnection, OnGa
         }
     }
 
-    private getClient(socket: Socket)  {
+    private getClient(socket: Socket) {
         const client = this.clients.get(socket.id);
-        if(!client) {
+        if (!client) {
             throw new Error(`Client not found for socket[${socket.id}]`);
         }
         return client;

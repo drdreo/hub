@@ -169,7 +169,7 @@ export class Game {
     chooseNextPlayer(playerId: string, nextPlayerId: string) {
         const currentPlayer = this.getCurrentPlayer();
         const nextPlayer = this.getPlayer(nextPlayerId);
-        if(!nextPlayer) {
+        if (!nextPlayer) {
             this.sendGameError({
                 code: GameErrorCode.NO_PLAYER,
                 message: "You are not part of this game!"
@@ -242,7 +242,7 @@ export class Game {
 
     rollDice(playerId: string) {
         const player = this.getPlayer(playerId);
-        if(!player) {
+        if (!player) {
             throw new Error("Player not found");
         }
         if (this.isPlayersTurn(playerId)) {
