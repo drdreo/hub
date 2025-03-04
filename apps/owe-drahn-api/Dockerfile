@@ -14,7 +14,7 @@ WORKDIR /app
 RUN addgroup --system owe-drahn-api && \
           adduser --system -G owe-drahn-api owe-drahn-api
 
-COPY apps/owe-drahn-api owe-drahn-api/
+COPY apps/owe-drahn-api/dist owe-drahn-api/
 RUN chown -R owe-drahn-api:owe-drahn-api .
 
 # You can remove this install step if you build with `--bundle` option.
