@@ -7,6 +7,21 @@
         "projectType": "application",
         "sourceRoot": "apps/owe-drahn/src",
         "targets": {
+            "build": {
+                "executor": "@nx/vite:build",
+                "options": {
+                    "outputPath": "apps/{projectName}/dist"
+                },
+                "configurations": {
+                    "development": {
+                        "mode": "development"
+                    },
+                    "production": {
+                        "mode": "production"
+                    }
+                },
+                "defaultConfiguration": "production"
+            },
             "deploy": {
                 "executor": "nx:run-commands",
                 "dependsOn": [
