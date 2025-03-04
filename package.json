@@ -39,6 +39,7 @@
         "vite": "^6.1.0"
     },
     "devDependencies": {
+        "@nestjs/schematics": "^10.0.1",
         "@nx/eslint": "20.4.6",
         "@nx/eslint-plugin": "20.4.6",
         "@nx/js": "20.4.6",
