@@ -9,6 +9,10 @@ on:
 permissions:
     actions: read
     contents: read
+    deployments: write
+    packages: write
+    attestations: write
+    id-token: write
 
 jobs:
     main:
@@ -51,8 +55,11 @@ jobs:
 
             - name: "nx: affected deploy"
               env:
-                  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
                   CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+                  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                   NX_BRANCH: ${{ github.head_ref || github.ref_name }}
+                  RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+                  SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
               shell: bash
               run: pnpm exec nx affected -t deploy --configuration=${{ env.is-master == 'true' && 'production' || 'staging' }}

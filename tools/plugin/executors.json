@@ -1,0 +1,9 @@
+{
+    "executors": {
+        "deploy-docker": {
+            "implementation": "./dist/executors/deploy-docker",
+            "schema": "./dist/executors/schema.json",
+            "description": "deploy-docker executor"
+        }
+    }
+}

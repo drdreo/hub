@@ -71,7 +71,12 @@
     ],
     "targetDefaults": {
         "test": {
-            "dependsOn": ["^build"]
+            "dependsOn": ["^build", "^build"]
+        },
+        "@nx/js:tsc": {
+            "cache": true,
+            "dependsOn": ["^build"],
+            "inputs": ["production", "^production"]
         }
     },
     "generators": {

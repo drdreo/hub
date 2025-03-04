@@ -1,0 +1,18 @@
+{
+    "$schema": "https://json-schema.org/schema",
+    "version": 2,
+    "title": "DeployDocker executor",
+    "description": "",
+    "type": "object",
+    "properties": {
+        "dockerFile": {
+            "type": "string",
+            "description": "Path to the docker file to use"
+        },
+        "serviceName": {
+            "type": "string",
+            "description": "Name of the service to deploy"
+        }
+    },
+    "required": []
+}

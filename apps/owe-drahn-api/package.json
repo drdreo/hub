@@ -53,22 +53,17 @@
                 }
             },
             "deploy": {
-                "executor": "nx:run-commands",
+                "executor": "@hub/plugin:deploy-docker",
                 "dependsOn": [
                     "build"
                 ],
-                "inheritEnvironment": true,
                 "options": {
-                    "parallel": false
-                },
-                "configurations": {
-                    "production": {
-                        "commands": [
-                            "echo 'Deploying API'"
-                        ]
-                    }
-                },
-                "defaultConfiguration": "production"
+                    "serviceName": "Owe Drahn",
+                    "redeploy": true
+                }
+            },
+            "docker-build": {
+                "command": "docker build -f apps/owe-drahn-api/Dockerfile . -t owe-drahn-api"
             }
         }
     }
