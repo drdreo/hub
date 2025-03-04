@@ -27,16 +27,16 @@ export interface GameUpdate {
 
 export class Game {
     private players: Player[] = [];
-    started: boolean = false;
-    private over: boolean = false;
-    private currentValue: number = 0;
+    started = false;
+    private over = false;
+    private currentValue = 0;
 
     private rolls: Rolls[] = [];
     private _command$ = new Subject<Command>();
     command$ = this._command$.asObservable();
 
-    startedAt: Date;
-    finishedAt: Date;
+    startedAt: Date | undefined;
+    finishedAt: Date | undefined;
 
     constructor() {
         this.init();
@@ -59,7 +59,7 @@ export class Game {
         this.players.push(new Player(id, username));
     }
 
-    private getPlayer(playerId: string): Player {
+    private getPlayer(playerId: string): Player | undefined {
         return this.players.find(player => player.id === playerId);
     }
 
@@ -106,8 +106,8 @@ export class Game {
         return this.rolls;
     }
 
-    isPlayerConnected(playerId: string) {
-        return this.getPlayer(playerId).connected;
+    isPlayerConnected(playerId: string): boolean {
+        return !!this.getPlayer(playerId)?.connected;
     }
 
     getGameUpdate(): GameUpdate {
@@ -146,7 +146,7 @@ export class Game {
         this._command$.next({ eventName: "gameError", data: error });
     }
 
-    sendPlayerUpdate(updateUI: boolean = false) {
+    sendPlayerUpdate(updateUI = false) {
         this._command$.next({
             eventName: "playerUpdate",
             data: { players: this.players, updateUI }
@@ -164,11 +164,18 @@ export class Game {
      *  2. He is choosing. Is set after he "drahs owe"
      *  3. Chose Player is still alive. (prevent choosing of already lost players)
      * @param playerId - The player who chooses the next one.
-     * @param nextPlayerId - The chosen palyerId.
+     * @param nextPlayerId - The chosen playerId.
      */
     chooseNextPlayer(playerId: string, nextPlayerId: string) {
         const currentPlayer = this.getCurrentPlayer();
         const nextPlayer = this.getPlayer(nextPlayerId);
+        if(!nextPlayer) {
+            this.sendGameError({
+                code: GameErrorCode.NO_PLAYER,
+                message: "You are not part of this game!"
+            });
+            return;
+        }
         if (currentPlayer.id === playerId && currentPlayer.choosing && nextPlayer.life > 0) {
             currentPlayer.isPlayersTurn = false;
             nextPlayer.isPlayersTurn = true;
@@ -235,6 +242,9 @@ export class Game {
 
     rollDice(playerId: string) {
         const player = this.getPlayer(playerId);
+        if(!player) {
+            throw new Error("Player not found");
+        }
         if (this.isPlayersTurn(playerId)) {
             const dice = random(1, 6);
             // Rule of 3, doesn't count

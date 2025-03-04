@@ -43,7 +43,7 @@ export interface SocketMessage {
 })
 export class SocketGateway implements OnModuleDestroy, OnGatewayConnection, OnGatewayDisconnect {
     @WebSocketServer()
-    server: Server;
+    server!: Server;
 
     clients: Map<string, Handshake> = new Map();
 
@@ -87,8 +87,12 @@ export class SocketGateway implements OnModuleDestroy, OnGatewayConnection, OnGa
         }
     }
 
-    private getClient(socket: Socket) {
-        return this.clients.get(socket.id);
+    private getClient(socket: Socket)  {
+        const client = this.clients.get(socket.id);
+        if(!client) {
+            throw new Error(`Client not found for socket[${socket.id}]`);
+        }
+        return client;
     }
 
     private removeClient(socketId: string): boolean {
@@ -169,18 +173,4 @@ export class SocketGateway implements OnModuleDestroy, OnGatewayConnection, OnGa
         const { room, playerId } = this.getClient(socket);
         this.socketService.chooseNextPlayer(room, playerId, nextPlayerId);
     }
-
-    // removeListener(socket) {
-    //     const gameEvents = [
-    //         'loseLife',
-    //         'rollDice',
-    //         'leave',
-    //         'disconnect',
-    //         'ready',
-    //         'chooseNextPlayer'
-    //     ];
-    //     for (const event of gameEvents) {
-    //         socket.removeAllListeners(event);
-    //     }
-    // }
 }
