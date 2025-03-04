@@ -8,7 +8,50 @@
         "sentry:sourcemaps": "sentry-cli sourcemaps inject --org drdreo --project owe-drahn-server ./dist && sentry-cli sourcemaps upload --org drdreo --project owe-drahn-server ./dist"
     },
     "nx": {
+        "name": "owe-drahn-api",
+        "projectType": "application",
+        "sourceRoot": "apps/owe-drahn-api/src",
         "targets": {
+            "build": {
+                "executor": "nx:run-commands",
+                "options": {
+                    "command": "webpack-cli build",
+                    "args": [
+                        "node-env=production"
+                    ]
+                },
+                "configurations": {
+                    "development": {
+                        "args": [
+                            "node-env=development"
+                        ]
+                    }
+                }
+            },
+            "serve": {
+                "executor": "@nx/js:node",
+                "defaultConfiguration": "development",
+                "dependsOn": [
+                    "build"
+                ],
+                "options": {
+                    "buildTarget": "owe-drahn-api:build",
+                    "runBuildTargetDependencies": false
+                },
+                "configurations": {
+                    "development": {
+                        "buildTarget": "owe-drahn-api:build:development"
+                    },
+                    "production": {
+                        "buildTarget": "owe-drahn-api:build:production"
+                    }
+                }
+            },
+            "test": {
+                "options": {
+                    "passWithNoTests": true
+                }
+            },
             "deploy": {
                 "executor": "nx:run-commands",
                 "dependsOn": [

@@ -1,11 +1,11 @@
-import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
-import { Command } from '../Command';
-import { GameUpdate } from '../Game';
+import { Injectable, Logger, OnModuleDestroy } from "@nestjs/common";
+import { Subject } from "rxjs";
+import { takeUntil } from "rxjs/operators";
+import { Command } from "../Command";
+import { GameUpdate } from "../Game";
 
-import { GameService } from '../game.service';
-import { SocketMessage } from './socket.gateway';
+import { GameService } from "../game.service";
+import { SocketMessage } from "./socket.gateway";
 
 @Injectable()
 export class SocketService implements OnModuleDestroy {
@@ -16,11 +16,11 @@ export class SocketService implements OnModuleDestroy {
     private logger = new Logger(SocketService.name);
 
     constructor(private readonly gameService: GameService) {
-        this.logger.log('constructed!');
+        this.logger.log("constructed!");
 
         this.gameService.events$.subscribe(({ eventName }) => {
             switch (eventName) {
-                case 'gameRemoved':
+                case "gameRemoved":
                     this.sendGameOverview();
                     break;
             }
@@ -30,7 +30,7 @@ export class SocketService implements OnModuleDestroy {
     onModuleDestroy() {
         this.unsubscribe$.next();
         this.unsubscribe$.complete();
-        this.logger.log('destroyed!');
+        this.logger.log("destroyed!");
     }
 
     broadcast(eventName: string, data?: unknown) {
@@ -51,7 +51,7 @@ export class SocketService implements OnModuleDestroy {
             .pipe(takeUntil(this.unsubscribe$))
             .subscribe((command: Command) => {
                 // when we remove the game, update the home overview of all clients
-                if (command.eventName === 'gameRemoved') {
+                if (command.eventName === "gameRemoved") {
                     this.sendGameOverview();
                 }
                 this.emitToRoom(room, command.eventName, command.data);
@@ -120,6 +120,6 @@ export class SocketService implements OnModuleDestroy {
 
     sendGameOverview() {
         const overview = this.gameService.getGamesOverview();
-        this.broadcast('gameOverview', overview);
+        this.broadcast("gameOverview", overview);
     }
 }

@@ -1,25 +1,25 @@
-import {PlayerStats} from "./game.utils";
+import { PlayerStats } from "./game.utils";
 
 export type FormattedPlayer = {
     life: number;
     points: number;
-    uid: string | null;
+    uid?: string;
     username: string;
     rank: number;
-}
+};
 
 export class Player {
-    isPlayersTurn: boolean = false;
-    ready: boolean = false;
-    life: number = 6;
-    choosing: boolean = false;
-    points: number = 0;
-    connected: boolean = false;
+    isPlayersTurn = false;
+    ready = false;
+    life = 6;
+    choosing = false;
+    points = 0;
+    connected = false;
 
-    uid: string | null; // only set if User is logged in
-    rank: number = 0;
+    uid?: string; // only set if User is logged in
+    rank = 0;
 
-    get stats(): PlayerStats {
+    get stats(): PlayerStats | undefined {
         return this._stats;
     }
 
@@ -28,18 +28,15 @@ export class Player {
         this.rank = this.calculateRank(stats.totalGames);
     }
 
-    private _stats: PlayerStats; // only set if User is logged in
+    private _stats?: PlayerStats; // only set if User is logged in
 
-    constructor(
-        readonly id: string,
-        readonly username: string
-    ) {}
+    constructor(readonly id: string, readonly username: string) {}
 
     getFormattedPlayer(): FormattedPlayer {
         return {
             life: this.life,
             points: this.points,
-            uid: this.uid || null,
+            uid: this.uid,
             username: this.username,
             rank: this.rank
         };

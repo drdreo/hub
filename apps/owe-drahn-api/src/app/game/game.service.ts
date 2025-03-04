@@ -1,9 +1,9 @@
-import {Injectable, Logger} from '@nestjs/common';
-import { Game } from './Game';
-import {Observable, Subject} from 'rxjs';
-import { Command } from './Command';
-import { DBService } from '../db/db.service';
-import { tap } from 'rxjs/operators';
+import { Injectable, Logger } from "@nestjs/common";
+import { Game } from "./Game";
+import { Observable, Subject } from "rxjs";
+import { Command } from "./Command";
+import { DBService } from "../db/db.service";
+import { tap } from "rxjs/operators";
 
 interface Room {
     room: string;
@@ -20,10 +20,10 @@ export class GameService {
     private games = new Map<string, Game>();
     private logger = new Logger(GameService.name);
 
-    events$ = new Subject<{eventName: string, data?: unknown}>();
+    events$ = new Subject<{ eventName: string; data?: unknown }>();
 
     constructor(private readonly dbService: DBService) {
-        this.logger.log('constructed!');
+        this.logger.log("constructed!");
     }
 
     /**
@@ -74,9 +74,7 @@ export class GameService {
 
     isConnected(room: string, playerId: string): boolean {
         const game = this.getGame(room);
-        return (
-            game && game.isPlayer(playerId) && game.isPlayerConnected(playerId)
-        );
+        return game && game.isPlayer(playerId) && game.isPlayerConnected(playerId);
     }
 
     getGameUpdate(room: string) {
@@ -91,8 +89,8 @@ export class GameService {
     getGameCommand(room: string): Observable<Command> {
         const game = this.getGame(room);
         return game.command$.pipe(
-            tap((cmd) => {
-                if (cmd.eventName === 'gameOver') {
+            tap(cmd => {
+                if (cmd.eventName === "gameOver") {
                     this.dbService.storeGame(game);
                 }
             })
@@ -143,7 +141,7 @@ export class GameService {
             if (!game.hasPlayers()) {
                 this.logger.debug(`Removing game[${room}]`);
                 this.games.delete(room);
-                this.events$.next({ eventName: 'gameRemoved', data: room });
+                this.events$.next({ eventName: "gameRemoved", data: room });
             }
             return true;
         }

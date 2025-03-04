@@ -6,14 +6,14 @@ import {
     OnGatewayConnection,
     OnGatewayDisconnect,
     ConnectedSocket
-} from '@nestjs/websockets';
-import { Server, Socket } from 'socket.io';
-import { allowlist } from '../../allow-list';
-import { GameErrorCode } from '../GameError';
-import { SocketService } from './socket.service';
-import { takeUntil } from 'rxjs/operators';
-import { Subject } from 'rxjs';
-import { Logger, OnModuleDestroy } from '@nestjs/common';
+} from "@nestjs/websockets";
+import { Server, Socket } from "socket.io";
+import { allowlist } from "../../allow-list";
+import { GameErrorCode } from "../GameError";
+import { SocketService } from "./socket.service";
+import { takeUntil } from "rxjs/operators";
+import { Subject } from "rxjs";
+import { Logger, OnModuleDestroy } from "@nestjs/common";
 
 interface Handshake {
     playerId: string;
@@ -30,20 +30,18 @@ export interface SocketMessage {
 @WebSocketGateway({
     cors: {
         origin: (origin, callback) => {
-            console.log('Socket Origin:', origin);
+            console.log("Socket Origin:", origin);
             if (!origin || allowlist.includes(origin)) {
                 callback(null, true);
             } else {
-                callback(new Error('Not allowed by CORS'));
+                callback(new Error("Not allowed by CORS"));
             }
         },
         credentials: true
     },
-    transports: ['websocket']
+    transports: ["websocket"]
 })
-export class SocketGateway
-    implements OnModuleDestroy, OnGatewayConnection, OnGatewayDisconnect
-{
+export class SocketGateway implements OnModuleDestroy, OnGatewayConnection, OnGatewayDisconnect {
     @WebSocketServer()
     server: Server;
 
@@ -104,7 +102,7 @@ export class SocketGateway
         this.server.in(room).emit(eventName, data);
     }
 
-    @SubscribeMessage('handshake')
+    @SubscribeMessage("handshake")
     private async playerHandshake(
         @ConnectedSocket() socket: Socket,
         @MessageBody() handshakeData: Handshake
@@ -113,28 +111,26 @@ export class SocketGateway
 
         this.clients.set(socket.id, handshakeData);
         this.logger.log(
-            `New connection handshake from socket[${socket.id}] player[${playerId}] in room[${room}].${uid ? `LoggedIn[${uid}]` : ''}`
+            `New connection handshake from socket[${socket.id}] player[${playerId}] in room[${room}].${
+                uid ? `LoggedIn[${uid}]` : ""
+            }`
         );
 
-        const gameUpdate = await this.socketService.playerHandshake(
-            room,
-            playerId,
-            uid
-        );
+        const gameUpdate = await this.socketService.playerHandshake(room, playerId, uid);
         if (gameUpdate) {
             socket.join(room);
 
             // someone joined, update others
-            this.emitToRoom(room, 'gameUpdate', gameUpdate);
+            this.emitToRoom(room, "gameUpdate", gameUpdate);
         } else {
-            socket.emit('gameError', {
+            socket.emit("gameError", {
                 code: GameErrorCode.NO_GAME,
                 message: `Trying to join game[${room}], but does not exist!`
             });
         }
     }
 
-    @SubscribeMessage('leave')
+    @SubscribeMessage("leave")
     private leave(@ConnectedSocket() socket: Socket): void {
         const client = this.getClient(socket);
         if (!client) {
@@ -147,28 +143,25 @@ export class SocketGateway
         }
     }
 
-    @SubscribeMessage('ready')
-    private ready(
-        @ConnectedSocket() socket: Socket,
-        @MessageBody() ready: boolean
-    ): void {
+    @SubscribeMessage("ready")
+    private ready(@ConnectedSocket() socket: Socket, @MessageBody() ready: boolean): void {
         const { room, playerId } = this.getClient(socket);
         this.socketService.ready(room, playerId, ready);
     }
 
-    @SubscribeMessage('rollDice')
+    @SubscribeMessage("rollDice")
     private rollDice(@ConnectedSocket() socket: Socket): void {
         const { room, playerId } = this.getClient(socket);
         this.socketService.rollDice(room, playerId);
     }
 
-    @SubscribeMessage('loseLife')
+    @SubscribeMessage("loseLife")
     private loseLife(@ConnectedSocket() socket: Socket): void {
         const { room, playerId } = this.getClient(socket);
         this.socketService.loseLife(room, playerId);
     }
 
-    @SubscribeMessage('chooseNextPlayer')
+    @SubscribeMessage("chooseNextPlayer")
     private chooseNextPlayer(
         @ConnectedSocket() socket: Socket,
         @MessageBody() nextPlayerId: string

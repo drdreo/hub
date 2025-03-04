@@ -1,4 +1,4 @@
-import { FormattedGame, Game } from './Game';
+import { FormattedGame, Game } from "./Game";
 
 export interface PlayerStats {
     rolledDice: number[]; // amount of times rolled 1-6
@@ -11,7 +11,7 @@ export interface PlayerStats {
     maxLifeLoss: number; // losing with 6 life left
 }
 
-export type PlayerStatAggregation = Omit<PlayerStats, 'wins' | 'totalGames'> & {
+export type PlayerStatAggregation = Omit<PlayerStats, "wins" | "totalGames"> & {
     won: boolean;
 };
 
@@ -26,11 +26,8 @@ export const defaultStats: PlayerStats = {
     maxLifeLoss: 0
 };
 
-export function extractPlayerStats(
-    uid: string,
-    game: FormattedGame
-): PlayerStatAggregation {
-    console.log('extracting: ' + uid);
+export function extractPlayerStats(uid: string, game: FormattedGame): PlayerStatAggregation {
+    console.log("extracting: " + uid);
     const aggregation: PlayerStatAggregation = {
         rolledDice: [0, 0, 0, 0, 0, 0],
         won: false,
@@ -42,7 +39,7 @@ export function extractPlayerStats(
     };
 
     // aggregate all player rolls
-    const playerRolls = game.rolls.filter((roll) => roll.player.uid === uid);
+    const playerRolls = game.rolls.filter(roll => roll.player.uid === uid);
 
     // fail safe, if player didnt roll actually
     if (playerRolls.length === 0) {
@@ -50,9 +47,7 @@ export function extractPlayerStats(
     }
 
     // calculate if player won
-    aggregation.won = game.players.some(
-        (player) => player.uid === uid && player.life > 0
-    );
+    aggregation.won = game.players.some(player => player.uid === uid && player.life > 0);
 
     // extract statistics of rolled dice
     for (const roll of playerRolls) {
@@ -89,9 +84,7 @@ export function extractPlayerStats(
 }
 
 export function extractPlayerGames(uid: string, games: FormattedGame[]) {
-    return games.filter((game) =>
-        game.players.some((player) => player.uid === uid)
-    );
+    return games.filter(game => game.players.some(player => player.uid === uid));
 }
 
 export function extractPlayerRollsOfGames(uid: string, games: Game[]) {
@@ -110,10 +103,7 @@ export function extractPlayerRollsOfGames(uid: string, games: Game[]) {
     return playerRolls;
 }
 
-export function mergeStats(
-    oldStats: PlayerStats,
-    newStats: PlayerStatAggregation
-): PlayerStats {
+export function mergeStats(oldStats: PlayerStats, newStats: PlayerStatAggregation): PlayerStats {
     const stats = { ...oldStats };
     stats.perfectRoll += newStats.perfectRoll;
     stats.luckiestRoll += newStats.luckiestRoll;

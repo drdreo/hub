@@ -1,9 +1,9 @@
-import {FormattedPlayer, Player} from './Player';
-import { Subject } from 'rxjs';
-import { Command } from './Command';
-import { GameError, GameErrorCode } from './GameError';
-import { FirestoreDate } from '../db/db.service';
-import {PlayerStats} from "./game.utils";
+import { FormattedPlayer, Player } from "./Player";
+import { Subject } from "rxjs";
+import { Command } from "./Command";
+import { GameError, GameErrorCode } from "./GameError";
+import { FirestoreDate } from "../db/db.service";
+import { PlayerStats } from "./game.utils";
 
 export interface Rolls {
     player: FormattedPlayer;
@@ -46,7 +46,7 @@ export class Game {
         this.started = false;
         this.over = false;
         this.currentValue = 0;
-        this.players.map((player) => {
+        this.players.map(player => {
             player.isPlayersTurn = false;
             player.life = 6;
             player.ready = false;
@@ -60,25 +60,23 @@ export class Game {
     }
 
     private getPlayer(playerId: string): Player {
-        return this.players.find((player) => player.id === playerId);
+        return this.players.find(player => player.id === playerId);
     }
 
     private isPlayersTurn(playerId: string) {
-        return this.players.some(
-            (player) => player.id === playerId && player.isPlayersTurn
-        );
+        return this.players.some(player => player.id === playerId && player.isPlayersTurn);
     }
 
     private getCurrentPlayer(): Player {
-        return this.players.filter((player) => player.isPlayersTurn)[0];
+        return this.players.filter(player => player.isPlayersTurn)[0];
     }
 
     private isEveryoneReady() {
-        return this.players.every((player) => player.ready);
+        return this.players.every(player => player.ready);
     }
 
     isPlayer(playerId: string): boolean {
-        return this.players.some((player) => player.id === playerId);
+        return this.players.some(player => player.id === playerId);
     }
 
     hasPlayers() {
@@ -93,15 +91,15 @@ export class Game {
      * @returns the players with life left
      */
     getPlayersLeft(): Player[] {
-        return this.players.filter((player) => player.life > 0);
+        return this.players.filter(player => player.life > 0);
     }
 
     getRegisteredPlayers(): Player[] {
-        return this.players.filter((player) => player.uid);
+        return this.players.filter(player => player.uid);
     }
 
     getFormattedPlayers(): FormattedPlayer[] {
-        return this.players.map((player) => player.getFormattedPlayer());
+        return this.players.map(player => player.getFormattedPlayer());
     }
 
     getRolls(): Rolls[] {
@@ -128,35 +126,35 @@ export class Game {
 
     sendGameInit() {
         this._command$.next({
-            eventName: 'gameInit',
+            eventName: "gameInit",
             data: this.getGameUpdate()
         });
     }
 
     sendGameUpdate() {
         this._command$.next({
-            eventName: 'gameUpdate',
+            eventName: "gameUpdate",
             data: this.getGameUpdate()
         });
     }
 
     sendGameOver(winner: string) {
-        this._command$.next({ eventName: 'gameOver', data: winner });
+        this._command$.next({ eventName: "gameOver", data: winner });
     }
 
     sendGameError(error: GameError) {
-        this._command$.next({ eventName: 'gameError', data: error });
+        this._command$.next({ eventName: "gameError", data: error });
     }
 
     sendPlayerUpdate(updateUI: boolean = false) {
         this._command$.next({
-            eventName: 'playerUpdate',
+            eventName: "playerUpdate",
             data: { players: this.players, updateUI }
         });
     }
 
     sendPlayerLeft(username: string) {
-        this._command$.next({ eventName: 'playerLeft', data: username });
+        this._command$.next({ eventName: "playerLeft", data: username });
     }
 
     /**
@@ -171,11 +169,7 @@ export class Game {
     chooseNextPlayer(playerId: string, nextPlayerId: string) {
         const currentPlayer = this.getCurrentPlayer();
         const nextPlayer = this.getPlayer(nextPlayerId);
-        if (
-            currentPlayer.id === playerId &&
-            currentPlayer.choosing &&
-            nextPlayer.life > 0
-        ) {
+        if (currentPlayer.id === playerId && currentPlayer.choosing && nextPlayer.life > 0) {
             currentPlayer.isPlayersTurn = false;
             nextPlayer.isPlayersTurn = true;
             currentPlayer.choosing = false;
@@ -191,9 +185,7 @@ export class Game {
      * Determines if the game is over, when no players are left.
      */
     setNextPlayer(): void {
-        const currentPlayerIndex = this.players.findIndex(
-            (player) => player.isPlayersTurn
-        );
+        const currentPlayerIndex = this.players.findIndex(player => player.isPlayersTurn);
 
         // start of the game, nobodys turn
         if (currentPlayerIndex === -1) {
@@ -262,7 +254,7 @@ export class Game {
             }
 
             this._command$.next({
-                eventName: 'rolledDice',
+                eventName: "rolledDice",
                 data: { dice, player, total }
             });
 
@@ -274,7 +266,7 @@ export class Game {
         } else {
             this.sendGameError({
                 code: GameErrorCode.NOT_YOUR_TURN,
-                message: 'Not your turn!'
+                message: "Not your turn!"
             });
         }
     }
@@ -293,7 +285,7 @@ export class Game {
         } else {
             this.sendGameError({
                 code: GameErrorCode.NO_PLAYER,
-                message: 'You are not part of this game!'
+                message: "You are not part of this game!"
             });
         }
     }
@@ -305,15 +297,13 @@ export class Game {
         } else {
             this.sendGameError({
                 code: GameErrorCode.NO_PLAYER,
-                message: 'You are not part of this game!'
+                message: "You are not part of this game!"
             });
         }
     }
 
     leave(playerId: string) {
-        const playerIndex = this.players.findIndex(
-            (player) => player.id === playerId
-        );
+        const playerIndex = this.players.findIndex(player => player.id === playerId);
         if (playerIndex !== -1) {
             if (this.players.length > 2) {
                 // set new player, then remove the leaver and send update
@@ -342,38 +332,34 @@ export class Game {
             if (this.isEveryoneReady()) {
                 this.started = true;
                 this.startedAt = new Date();
-                this._command$.next({ eventName: 'gameStarted' });
+                this._command$.next({ eventName: "gameStarted" });
 
                 this.setNextPlayerRandom();
                 // reset everyones ready state for UI reasons
-                this.players.map((player) => (player.ready = false));
+                this.players.map(player => (player.ready = false));
             }
             // this.sendGameUpdate();
             this.sendPlayerUpdate(true);
         } else {
             this.sendGameError({
                 code: GameErrorCode.NO_PLAYER,
-                message: 'You are not part of this game!'
+                message: "You are not part of this game!"
             });
         }
     }
 
     loseLife(playerId: string) {
         const player = this.getPlayer(playerId);
-        if (
-            this.isPlayersTurn(playerId) &&
-            player.life > 1 &&
-            !player.choosing
-        ) {
+        if (this.isPlayersTurn(playerId) && player.life > 1 && !player.choosing) {
             player.life--;
             player.choosing = true;
             this.currentValue = 0;
             this.sendGameUpdate();
-            this._command$.next({ eventName: 'lostLife', data: { player } });
+            this._command$.next({ eventName: "lostLife", data: { player } });
         } else {
             this.sendGameError({
                 code: GameErrorCode.NOT_ALLOWED,
-                message: 'You arent allowed to owe drahn!'
+                message: "You arent allowed to owe drahn!"
             });
         }
     }

@@ -3,6 +3,9 @@
     "version": "2.0.1",
     "private": true,
     "nx": {
+        "name": "owe-drahn",
+        "projectType": "application",
+        "sourceRoot": "apps/owe-drahn/src",
         "targets": {
             "deploy": {
                 "executor": "nx:run-commands",
