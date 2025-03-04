@@ -49,15 +49,18 @@ async function loginToRegistry(registry: string, username: string) {
         throw new Error("GitHub credentials not found");
     }
 
+    logger.log(`Logging in to ${registry} as ${username}`);
     await asyncExec(`echo ${token} | docker login ${registry} -u ${username} --password-stdin`);
 }
 
 async function buildDockerImage(dockerFile: string, tag: string) {
+    logger.log(`Building docker image: ${dockerFile} -t ${tag}`);
     const buildCommand = `docker build -t ${tag} -f ${dockerFile} .`;
     await asyncExec(buildCommand);
 }
 
 async function pushDockerImage(image: string) {
+    logger.log(`Pushing docker image: ${image}`);
     await asyncExec(`docker push ${image}`);
 }
 
