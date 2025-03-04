@@ -26,7 +26,7 @@ export default defineConfig({
         sentryVitePlugin({
             org: "drdreo",
             project: "owe-drahn",
-            disable: !!process.env.VITEST
+            disable: process.env.NODE_ENV !== "production"
         })
     ],
     // Uncomment this if you are using workers.

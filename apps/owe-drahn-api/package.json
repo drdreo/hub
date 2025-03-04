@@ -8,24 +8,62 @@
         "sentry:sourcemaps": "sentry-cli sourcemaps inject --org drdreo --project owe-drahn-server ./dist && sentry-cli sourcemaps upload --org drdreo --project owe-drahn-server ./dist"
     },
     "nx": {
+        "name": "owe-drahn-api",
+        "projectType": "application",
+        "sourceRoot": "apps/owe-drahn-api/src",
         "targets": {
-            "deploy": {
+            "build": {
                 "executor": "nx:run-commands",
+                "options": {
+                    "command": "webpack-cli build",
+                    "args": [
+                        "node-env=production"
+                    ]
+                },
+                "configurations": {
+                    "development": {
+                        "args": [
+                            "node-env=development"
+                        ]
+                    }
+                }
+            },
+            "serve": {
+                "executor": "@nx/js:node",
+                "defaultConfiguration": "development",
                 "dependsOn": [
                     "build"
                 ],
-                "inheritEnvironment": true,
                 "options": {
-                    "parallel": false
+                    "buildTarget": "owe-drahn-api:build",
+                    "runBuildTargetDependencies": false
                 },
                 "configurations": {
+                    "development": {
+                        "buildTarget": "owe-drahn-api:build:development"
+                    },
                     "production": {
-                        "commands": [
-                            "echo 'Deploying API'"
-                        ]
+                        "buildTarget": "owe-drahn-api:build:production"
                     }
-                },
-                "defaultConfiguration": "production"
+                }
+            },
+            "test": {
+                "options": {
+                    "passWithNoTests": true
+                }
+            },
+            "deploy": {
+                "executor": "@hub/plugin:deploy-docker",
+                "dependsOn": [
+                    "build"
+                ],
+                "options": {
+                    "serviceName": "Owe Drahn",
+                    "redeploy": true
+                }
+            },
+            "docker-build": {
+                "command": "docker build -f apps/owe-drahn-api/Dockerfile . -t owe-drahn-api"
             }
         }
     }

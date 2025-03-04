@@ -8,6 +8,9 @@
         },
         {
             "path": "./apps/owe-drahn-api"
+        },
+        {
+            "path": "./tools/plugin"
         }
     ]
 }
