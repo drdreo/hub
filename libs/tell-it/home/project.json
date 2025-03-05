@@ -1,13 +1,16 @@
 {
     "name": "tell-it-home",
     "$schema": "../../../node_modules/nx/schemas/project-schema.json",
-    "projectType": "library",
     "sourceRoot": "libs/tell-it/home/src",
-    "prefix": "tell-it-app",
+    "prefix": "lib",
+    "projectType": "library",
+    "tags": [],
     "targets": {
         "test": {
             "executor": "@nx/jest:jest",
-            "outputs": ["{workspaceRoot}/coverage/libs/tell-it/home"],
+            "outputs": [
+                "{workspaceRoot}/coverage/{projectRoot}"
+            ],
             "options": {
                 "jestConfig": "libs/tell-it/home/jest.config.ts"
             }
@@ -15,6 +18,5 @@
         "lint": {
             "executor": "@nx/eslint:lint"
         }
-    },
-    "tags": ["scope:client type:feature"]
+    }
 }

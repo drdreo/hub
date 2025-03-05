@@ -1,10 +1,8 @@
-/* eslint-disable */
 export default {
     displayName: "tell-it-home",
-    preset: "../../../jest.preset.js",
+    preset: "../../jest.preset.js",
     setupFilesAfterEnv: ["<rootDir>/src/test-setup.ts"],
-    globals: {},
-    coverageDirectory: "../../../coverage/libs/tell-it/home",
+    coverageDirectory: "../../coverage/libs/tell-it/home",
     transform: {
         "^.+\\.(ts|mjs|js|html)$": [
             "jest-preset-angular",
