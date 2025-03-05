@@ -3,4 +3,3 @@ packages:
   - "packages/*"
   - "tools/*"
   - "libs/*"
-  - libs\tell-it\shared

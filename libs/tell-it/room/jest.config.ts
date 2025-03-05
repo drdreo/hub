@@ -1,8 +1,8 @@
 export default {
     displayName: "tell-it-room",
-    preset: "../../jest.preset.js",
+    preset: "../../../jest.preset.js",
     setupFilesAfterEnv: ["<rootDir>/src/test-setup.ts"],
-    coverageDirectory: "../../coverage/libs/tell-it/room",
+    coverageDirectory: "../../../coverage/libs/tell-it/room",
     transform: {
         "^.+\\.(ts|mjs|js|html)$": [
             "jest-preset-angular",

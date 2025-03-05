@@ -1,12 +1,12 @@
+import { provideHttpClient, withInterceptorsFromDi } from "@angular/common/http";
 import { enableProdMode, importProvidersFrom } from "@angular/core";
+import { bootstrapApplication, BrowserModule } from "@angular/platform-browser";
+import { provideRouter, Routes } from "@angular/router";
+import { API_URL_TOKEN } from "@tell-it/domain/tokens";
+import { SocketIoConfig, SocketIoModule } from "ngx-socket-io";
+import { AppComponent } from "./app/app.component";
 
 import { environment } from "./environments/environment";
-import { AppComponent } from "./app/app.component";
-import { provideRouter, Routes } from "@angular/router";
-import { withInterceptorsFromDi, provideHttpClient } from "@angular/common/http";
-import { BrowserModule, bootstrapApplication } from "@angular/platform-browser";
-import { SocketIoConfig, SocketIoModule } from "ngx-socket-io";
-import { API_URL_TOKEN } from "@tell-it/domain/tokens";
 
 const socketConfig: SocketIoConfig = {
     url: environment.api.socketUrl,
@@ -15,11 +15,11 @@ const socketConfig: SocketIoConfig = {
 const routes: Routes = [
     {
         path: "",
-        loadComponent: () => import("@tell-it/home").then(m => m.HomeComponent)
+        loadComponent: () => import("tell-it-home").then(m => m.HomeComponent)
     },
     {
         path: "room/:roomName",
-        loadComponent: () => import("@tell-it/room").then(mod => mod.RoomComponent)
+        loadComponent: () => import("tell-it-room").then(mod => mod.RoomComponent)
     }
 ];
 

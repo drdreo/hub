@@ -6,15 +6,16 @@
     "prefix": "tell-it-app",
     "targets": {
         "build": {
-            "executor": "@angular-devkit/build-angular:browser",
+            "executor": "@angular-devkit/build-angular:application",
             "outputs": ["{options.outputPath}"],
             "options": {
                 "outputPath": "dist/apps/tell-it",
                 "index": "apps/tell-it/src/index.html",
-                "main": "apps/tell-it/src/main.ts",
-                "polyfills": "apps/tell-it/src/polyfills.ts",
+                "browser": "apps/tell-it/src/main.ts",
+                "polyfills": [
+                    "zone.js"
+                ],
                 "tsConfig": "apps/tell-it/tsconfig.app.json",
-                "inlineStyleLanguage": "scss",
                 "assets": ["apps/tell-it/src/favicon.ico", "apps/tell-it/src/favicon", "apps/tell-it/src/assets"],
                 "styles": ["apps/tell-it/src/styles.scss", "libs/tell-it/ui/src/lib/styles/variables.scss"],
                 "scripts": []
@@ -78,7 +79,9 @@
         },
         "test": {
             "executor": "@nx/jest:jest",
-            "outputs": ["{workspaceRoot}/coverage/apps/tell-it"],
+            "outputs": [
+                "{workspaceRoot}/coverage/{projectRoot}"
+            ],
             "options": {
                 "jestConfig": "apps/tell-it/jest.config.ts"
             }

@@ -10,6 +10,24 @@
             "path": "./apps/owe-drahn-api"
         },
         {
+            "path": "./libs/tell-it/data-access"
+        },
+        {
+            "path": "./libs/tell-it/home"
+        },
+        {
+            "path": "./libs/tell-it/room"
+        },
+        {
+            "path": "./libs/tell-it/shared/domain"
+        },
+        {
+            "path": "./libs/tell-it/shared/utils"
+        },
+        {
+            "path": "./libs/tell-it/ui"
+        },
+        {
             "path": "./tools/plugin"
         }
     ]
