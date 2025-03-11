@@ -20,6 +20,9 @@
         },
         {
             "path": "./packages/tell-it/shared/domain"
+        },
+        {
+            "path": "./packages/tell-it/shared/utils"
         }
     ]
 }
