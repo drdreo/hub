@@ -3,7 +3,14 @@ const { join } = require("path");
 
 module.exports = {
     output: {
-        path: join(__dirname, "dist")
+        path: join(__dirname, "dist"),
+        filename: "[name].cjs" // added to force cjs output
+    },
+    resolve: {
+        extensions: [".ts", ".js", ".json"],
+        extensionAlias: {
+            ".js": [".ts", ".js"]
+        }
     },
     plugins: [
         new NxAppWebpackPlugin({
@@ -14,7 +21,7 @@ module.exports = {
             assets: ["./src/assets"],
             optimization: false,
             outputHashing: "none",
-            generatePackageJson: true
+            generatePackageJson: false // true
         })
     ]
 };

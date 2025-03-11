@@ -15,7 +15,6 @@
         ],
         "sharedGlobals": ["{workspaceRoot}/.github/workflows/ci.yml"]
     },
-    "nxCloudId": "67c46688e6f8f80a33a383af",
     "plugins": [
         {
             "plugin": "@nx/js/typescript",
@@ -64,7 +63,8 @@
         {
             "plugin": "@nx/jest/plugin",
             "options": {
-                "targetName": "test"
+                "targetName": "test",
+                "passWithNoTests": true
             },
             "exclude": []
         }

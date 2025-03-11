@@ -1,14 +1,23 @@
-import { Module } from "@nestjs/common";
-import { ConfigModule } from "@nestjs/config";
+import { Logger, Module } from "@nestjs/common";
+import { ConfigModule, ConfigService } from "@nestjs/config";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { ApiDataAccessModule } from "@tell-it-api/data-access";
 import { GameModule } from "@tell-it-api/game";
 import { SocketModule } from "@tell-it-api/socket";
-import { environment } from "../environments/environment.js";
+import { getDevConfig } from "../environments/environment.js";
+import { getProdConfig } from "../environments/environment.prod.js";
 import { HealthController } from "./health.controller.js";
 import { MainController } from "./main.controller.js";
 
-const configuration = () => environment;
+const configuration = () => {
+    if (process.env.NODE_ENV === "development") {
+        Logger.log("Using dev config", "Config");
+        return getDevConfig();
+    }
+
+    Logger.log("Using production config", "Config");
+    return getProdConfig();
+};
 
 @Module({
     imports: [
@@ -16,15 +25,11 @@ const configuration = () => environment;
             load: [configuration],
             isGlobal: true
         }),
-        TypeOrmModule.forRoot({
-            type: "postgres",
-            host: environment.database.host,
-            port: environment.database.port,
-            username: environment.database.user,
-            password: environment.database.password,
-            database: environment.database.database,
-            autoLoadEntities: true,
-            ssl: environment.production ? { rejectUnauthorized: false } : false
+        TypeOrmModule.forRootAsync({
+            useFactory: (configService: ConfigService) => {
+                return configService.get("typeOrm")!;
+            },
+            inject: [ConfigService]
         }),
         ApiDataAccessModule,
         SocketModule,

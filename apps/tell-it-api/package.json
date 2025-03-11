@@ -2,6 +2,7 @@
     "name": "@hub/tell-it-api",
     "version": "0.0.1",
     "private": true,
+    "type": "module",
     "dependencies": {
         "@tell-it-api/data-access": "workspace:*",
         "@tell-it-api/game": "workspace:*",
@@ -49,10 +50,18 @@
                     }
                 }
             },
-            "test": {
+            "deploy": {
+                "executor": "@hub/plugin:deploy-docker",
+                "dependsOn": [
+                    "build"
+                ],
                 "options": {
-                    "passWithNoTests": true
+                    "serviceName": "tell-it",
+                    "redeploy": true
                 }
+            },
+            "docker-build": {
+                "command": "docker build -f apps/tell-it-api/Dockerfile . -t tell-it-api"
             }
         }
     }
