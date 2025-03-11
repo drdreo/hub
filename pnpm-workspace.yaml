@@ -3,3 +3,4 @@ packages:
     - "tools/*"
     - "packages/*"
     - "packages/tell-it/api/*"
+    - "packages/tell-it/shared/*"

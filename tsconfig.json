@@ -17,6 +17,9 @@
         },
         {
             "path": "./packages/tell-it/api/data-access"
+        },
+        {
+            "path": "./packages/tell-it/shared/domain"
         }
     ]
 }

@@ -1,52 +1,52 @@
 {
-  "name": "@hub/tell-it-api",
-  "version": "0.0.1",
-  "private": true,
-  "nx": {
-    "name": "tell-it-api",
-    "projectType": "application",
-    "sourceRoot": "apps/tell-it-api/src",
-    "targets": {
-      "build": {
-        "executor": "nx:run-commands",
-        "options": {
-          "command": "webpack-cli build",
-          "args": [
-            "node-env=production"
-          ]
-        },
-        "configurations": {
-          "development": {
-            "args": [
-              "node-env=development"
-            ]
-          }
+    "name": "@hub/tell-it-api",
+    "version": "0.0.1",
+    "private": true,
+    "nx": {
+        "name": "tell-it-api",
+        "projectType": "application",
+        "sourceRoot": "apps/tell-it-api/src",
+        "targets": {
+            "build": {
+                "executor": "nx:run-commands",
+                "options": {
+                    "command": "webpack-cli build",
+                    "args": [
+                        "node-env=production"
+                    ]
+                },
+                "configurations": {
+                    "development": {
+                        "args": [
+                            "node-env=development"
+                        ]
+                    }
+                }
+            },
+            "serve": {
+                "executor": "@nx/js:node",
+                "defaultConfiguration": "development",
+                "dependsOn": [
+                    "build"
+                ],
+                "options": {
+                    "buildTarget": "tell-it-api:build",
+                    "runBuildTargetDependencies": false
+                },
+                "configurations": {
+                    "development": {
+                        "buildTarget": "tell-it-api:build:development"
+                    },
+                    "production": {
+                        "buildTarget": "tell-it-api:build:production"
+                    }
+                }
+            },
+            "test": {
+                "options": {
+                    "passWithNoTests": true
+                }
+            }
         }
-      },
-      "serve": {
-        "executor": "@nx/js:node",
-        "defaultConfiguration": "development",
-        "dependsOn": [
-          "build"
-        ],
-        "options": {
-          "buildTarget": "tell-it-api:build",
-          "runBuildTargetDependencies": false
-        },
-        "configurations": {
-          "development": {
-            "buildTarget": "tell-it-api:build:development"
-          },
-          "production": {
-            "buildTarget": "tell-it-api:build:production"
-          }
-        }
-      },
-      "test": {
-        "options": {
-          "passWithNoTests": true
-        }
-      }
     }
-  }
 }

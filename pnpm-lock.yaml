@@ -310,7 +310,13 @@ importers:
 
   apps/tell-it-api: {}
 
-  packages/tell-it/api/data-access: {}
+  packages/tell-it/api/data-access:
+    dependencies:
+      '@tell-it-shared/domain':
+        specifier: workspace:*
+        version: link:../../shared/domain
+
+  packages/tell-it/shared/domain: {}
 
   tools/plugin:
     dependencies:
