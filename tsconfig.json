@@ -4,13 +4,16 @@
     "files": [],
     "references": [
         {
+            "path": "./tools/plugin"
+        },
+        {
             "path": "./apps/owe-drahn"
         },
         {
             "path": "./apps/owe-drahn-api"
         },
         {
-            "path": "./tools/plugin"
+            "path": "./apps/tell-it-api"
         }
     ]
 }
