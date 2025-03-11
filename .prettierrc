@@ -1,7 +1,7 @@
 {
     "arrowParens": "avoid",
     "bracketSameLine": true,
-    "endOfLine": "crlf",
+    "endOfLine": "auto",
     "printWidth": 104,
     "singleAttributePerLine": true,
     "tabWidth": 4,
