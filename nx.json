@@ -63,15 +63,17 @@
         {
             "plugin": "@nx/jest/plugin",
             "options": {
-                "targetName": "test",
-                "passWithNoTests": true
+                "targetName": "test"
             },
             "exclude": []
         }
     ],
     "targetDefaults": {
         "test": {
-            "dependsOn": ["^build"]
+            "dependsOn": ["^build"],
+            "options": {
+                "passWithNoTests": true
+            }
         },
         "@nx/js:tsc": {
             "cache": true,

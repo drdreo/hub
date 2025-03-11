@@ -13,6 +13,9 @@ export default {
     transform: {
         "^.+\\.[tj]s$": ["@swc/jest", swcJestConfig]
     },
+    transformIgnorePatterns: [
+        "/node_modules/(?!nanoid)/"
+    ],
     moduleFileExtensions: ["ts", "js", "html"],
     coverageDirectory: "test-output/jest/coverage"
 };
