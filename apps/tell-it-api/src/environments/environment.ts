@@ -9,7 +9,7 @@ export function getDevConfig() {
         ],
         typeOrm: {
             type: "sqlite",
-            database: "tellit.sqlite",
+            database: "apps/tell-it-api/db.sqlite",
             autoLoadEntities: true,
             synchronize: true
         } as TypeOrmModuleOptions
