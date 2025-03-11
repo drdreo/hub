@@ -32,6 +32,6 @@
         }
     },
     "dependencies": {
-        "tslib": "^2.3.0"
+        "@angular/forms": "catalog:"
     }
 }
