@@ -6,8 +6,6 @@
         "outDir": "dist",
         "tsBuildInfoFile": "dist/tsconfig.lib.tsbuildinfo",
         "emitDeclarationOnly": true,
-        "experimentalDecorators": true,
-        "emitDecoratorMetadata": true,
         "forceConsistentCasingInFileNames": true,
         "types": [
             "node"

@@ -23,6 +23,12 @@
         },
         {
             "path": "./packages/tell-it/shared/utils"
+        },
+        {
+            "path": "./packages/tell-it/api/game"
+        },
+        {
+            "path": "./packages/tell-it/api/socket"
         }
     ]
 }

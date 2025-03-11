@@ -7,7 +7,7 @@ const swcJestConfig = JSON.parse(readFileSync(`${__dirname}/.spec.swcrc`, "utf-8
 swcJestConfig.swcrc = false;
 
 export default {
-    displayName: "@tell-it-api/data-access",
+    displayName: "@tell-it-api/socket",
     preset: "../../../../jest.preset.js",
     testEnvironment: "node",
     transform: {

@@ -319,6 +319,21 @@ importers:
         specifier: workspace:*
         version: link:../../shared/domain
 
+  packages/tell-it/api/game:
+    dependencies:
+      '@tell-it-shared/domain':
+        specifier: workspace:*
+        version: link:../../shared/domain
+
+  packages/tell-it/api/socket:
+    dependencies:
+      '@tell-it-api/game':
+        specifier: workspace:*
+        version: link:../game
+      '@tell-it-shared/domain':
+        specifier: workspace:*
+        version: link:../../shared/domain
+
   packages/tell-it/shared/domain: {}
 
   packages/tell-it/shared/utils:

@@ -16,7 +16,7 @@ export interface RoomResponse {
 }
 
 export interface ServerJoined {
-    userID: string;
+    userID?: string;
     room: string;
 }
 
