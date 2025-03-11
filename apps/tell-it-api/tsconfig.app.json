@@ -23,5 +23,22 @@
         "eslint.config.js",
         "eslint.config.cjs",
         "eslint.config.mjs"
+    ],
+    "references": [
+        {
+            "path": "../../packages/tell-it/shared/utils/tsconfig.lib.json"
+        },
+        {
+            "path": "../../packages/tell-it/shared/domain/tsconfig.lib.json"
+        },
+        {
+            "path": "../../packages/tell-it/api/socket/tsconfig.lib.json"
+        },
+        {
+            "path": "../../packages/tell-it/api/game/tsconfig.lib.json"
+        },
+        {
+            "path": "../../packages/tell-it/api/data-access/tsconfig.lib.json"
+        }
     ]
 }

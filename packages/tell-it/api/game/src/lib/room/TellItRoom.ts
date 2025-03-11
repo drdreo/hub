@@ -1,19 +1,17 @@
 import { Logger } from "@nestjs/common";
-import { RoomConfig } from "@tell-it/domain/api-interfaces";
-import { CantWaitError } from "@tell-it/domain/errors";
-import { GameStatus, StoryData } from "@tell-it/domain/game";
-
-import { BaseRoom } from "./BaseRoom";
-import { RoomCommandName } from "./RoomCommands";
-import { Story } from "./Story";
+import { CantWaitError, GameStatus, RoomConfig, StoryData } from "@tell-it-shared/domain";
+import { Subject } from "rxjs";
+import { BaseRoom } from "./BaseRoom.js";
+import { RoomCommand, RoomCommandName } from "./RoomCommands.js";
+import { Story } from "./Story.js";
 
 export class TellItRoom extends BaseRoom {
     private stories: Story[] = [];
     private finishVotes = new Set<string>();
     private restartVotes = new Set<string>();
 
-    constructor(public name: string, CONFIG?: RoomConfig) {
-        super(name, CONFIG);
+    constructor(name: string, commands$: Subject<RoomCommand>, CONFIG?: RoomConfig) {
+        super(name, commands$, CONFIG);
         this.logger = new Logger(`TellItRoom[${name}]`);
         this.logger.log(`Created!`);
     }
@@ -63,8 +61,12 @@ export class TellItRoom extends BaseRoom {
         return { text: story.getLatestText(), author: this.getNameOfUser(story.ownerId) };
     }
 
-    getNameOfUser(userID: string): string | undefined {
-        return this.users.find(user => user.id === userID)?.name;
+    getNameOfUser(userID: string): string {
+        const user = this.getUser(userID);
+        if (!user) {
+            throw new Error(`User not found ${userID}`);
+        }
+        return user.name;
     }
 
     sendUserStoryUpdate(userID: string, recipient: string) {

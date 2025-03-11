@@ -16,9 +16,6 @@
             "path": "./apps/tell-it-api"
         },
         {
-            "path": "./packages/tell-it/api/data-access"
-        },
-        {
             "path": "./packages/tell-it/shared/domain"
         },
         {
@@ -29,6 +26,9 @@
         },
         {
             "path": "./packages/tell-it/api/socket"
+        },
+        {
+            "path": "./packages/tell-it/api/data-access"
         }
     ]
 }

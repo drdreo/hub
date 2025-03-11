@@ -18,24 +18,21 @@ import {
     RoomService,
     RoomStartedError
 } from "@tell-it-api/game";
-import {
-    CantWaitError,
-    GameStatus,
+import type {
     HomeInfo,
-    ServerEvent,
     ServerFinalStories,
     ServerFinishVoteUpdate,
     ServerJoined,
     ServerSpectatorJoined,
     ServerStoryUpdate,
     ServerUsersUpdate,
-    UserEvent,
-    type UserJoinMessage,
-    type UserKicked,
+    UserJoinMessage,
+    UserKicked,
     UserSpectatorJoinMessage,
     UserSubmitTextMessage,
     UserVoteKickMessage
 } from "@tell-it-shared/domain";
+import { CantWaitError, GameStatus, ServerEvent, UserEvent } from "@tell-it-shared/domain";
 
 import { Server, Socket } from "socket.io";
 
@@ -101,7 +98,7 @@ export class MainGateway implements OnGatewayConnection, OnGatewayDisconnect {
         if (userID && this.roomService.userExists(userID)) {
             this.logger.log(`User[${userID}] needs to reconnect!`);
             newUserID = userID;
-            const room = this.roomService.userReconnected(userID);
+            const room = this.roomService.userReconnected(userID)!;
             this.logger.debug(`Users last room[${room.name}] found!`);
 
             if (room.name !== sanitizedRoom) {
@@ -155,7 +152,11 @@ export class MainGateway implements OnGatewayConnection, OnGatewayDisconnect {
         this.userToSocket.set(newUserID, socket.id);
 
         // inform everyone that someone joined
-        this.roomService.getRoom(sanitizedRoom).sendUsersUpdate();
+        const room = this.roomService.getRoom(sanitizedRoom);
+        if (!room) {
+            throw new WsException("Room not found!");
+        }
+        room.sendUsersUpdate();
         return {
             event: ServerEvent.Joined,
             data: { userID: newUserID, room: sanitizedRoom }
@@ -187,6 +188,9 @@ export class MainGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @SubscribeMessage(UserEvent.RequestUpdate)
     onRequestUpdate(@ConnectedSocket() socket: Socket) {
         const roomOfSocket = this.socketToRoom.get(socket.id);
+        if (!roomOfSocket) {
+            throw new WsException("Can not request data. Room not found!");
+        }
         const room = this.roomService.getRoom(roomOfSocket);
         if (!room) {
             throw new WsException("Can not request data. Room not found!");
@@ -206,6 +210,9 @@ export class MainGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @SubscribeMessage(UserEvent.Start)
     onStartGame(@ConnectedSocket() socket: Socket) {
         const room = this.socketToRoom.get(socket.id);
+        if (!room) {
+            throw new WsException("Can not start game. Room not found!");
+        }
         this.roomService.start(room);
         this.sendHomeInfo();
     }
@@ -213,6 +220,9 @@ export class MainGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @SubscribeMessage(UserEvent.Leave)
     onUserLeave(@ConnectedSocket() socket: Socket): void {
         const room = this.socketToRoom.get(socket.id);
+        if (!room) {
+            throw new WsException("Can not leave room. Room not found!");
+        }
         this.handleUserDisconnect(socket.data.userID, room);
         this.disconnectSocket(socket, room);
     }
@@ -220,12 +230,18 @@ export class MainGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @SubscribeMessage(UserEvent.VoteKick)
     onVoteKick(@ConnectedSocket() socket: Socket, @MessageBody() { kickUserID }: UserVoteKickMessage) {
         const room = this.socketToRoom.get(socket.id);
+        if (!room) {
+            throw new WsException("Can not vote kick. Room not found!");
+        }
         this.roomService.voteKick(room, socket.data.userID, kickUserID);
     }
 
     @SubscribeMessage(UserEvent.VoteFinish)
     onVoteFinish(@ConnectedSocket() socket: Socket) {
         const room = this.socketToRoom.get(socket.id);
+        if (!room) {
+            throw new WsException("Can not vote finish. Room not found!");
+        }
         this.roomService.voteFinish(room, socket.data.userID);
         this.sendTo(room, ServerEvent.VoteFinish, {
             votes: this.roomService.getRoomFinishVotes(room)
@@ -235,12 +251,18 @@ export class MainGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @SubscribeMessage(UserEvent.VoteRestart)
     onVoteRestart(@ConnectedSocket() socket: Socket) {
         const room = this.socketToRoom.get(socket.id);
+        if (!room) {
+            throw new WsException("Can not vote restart. Room not found!");
+        }
         this.roomService.voteRestart(room, socket.data.userID);
     }
 
     @SubscribeMessage(UserEvent.SubmitText)
     obTextSubmit(@ConnectedSocket() socket: Socket, @MessageBody() { text }: UserSubmitTextMessage) {
         const room = this.socketToRoom.get(socket.id);
+        if (!room) {
+            throw new WsException("Can not submit text. Room not found!");
+        }
         try {
             this.roomService.submitNewText(room, socket.data.userID, text);
             this.sendUserTextIndividually(room);
@@ -255,6 +277,9 @@ export class MainGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @SubscribeMessage(UserEvent.RequestStories)
     onStoriesRequest(@ConnectedSocket() socket: Socket) {
         const room = this.socketToRoom.get(socket.id);
+        if (!room) {
+            throw new WsException("Can not request stories. Room not found!");
+        }
         this.sendTo(room, ServerEvent.FinalStories, {
             stories: this.roomService.getStories(room)
         } as ServerFinalStories);
@@ -272,6 +297,7 @@ export class MainGateway implements OnGatewayConnection, OnGatewayDisconnect {
         return this.userToSocket.get(userId);
     }
 
+    // @ts-expect-error maybe needed
     private async getUserIdBySocketId(socketId: string) {
         const sockets = await this.server.fetchSockets();
         const socket = sockets.find(socket => socket.id === socketId);
@@ -298,9 +324,9 @@ export class MainGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
         if (userID && this.roomService.userExists(userID)) {
             this.logger.debug(`User[${userID}] left!`);
-            this.roomService.userLeft(room, userID);
 
             if (room) {
+                this.roomService.userLeft(room, userID);
                 this.sendTo(room, ServerEvent.UserLeft, { userID });
             } else {
                 this.logger.error(
@@ -319,6 +345,9 @@ export class MainGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     private async sendUserTextIndividually(roomName: string) {
         const room = this.roomService.getRoom(roomName);
+        if (!room) {
+            return;
+        }
         for (const user of room.getUsersPreview()) {
             const socketId = await this.getSocketIdByUserId(user.id);
             // only tell currently connected users the update
@@ -337,6 +366,9 @@ export class MainGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     private async sendUsersUpdateToSpectators(roomName: string, data: ServerUsersUpdate) {
         const room = this.roomService.getRoom(roomName);
+        if (!room) {
+            return;
+        }
         const socketsOfRoom = await this.server.in(roomName).fetchSockets();
 
         for (const socket of socketsOfRoom) {
@@ -358,7 +390,9 @@ export class MainGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private handleRoomCommands({ name, data, recipient, room }: RoomCommand) {
         const receiver = recipient ? recipient : room;
 
-        recipient ? this.logger.debug("Handling command for recipient: " + recipient) : "";
+        if (recipient) {
+            this.logger.debug("Handling command for recipient: " + recipient);
+        }
         this.logger.verbose(`Room[${room}] - ${name}:`);
         this.logger.debug(data);
 
@@ -369,14 +403,14 @@ export class MainGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
             case RoomCommandName.UsersUpdate:
                 if (!recipient) {
-                    this.sendUsersUpdateToSpectators(room, { users: data.users });
+                    this.sendUsersUpdateToSpectators(room, { users: data!.users! });
                 }
 
-                this.sendTo(receiver, ServerEvent.UsersUpdate, { users: data.users });
+                this.sendTo(receiver, ServerEvent.UsersUpdate, { users: data!.users });
                 break;
 
             case RoomCommandName.GameStatusUpdate:
-                this.sendTo(receiver, ServerEvent.GameStatus, { status: data.status });
+                this.sendTo(receiver, ServerEvent.GameStatus, { status: data!.status });
                 break;
 
             case RoomCommandName.Closed:
@@ -385,22 +419,22 @@ export class MainGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
             case RoomCommandName.UserKicked:
                 this.sendTo(receiver, ServerEvent.UserKick, {
-                    kickedUser: data.kickedUser
+                    kickedUser: data!.kickedUser
                 } as UserKicked);
                 break;
 
             case RoomCommandName.UserStoryUpdate:
-                this.sendTo(receiver, ServerEvent.StoryUpdate, data.story as ServerStoryUpdate);
+                this.sendTo(receiver, ServerEvent.StoryUpdate, data!.story as ServerStoryUpdate);
                 break;
 
             case RoomCommandName.FinalStories:
                 this.sendTo(room, ServerEvent.FinalStories, {
-                    stories: data.stories
+                    stories: data!.stories
                 } as ServerFinalStories);
                 break;
 
             case RoomCommandName.PersistStories:
-                this.roomService.persistStories(data.stories);
+                this.roomService.persistStories(data!.stories!);
                 break;
 
             default:

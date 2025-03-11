@@ -1,10 +1,36 @@
 import { Module } from "@nestjs/common";
-import { AppController } from "./app.controller";
-import { AppService } from "./app.service";
+import { ConfigModule } from "@nestjs/config";
+import { TypeOrmModule } from "@nestjs/typeorm";
+import { ApiDataAccessModule } from "@tell-it-api/data-access";
+import { GameModule } from "@tell-it-api/game";
+import { SocketModule } from "@tell-it-api/socket";
+import { environment } from "../environments/environment.js";
+import { HealthController } from "./health.controller.js";
+import { MainController } from "./main.controller.js";
+
+const configuration = () => environment;
 
 @Module({
-    imports: [],
-    controllers: [AppController],
-    providers: [AppService]
+    imports: [
+        ConfigModule.forRoot({
+            load: [configuration],
+            isGlobal: true
+        }),
+        TypeOrmModule.forRoot({
+            type: "postgres",
+            host: environment.database.host,
+            port: environment.database.port,
+            username: environment.database.user,
+            password: environment.database.password,
+            database: environment.database.database,
+            autoLoadEntities: true,
+            ssl: environment.production ? { rejectUnauthorized: false } : false
+        }),
+        ApiDataAccessModule,
+        SocketModule,
+        GameModule
+    ],
+    controllers: [MainController, HealthController],
+    providers: []
 })
 export class AppModule {}

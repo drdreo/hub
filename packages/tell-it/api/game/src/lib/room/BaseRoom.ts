@@ -1,14 +1,13 @@
 import { Logger } from "@nestjs/common";
 import { WsException } from "@nestjs/websockets";
-import { RoomConfig, UserOverview } from "@tell-it/domain/api-interfaces";
-import { GameStatus } from "@tell-it/domain/game";
-import { mergeDeep } from "@tell-it/utils";
+import { GameStatus, RoomConfig, UserOverview } from "@tell-it-shared/domain";
+import { mergeDeep } from "@tell-it-shared/utils";
 import { nanoid } from "nanoid";
 import { Subject } from "rxjs";
-import { User } from "../user/User";
-import { InvalidConfigError, RoomFullError, RoomStartedError } from "./errors";
-import { validateConfig } from "./room.utils";
-import { RoomCommandName, RoomCommand } from "./RoomCommands";
+import { User } from "../user/User.js";
+import { InvalidConfigError, RoomFullError, RoomStartedError } from "./errors.js";
+import { validateConfig } from "./room.utils.js";
+import { RoomCommandName, RoomCommand } from "./RoomCommands.js";
 
 const defaultConfig: RoomConfig = {
     spectatorsAllowed: true,
@@ -23,13 +22,12 @@ const defaultConfig: RoomConfig = {
 };
 
 export class BaseRoom {
-    commands$: Subject<RoomCommand>;
     startTime: Date | undefined;
     protected logger: Logger;
     protected users: User[] = [];
-    private roomConfig: RoomConfig;
+    private roomConfig: RoomConfig = { ...defaultConfig };
 
-    constructor(public name: string, CONFIG?: RoomConfig) {
+    constructor(public name: string, public commands$: Subject<RoomCommand>, CONFIG?: RoomConfig) {
         this.logger = new Logger(`Room[${name}]`);
         this.logger.log(`Created!`);
 
@@ -55,7 +53,7 @@ export class BaseRoom {
         this.sendGameStatus(this._gameStatus);
     }
 
-    getUser(userID: string): User {
+    getUser(userID: string): User | undefined {
         return this.users.find(user => user.id === userID);
     }
 
@@ -153,7 +151,7 @@ export class BaseRoom {
 
         const votesNeeded = Math.max(Math.round(this.users.length / 2), 2); // at least 2 votes needed, 50%
         const kickUser = this.getUser(kickUserID);
-        if (kickUser.afk) {
+        if (kickUser?.afk) {
             kickUser.kickVotes.add(userID);
             if (kickUser.kickVotes.size >= votesNeeded) {
                 this.kickUser(kickUser);
@@ -209,8 +207,6 @@ export class BaseRoom {
     }
 
     private setConfig(customConfig?: RoomConfig): void {
-        this.roomConfig = { ...defaultConfig };
-
         if (customConfig) {
             this.roomConfig = mergeDeep(defaultConfig, customConfig);
             const valid = validateConfig(this.roomConfig);

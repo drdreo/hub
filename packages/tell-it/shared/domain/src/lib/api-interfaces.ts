@@ -40,11 +40,11 @@ export interface UserOverview {
 export interface RoomConfig {
     spectatorsAllowed: boolean;
     isPublic: boolean;
-    users?: {
+    users: {
         min: number;
         max: number;
     };
-    afk?: {
+    afk: {
         delay: number;
     };
 }

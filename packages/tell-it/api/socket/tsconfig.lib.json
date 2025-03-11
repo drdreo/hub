@@ -20,7 +20,14 @@
   "include": [
     "src/**/*.ts"
   ],
-  "references": [],
+  "references": [
+    {
+      "path": "../game/tsconfig.lib.json"
+    },
+    {
+      "path": "../../shared/domain/tsconfig.lib.json"
+    }
+  ],
   "exclude": [
     "jest.config.ts",
     "src/**/*.spec.ts",

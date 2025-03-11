@@ -1,4 +1,4 @@
-import { RoomConfig } from "@tell-it/domain/api-interfaces";
+import { RoomConfig } from "@tell-it-shared/domain";
 
 export function validateConfig(config: RoomConfig): boolean {
     const testingConfig = { ...config };

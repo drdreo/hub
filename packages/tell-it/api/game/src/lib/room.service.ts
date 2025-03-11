@@ -1,13 +1,11 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { WsException } from "@nestjs/websockets";
-import { ApiDataService } from "@tell-it/api/data-access";
-import { RoomInfo } from "@tell-it/domain/api-interfaces";
-import { StoryData } from "@tell-it/domain/game";
+import { ApiDataService } from "@tell-it-api/data-access";
+import { RoomInfo, StoryData } from "@tell-it-shared/domain";
 import { Subject } from "rxjs";
 
-import { RoomCommand, RoomCommandName } from "./room/RoomCommands";
-import { TellItRoom } from "./room/TellItRoom";
-import { User } from "./user/User";
+import { RoomCommand, RoomCommandName, TellItRoom } from "./room/index.js";
+import { User } from "./user/User.js";
 
 const AUTO_DESTROY_DELAY = 30000; // after what time the room will be destroyed automatically, when no user is in it
 
@@ -19,7 +17,7 @@ export class RoomService {
     roomCommands$ = this._roomCommands$.asObservable();
 
     private logger = new Logger(RoomService.name);
-    private destroyTimeout: NodeJS.Timeout;
+    private destroyTimeout: NodeJS.Timeout | undefined;
 
     constructor(private apiDataService: ApiDataService) {}
 
@@ -29,7 +27,7 @@ export class RoomService {
         });
     }
 
-    getRoom(roomName: string): TellItRoom {
+    getRoom(roomName: string): TellItRoom | undefined {
         return this.rooms.find(room => room.name === roomName);
     }
 
@@ -45,12 +43,12 @@ export class RoomService {
         return this.rooms.reduce((prev, room) => prev + room.getUserCount(), 0);
     }
 
-    getRoomFinishVotes(roomName: string): string[] {
-        return this.getRoom(roomName).getFinishVotes();
+    getRoomFinishVotes(roomName: string): string[] | undefined {
+        return this.getRoom(roomName)?.getFinishVotes();
     }
 
-    getStories(roomName: string): StoryData[] {
-        return this.getRoom(roomName).getStories();
+    getStories(roomName: string): StoryData[] | undefined {
+        return this.getRoom(roomName)?.getStories();
     }
 
     /**********************
@@ -62,14 +60,14 @@ export class RoomService {
     }
 
     createRoom(name: string): TellItRoom {
-        const room = new TellItRoom(name);
+        const room = new TellItRoom(name, this._roomCommands$);
         room.commands$ = this._roomCommands$;
         this.rooms.push(room);
         return room;
     }
 
     start(room: string) {
-        this.getRoom(room).start();
+        this.getRoom(room)?.start();
     }
 
     voteKick(roomName: string, userID: string, kickUserID: string) {
@@ -96,7 +94,7 @@ export class RoomService {
         return { userID };
     }
 
-    userReconnected(userID: string) {
+    userReconnected(userID: string): TellItRoom | undefined {
         for (const room of this.rooms) {
             const user = room.getUser(userID);
             if (user) {
@@ -104,11 +102,18 @@ export class RoomService {
                 return room;
             }
         }
+        return undefined;
     }
 
     userLeft(roomName: string, userID: string): void {
         const user = this.getUser(userID);
+        if (!user) {
+            throw new WsException(`User[${userID}] not found!`);
+        }
         const room = this.getRoom(roomName);
+        if (!room) {
+            throw new WsException(`Room[${roomName}] not found!`);
+        }
         // if the room didnt start yet, just remove the player
         // functionality disabled. might add it back
 
@@ -177,6 +182,7 @@ export class RoomService {
                 return user;
             }
         }
+        return undefined;
     }
 
     private removeRoom(roomName: string): void {

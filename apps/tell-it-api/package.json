@@ -2,6 +2,13 @@
     "name": "@hub/tell-it-api",
     "version": "0.0.1",
     "private": true,
+    "dependencies": {
+        "@tell-it-api/data-access": "workspace:*",
+        "@tell-it-api/game": "workspace:*",
+        "@tell-it-api/socket": "workspace:*",
+        "@tell-it-shared/domain": "workspace:*",
+        "@tell-it-shared/utils": "workspace:*"
+    },
     "nx": {
         "name": "tell-it-api",
         "projectType": "application",

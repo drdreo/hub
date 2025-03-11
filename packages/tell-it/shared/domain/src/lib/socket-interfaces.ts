@@ -1,5 +1,5 @@
-import { GameStatus, StoryData } from "./game";
-import { UserOverview } from "./api-interfaces";
+import { GameStatus, StoryData } from "./game.js";
+import { UserOverview } from "./api-interfaces.js";
 
 export enum ServerEvent {
     Info = "server:info",

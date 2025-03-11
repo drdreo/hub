@@ -20,7 +20,17 @@
   "include": [
     "src/**/*.ts"
   ],
-  "references": [],
+  "references": [
+    {
+      "path": "../../shared/utils/tsconfig.lib.json"
+    },
+    {
+      "path": "../../shared/domain/tsconfig.lib.json"
+    },
+    {
+      "path": "../data-access/tsconfig.lib.json"
+    }
+  ],
   "exclude": [
     "jest.config.ts",
     "src/**/*.spec.ts",

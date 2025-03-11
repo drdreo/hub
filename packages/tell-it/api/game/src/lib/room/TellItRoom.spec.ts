@@ -1,13 +1,12 @@
-import { CantWaitError } from "@tell-it/domain/errors";
+import { CantWaitError } from "@tell-it-shared/domain";
 import { Subject } from "rxjs";
-import { TellItRoom } from "./TellItRoom";
+import { TellItRoom } from "./TellItRoom.js";
 
 describe("TellIt Room", () => {
     let room: TellItRoom;
 
     beforeEach(async () => {
-        room = new TellItRoom("test");
-        room.commands$ = new Subject();
+        room = new TellItRoom("test", new Subject());
     });
 
     it("should be defined", () => {
@@ -58,10 +57,10 @@ describe("TellIt Room", () => {
             room.submitText(userId1, "First story that is.");
             room.submitText(userId2, "First story that is.");
             room.submitText(userId3, "First story that is.");
-            let story = room.getStoryForUser(userId1);
+            let story = room.getStoryForUser(userId1)!;
 
             expect(story.ownerId).toEqual(userId3);
-            expect(room.getUser(userId1).totalStories()).toEqual(1);
+            expect(room.getUser(userId1)!.totalStories()).toEqual(1);
 
             room.submitText(userId1, "Second story that is 1");
             room.submitText(userId2, "Second story that is 2");
@@ -71,13 +70,13 @@ describe("TellIt Room", () => {
             room.submitText(userId2, "Third story that is 2");
             room.submitText(userId3, "Third story that is 3");
 
-            story = room.getStoryForUser(userId1);
+            story = room.getStoryForUser(userId1)!;
             expect(story.ownerId).toEqual(userId1);
-            expect(room.getUser(userId1).totalStories()).toEqual(1);
+            expect(room.getUser(userId1)!.totalStories()).toEqual(1);
         });
 
         it("should have no story after submitting", () => {
-            room = new TellItRoom("test");
+            room = new TellItRoom("test", new Subject());
             room.commands$ = new Subject();
             userId1 = room.addUser("user1");
             userId2 = room.addUser("user2");
@@ -103,19 +102,19 @@ describe("TellIt Room", () => {
             room.submitText(userId1, "First story of 1");
             room.submitText(userId2, "First story of 2");
 
-            let story = room.getTextForUser(userId1);
+            let story = room.getTextForUser(userId1)!;
             expect(story.text).toEqual("First story of 2");
-            story = room.getTextForUser(userId2);
+            story = room.getTextForUser(userId2)!;
             expect(story.text).toEqual("First story of 1");
 
             room.submitText(userId2, "Second story of 2");
 
             // after second player submitted already, should remain on the same story
-            story = room.getTextForUser(userId1);
+            story = room.getTextForUser(userId1)!;
             expect(story.text).toEqual("First story of 2");
 
             // since user 2 has already submitted to the user1 story, there should be nothing left to do
-            story = room.getTextForUser(userId2);
+            story = room.getTextForUser(userId2)!;
             expect(story).toBeUndefined();
         });
 
@@ -126,14 +125,14 @@ describe("TellIt Room", () => {
             room.submitText(userId2, "First story of 2");
             room.submitText(userId3, "First story of 3");
 
-            expect(room.getUser(userId1).totalStories()).toEqual(1);
+            expect(room.getUser(userId1)!.totalStories()).toEqual(1);
             room.submitText(userId2, "Second story of 2");
             room.submitText(userId3, "Second story of 3");
 
-            expect(room.getUser(userId1).totalStories()).toEqual(2);
+            expect(room.getUser(userId1)!.totalStories()).toEqual(2);
             // after everyone is done, except user1 he should have 3 stories waiting
             room.submitText(userId3, "Third story of 3");
-            expect(room.getUser(userId1).totalStories()).toEqual(3);
+            expect(room.getUser(userId1)!.totalStories()).toEqual(3);
         });
     });
 });
