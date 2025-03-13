@@ -9,29 +9,12 @@
     "exports": {
         "./package.json": "./package.json",
         ".": {
-            "types": "./dist/index.d.ts",
-            "import": "./dist/index.js",
-            "default": "./dist/index.js"
+            "types": "./src/index.ts",
+            "import": "./src/index.ts",
+            "default": "./src/index.ts"
         }
     },
     "devDependencies": {
         "@angular/forms": "catalog:"
-    },
-    "nx": {
-        "targets": {
-            "build": {
-                "executor": "@nx/js:swc",
-                "outputs": [
-                    "{options.outputPath}"
-                ],
-                "options": {
-                    "outputPath": "packages/tell-it/shared/utils/dist",
-                    "tsConfig": "packages/tell-it/shared/utils/tsconfig.lib.json",
-                    "packageJson": "packages/tell-it/shared/utils/package.json",
-                    "main": "packages/tell-it/shared/utils/src/index.ts",
-                    "stripLeadingPaths": true
-                }
-            }
-        }
     }
 }
