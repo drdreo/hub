@@ -6,18 +6,3 @@ packages:
     - packages/tell-it/shared/*
 catalog:
     "@angular/forms": ^19.2.0
-
-onlyBuiltDependencies:
-    - "@firebase/util"
-    - "@nestjs/core"
-    - "@parcel/watcher"
-    - "@railway/cli"
-    - "@sentry-internal/node-cpu-profiler"
-    - "@sentry/cli"
-    - "@swc/core"
-    - esbuild
-    - nx
-    - protobufjs
-    - sharp
-    - sqlite3
-    - workerd
