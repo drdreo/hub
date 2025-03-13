@@ -6,22 +6,22 @@
 
 [Learn more about this workspace setup and its capabilities](https://nx.dev/nx-api/js?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or run `npx nx graph` to visually explore what was created. Now, let's get you up to speed!
 
-## Finish your CI setup
+### Folder Structure
 
-[Click here to finish setting up your workspace!](https://cloud.nx.app/connect/H0OjurQ2Cl)
-
-## Generate a library
-
-```sh
-npx nx g @nx/js:lib packages/pkg1 --publishable --importPath=@my-org/pkg1
 ```
-
-## Run tasks
-
-To build the library use:
-
-```sh
-npx nx build pkg1
+libs/
+├── tell-it/
+│   ├── web/                # Angular-specific libraries
+│   │   ├── feature/        # Angular feature libraries
+│   │   ├── ui/             # Angular UI components
+│   │   └── data-access/    # Angular services
+│   ├── api/                # NestJS-specific libraries
+│   │   ├── feature/        # NestJS feature modules
+│   │   └── data-access/    # NestJS services, repositories
+│   └── shared/             # Shared between web and api
+│       ├── models/         # Shared interfaces/types
+│       └── util/           # Shared utilities
+├── shared/                 # Cross-domain shared code
 ```
 
 To run any task with Nx use:
@@ -65,11 +65,3 @@ npx nx sync:check
 ```
 
 [Learn more about nx sync](https://nx.dev/reference/nx-commands#sync)
-
-[Learn more about Nx on CI](https://nx.dev/ci/intro/ci-with-nx#ready-get-started-with-your-provider?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Install Nx Console
-
-Nx Console is an editor extension that enriches your developer experience. It lets you run tasks, generate code, and improves code autocompletion in your IDE. It is available for VSCode and IntelliJ.
-
-[Install Nx Console &raquo;](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)

@@ -4,13 +4,31 @@
     "files": [],
     "references": [
         {
+            "path": "./tools/plugin"
+        },
+        {
             "path": "./apps/owe-drahn"
         },
         {
             "path": "./apps/owe-drahn-api"
         },
         {
-            "path": "./tools/plugin"
+            "path": "./apps/tell-it-api"
+        },
+        {
+            "path": "./packages/tell-it/shared/domain"
+        },
+        {
+            "path": "./packages/tell-it/shared/utils"
+        },
+        {
+            "path": "./packages/tell-it/api/game"
+        },
+        {
+            "path": "./packages/tell-it/api/socket"
+        },
+        {
+            "path": "./packages/tell-it/api/data-access"
         }
     ]
 }

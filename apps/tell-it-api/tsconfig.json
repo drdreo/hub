@@ -1,0 +1,28 @@
+{
+    "extends": "../../tsconfig.base.json",
+    "files": [],
+    "include": [],
+    "references": [
+        {
+            "path": "../../packages/tell-it/shared/utils"
+        },
+        {
+            "path": "../../packages/tell-it/shared/domain"
+        },
+        {
+            "path": "../../packages/tell-it/api/socket"
+        },
+        {
+            "path": "../../packages/tell-it/api/game"
+        },
+        {
+            "path": "../../packages/tell-it/api/data-access"
+        },
+        {
+            "path": "./tsconfig.app.json"
+        },
+        {
+            "path": "./tsconfig.spec.json"
+        }
+    ]
+}
