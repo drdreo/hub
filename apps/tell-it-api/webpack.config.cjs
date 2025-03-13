@@ -9,7 +9,8 @@ module.exports = {
     resolve: {
         extensions: [".ts", ".js", ".json"],
         extensionAlias: {
-            ".js": [".ts", ".js"]
+            ".js": [".ts", ".js"],
+            ".ts": [".ts", ".js"]
         }
     },
     plugins: [

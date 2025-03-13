@@ -1,7 +1,7 @@
 import { ExecutorContext } from "@nx/devkit";
 
-import { DeployDockerExecutorSchema } from "./schema";
-import executor from "./deploy-docker";
+import type { DeployDockerExecutorSchema } from "./schema.d.ts";
+import executor from "./deploy-docker.ts";
 
 const options: DeployDockerExecutorSchema = {
     serviceName: "Test Service",

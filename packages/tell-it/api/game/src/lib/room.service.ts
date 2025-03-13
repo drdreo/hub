@@ -4,8 +4,8 @@ import { ApiDataService } from "@tell-it-api/data-access";
 import { RoomInfo, StoryData } from "@tell-it-shared/domain";
 import { Subject } from "rxjs";
 
-import { RoomCommand, RoomCommandName, TellItRoom } from "./room/index.js";
-import { User } from "./user/User.js";
+import { RoomCommand, RoomCommandName, TellItRoom } from "./room/index.ts";
+import { User } from "./user/User.ts";
 
 const AUTO_DESTROY_DELAY = 30000; // after what time the room will be destroyed automatically, when no user is in it
 

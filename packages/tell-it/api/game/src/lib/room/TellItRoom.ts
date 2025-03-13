@@ -1,9 +1,9 @@
 import { Logger } from "@nestjs/common";
 import { CantWaitError, GameStatus, RoomConfig, StoryData } from "@tell-it-shared/domain";
 import { Subject } from "rxjs";
-import { BaseRoom } from "./BaseRoom.js";
-import { RoomCommand, RoomCommandName } from "./RoomCommands.js";
-import { Story } from "./Story.js";
+import { BaseRoom } from "./BaseRoom.ts";
+import { RoomCommand, RoomCommandName } from "./RoomCommands.ts";
+import { Story } from "./Story.ts";
 
 export class TellItRoom extends BaseRoom {
     private stories: Story[] = [];
@@ -165,7 +165,7 @@ export class TellItRoom extends BaseRoom {
     }
 
     private dequeueUserStory(userID: string): Story {
-        return this.getUser(userID)?.dequeueCurrentStory();
+        return this.getUser(userID)!.dequeueCurrentStory()!;
     }
 
     private enqueueUserStory(userID: string, story: Story): void {

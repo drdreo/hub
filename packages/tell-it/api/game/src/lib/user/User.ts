@@ -1,6 +1,6 @@
 import { UserOverview } from "@tell-it-shared/domain";
 import { Queue } from "@tell-it-shared/utils";
-import { Story } from "../room/Story.js";
+import { Story } from "../room/Story.ts";
 
 export class User {
     disconnected = false;

@@ -4,10 +4,10 @@ import { GameStatus, RoomConfig, UserOverview } from "@tell-it-shared/domain";
 import { mergeDeep } from "@tell-it-shared/utils";
 import { nanoid } from "nanoid";
 import { Subject } from "rxjs";
-import { User } from "../user/User.js";
-import { InvalidConfigError, RoomFullError, RoomStartedError } from "./errors.js";
-import { validateConfig } from "./room.utils.js";
-import { RoomCommandName, RoomCommand } from "./RoomCommands.js";
+import { User } from "../user/User.ts";
+import { InvalidConfigError, RoomFullError, RoomStartedError } from "./errors.ts";
+import { validateConfig } from "./room.utils.ts";
+import { RoomCommandName, RoomCommand } from "./RoomCommands.ts";
 
 const defaultConfig: RoomConfig = {
     spectatorsAllowed: true,

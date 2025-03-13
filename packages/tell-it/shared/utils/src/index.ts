@@ -1,3 +1,3 @@
-export * from "./lib/utils.js";
-export * from "./lib/queue.js";
-export * from "./lib/room.js";
+export * from "./lib/utils.ts";
+export * from "./lib/queue.ts";
+export * from "./lib/room.ts";

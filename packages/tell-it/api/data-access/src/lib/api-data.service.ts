@@ -2,7 +2,7 @@ import { Injectable, Logger } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { StoryData } from "@tell-it-shared/domain";
 import { Repository, DeleteResult } from "typeorm";
-import { StoryEntity } from "./entities/story.entity.js";
+import { StoryEntity } from "./entities/story.entity.ts";
 
 @Injectable()
 export class ApiDataService {

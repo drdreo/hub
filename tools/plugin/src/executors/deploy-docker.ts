@@ -1,7 +1,7 @@
 import { ExecutorContext, getPackageManagerCommand, logger } from "@nx/devkit";
 import { exec } from "child_process";
 import { promisify } from "util";
-import { DeployDockerExecutorSchema } from "./schema";
+import type { DeployDockerExecutorSchema } from "./schema.d.ts";
 
 const asyncExec = promisify(exec);
 

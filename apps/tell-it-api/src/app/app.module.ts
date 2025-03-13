@@ -4,10 +4,10 @@ import { TypeOrmModule } from "@nestjs/typeorm";
 import { ApiDataAccessModule } from "@tell-it-api/data-access";
 import { GameModule } from "@tell-it-api/game";
 import { SocketModule } from "@tell-it-api/socket";
-import { getDevConfig } from "../environments/environment.js";
-import { getProdConfig } from "../environments/environment.prod.js";
-import { HealthController } from "./health.controller.js";
-import { MainController } from "./main.controller.js";
+import { getDevConfig } from "../environments/environment.ts";
+import { getProdConfig } from "../environments/environment.prod.ts";
+import { HealthController } from "./health.controller.ts";
+import { MainController } from "./main.controller.ts";
 
 const configuration = () => {
     if (process.env.NODE_ENV === "development") {

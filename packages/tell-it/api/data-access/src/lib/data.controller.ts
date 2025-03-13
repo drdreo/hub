@@ -1,6 +1,6 @@
 import { Controller, Get } from "@nestjs/common";
-import { ApiDataService } from "./api-data.service.js";
-import { StoryEntity } from "./entities/story.entity.js";
+import { ApiDataService } from "./api-data.service.ts";
+import { StoryEntity } from "./entities/story.entity.ts";
 
 @Controller()
 export class DataController {

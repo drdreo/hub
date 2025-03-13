@@ -1,6 +1,6 @@
 import { CantWaitError } from "@tell-it-shared/domain";
 import { Subject } from "rxjs";
-import { TellItRoom } from "./TellItRoom.js";
+import { TellItRoom } from "./TellItRoom.ts";
 
 describe("TellIt Room", () => {
     let room: TellItRoom;
