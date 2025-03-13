@@ -1,5 +1,5 @@
 import { ExecutorContext, getPackageManagerCommand, logger } from "@nx/devkit";
-import { default as axios } from 'axios';
+import { default as axios } from "axios";
 import { exec } from "child_process";
 import { promisify } from "util";
 import type { DeployDockerExecutorSchema } from "./schema.d.ts";
@@ -104,7 +104,7 @@ mutation deploymentRedeploy($deploymentId: String!) {
 }
 
 async function redeployService(projectId?: string) {
-    if(!projectId) {
+    if (!projectId) {
         throw new Error("Project ID is required for redeployment");
     }
     logger.log(`Redeploying project: ${projectId}`);
