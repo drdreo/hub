@@ -3,7 +3,8 @@
     "version": "0.0.1",
     "private": true,
     "type": "module",
-    "dependencies": {
+    "main": "main.cjs",
+    "devDependencies": {
         "@tell-it-api/data-access": "workspace:*",
         "@tell-it-api/game": "workspace:*",
         "@tell-it-api/socket": "workspace:*",
@@ -11,9 +12,6 @@
         "@tell-it-shared/utils": "workspace:*"
     },
     "nx": {
-        "name": "tell-it-api",
-        "projectType": "application",
-        "sourceRoot": "apps/tell-it-api/src",
         "targets": {
             "build": {
                 "executor": "nx:run-commands",
