@@ -3,7 +3,6 @@ lockfileVersion: '9.0'
 settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
-  injectWorkspacePackages: true
 
 catalogs:
   default:
@@ -337,7 +336,7 @@ importers:
   apps/owe-drahn-api: {}
 
   apps/tell-it-api:
-    dependencies:
+    devDependencies:
       '@tell-it-api/data-access':
         specifier: workspace:*
         version: link:../../packages/tell-it/api/data-access
@@ -355,13 +354,13 @@ importers:
         version: link:../../packages/tell-it/shared/utils
 
   packages/tell-it/api/data-access:
-    dependencies:
+    devDependencies:
       '@tell-it-shared/domain':
         specifier: workspace:*
         version: link:../../shared/domain
 
   packages/tell-it/api/game:
-    dependencies:
+    devDependencies:
       '@tell-it-api/data-access':
         specifier: workspace:*
         version: link:../data-access
@@ -373,7 +372,7 @@ importers:
         version: link:../../shared/utils
 
   packages/tell-it/api/socket:
-    dependencies:
+    devDependencies:
       '@tell-it-api/game':
         specifier: workspace:*
         version: link:../game
