@@ -1,5 +1,5 @@
 export interface DeployDockerExecutorSchema {
-    serviceName: string;
+    projectId?: string;
     dockerFile?: string;
     redeploy?: boolean;
     registry?: string;

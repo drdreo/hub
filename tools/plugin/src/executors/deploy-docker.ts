@@ -1,4 +1,5 @@
 import { ExecutorContext, getPackageManagerCommand, logger } from "@nx/devkit";
+import { default as axios } from 'axios';
 import { exec } from "child_process";
 import { promisify } from "util";
 import type { DeployDockerExecutorSchema } from "./schema.d.ts";
@@ -25,12 +26,12 @@ const runExecutor = async (options: DeployDockerExecutorSchema, context: Executo
 
         // Optional: Re-deploy service (customize as needed)
         if (options.redeploy) {
-            await redeployService(options.serviceName);
+            await redeployService(options.projectId);
         }
 
         return {
             success: true,
-            message: `Deployed ${options.serviceName} successfully`
+            message: `Deployed ${options.projectId} successfully`
         };
     } catch (error) {
         console.error("Deployment failed:", error);
@@ -64,12 +65,64 @@ async function pushDockerImage(image: string) {
     await asyncExec(`docker push ${image}`);
 }
 
-async function redeployService(serviceName: string) {
-    // ensure railway is installed
+async function getLastDeployment(projectId: string): Promise<any> {
+    const gql = `
+    query lastDeployment($projectId: String!) {
+  deployments(input: {projectId: $projectId}, first: 1) {
+    edges {
+      node {
+        id
+        status
+        updatedAt
+        canRedeploy
+      }
+    }
+  }
+}`;
+    const result = await executeGraphQL(gql, { projectId });
+
+    if (!result.deployments.edges.length) {
+        throw new Error(`No deployments found for project ${projectId}`);
+    }
+
+    return result.deployments.edges[0].node;
+}
+
+async function triggerRedeploy(deploymentId: string): Promise<void> {
+    logger.log(`Redeploying deployment: ${deploymentId}`);
+
+    const gql = `
+mutation deploymentRedeploy($deploymentId: String!) {
+  deploymentRedeploy(id: $deploymentId, usePreviousImageTag: false){
+    id
+    status
+  }
+}`;
+
+    const result = await executeGraphQL(gql, { deploymentId });
+    logger.log(`Redeployment initiated. Status: ${result.deploymentRedeploy.status}`);
+}
+
+async function redeployService(projectId?: string) {
+    if(!projectId) {
+        throw new Error("Project ID is required for redeployment");
+    }
+    logger.log(`Redeploying project: ${projectId}`);
+
+    if (!process.env.RAILWAY_TOKEN) {
+        throw new Error("RAILWAY_TOKEN environment variable is not set");
+    }
     await ensureRailwayInstalled();
-    logger.log(`Redeploying service: ${serviceName}`);
-    logger.log(process.env.RAILWAY_TOKEN);
-    await asyncExec(`railway redeploy --service "${serviceName}" --yes`);
+
+    try {
+        const { id } = await getLastDeployment(projectId);
+        await triggerRedeploy(id);
+    } catch (e) {
+        logger.error(`Failed to redeploy service for project ${projectId}:`);
+        logger.error(e);
+    }
+
+    // await asyncExec(`railway redeploy --service "${serviceName}" --yes`);
 }
 
 async function ensureRailwayInstalled() {
@@ -79,6 +132,33 @@ async function ensureRailwayInstalled() {
         logger.log("Railway CLI installed successfully");
     } catch (error) {
         logger.error("Failed to install Railway CLI");
+        logger.error(error);
+        throw error;
+    }
+}
+
+async function executeGraphQL(query: string, variables: any = {}) {
+    try {
+        const response = await axios({
+            url: "https://backboard.railway.com/graphql/v2",
+            method: "post",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${process.env.RAILWAY_TOKEN}`
+            },
+            data: {
+                query,
+                variables
+            }
+        });
+
+        if (response.data.errors) {
+            throw new Error(response.data.errors.map((e: any) => e.message).join(", "));
+        }
+
+        return response.data.data;
+    } catch (error) {
+        logger.error("GraphQL request failed:");
         logger.error(error);
         throw error;
     }

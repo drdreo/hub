@@ -55,7 +55,7 @@
                     "build"
                 ],
                 "options": {
-                    "serviceName": "tell-it",
+                    "projectId": "43c1ac83-2fa7-40f1-9f85-d9745f3ef49b",
                     "redeploy": true
                 }
             },

@@ -58,7 +58,7 @@
                     "build"
                 ],
                 "options": {
-                    "serviceName": "Owe Drahn",
+                    "projectId": "c234de79-2fc2-45c0-93c5-e6c7c2ace2d8",
                     "redeploy": true
                 }
             },
