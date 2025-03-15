@@ -16,13 +16,6 @@
         "noFallthroughCasesInSwitch": true
     },
     "include": ["src/**/*.ts"],
-    "references": [
-        {
-            "path": "../game/tsconfig.lib.json"
-        },
-        {
-            "path": "../../shared/domain/tsconfig.lib.json"
-        }
-    ],
+    "references": [],
     "exclude": ["jest.config.ts", "src/**/*.spec.ts", "src/**/*.test.ts"]
 }

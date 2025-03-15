@@ -5,7 +5,7 @@
         "types": [],
         "target": "ES2022",
         "module": "esnext",
-        "moduleResolution": "node",
+        "moduleResolution": "bundler",
         "esModuleInterop": true,
         "forceConsistentCasingInFileNames": true,
         "strict": true,
@@ -19,13 +19,13 @@
     "exclude": ["jest.config.ts", "src/**/*.test.ts", "src/**/*.spec.ts"],
     "references": [
         {
-            "path": "../../packages/tell-it/web/room/tsconfig.lib.json"
+            "path": "../../packages/tell-it/web/room"
         },
         {
-            "path": "../../packages/tell-it/web/home/tsconfig.lib.json"
+            "path": "../../packages/tell-it/web/home"
         },
         {
-            "path": "../../packages/tell-it/web/data-access/tsconfig.lib.json"
+            "path": "../../packages/tell-it/web/data-access"
         }
     ]
 }

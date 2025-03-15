@@ -1,8 +1,25 @@
 packages:
-    - apps/*
-    - tools/*
-    - packages/*
-    - packages/tell-it/api/*
-    - packages/tell-it/shared/*
+  - apps/*
+  - tools/*
+  - packages/*
+  - packages/tell-it/api/*
+  - packages/tell-it/shared/*
 catalog:
-    "@angular/forms": 19.1.0
+  '@angular/forms': 19.1.0
+onlyBuiltDependencies:
+  - '@firebase/util'
+  - '@nestjs/core'
+  - '@parcel/watcher'
+  - '@railway/cli'
+  - '@sentry-internal/node-cpu-profiler'
+  - '@sentry/cli'
+  - '@swc/core'
+  - core-js
+  - esbuild
+  - lmdb
+  - msgpackr-extract
+  - nx
+  - protobufjs
+  - sharp
+  - sqlite3
+  - workerd

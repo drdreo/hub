@@ -13,15 +13,6 @@
     "include": [],
     "references": [
         {
-            "path": "../../packages/tell-it/web/room"
-        },
-        {
-            "path": "../../packages/tell-it/web/home"
-        },
-        {
-            "path": "../../packages/tell-it/web/data-access"
-        },
-        {
             "path": "./tsconfig.editor.json"
         },
         {

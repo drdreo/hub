@@ -14,7 +14,7 @@ import {
     UserSubmitTextMessage,
     UserVoteKickMessage
 } from "@tell-it-web/domain/socket-interfaces";
-import { API_URL_TOKEN } from "./data-access";
+import { API_URL_TOKEN } from "./token";
 import { Socket } from "ngx-socket-io";
 import { map, merge, Observable, tap } from "rxjs";
 
@@ -97,7 +97,7 @@ export class SocketService {
 
     getFinalStories() {
         return this.socket
-            .fromEvent<ServerFinalStories>(ServerEvent.FinalStories)
+            .fromEvent<ServerFinalStories, string>(ServerEvent.FinalStories)
             .pipe(map(data => data.stories));
     }
 

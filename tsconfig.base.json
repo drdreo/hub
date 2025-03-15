@@ -1,4 +1,5 @@
 {
+    "compileOnSave": false,
     "compilerOptions": {
         "allowImportingTsExtensions": true,
         "composite": true,
@@ -9,6 +10,7 @@
         "emitDecoratorMetadata": true,
         "importHelpers": true,
         "isolatedModules": true,
+        "target": "es2022",
         "lib": ["es2022", "dom"],
         "module": "esnext",
         "moduleResolution": "nodenext",
@@ -21,7 +23,6 @@
         "skipLibCheck": true,
         "skipDefaultLibCheck": true,
         "strict": true,
-        "target": "es2022",
         "baseUrl": ".",
         "rootDir": ".",
         "paths": {

@@ -1,17 +1,17 @@
+import { AsyncPipe } from "@angular/common";
 import { ChangeDetectionStrategy, Component, OnDestroy } from "@angular/core";
 import {
+    AbstractControl,
     FormControl,
     FormGroup,
-    Validators,
-    AbstractControl,
-    ReactiveFormsModule
+    ReactiveFormsModule,
+    Validators
 } from "@angular/forms";
 import { Router } from "@angular/router";
-import { roomNameValidator } from "@tell-it-web/utils";
-import { HomeInfo } from "@tell-it-web/domain/api-interfaces";
 import { SocketService } from "@tell-it-web/data-access";
-import { takeUntil, Subject, Observable } from "rxjs";
-import { AsyncPipe } from "@angular/common";
+import { HomeInfo } from "@tell-it-web/domain/api-interfaces";
+import { Observable, Subject, takeUntil } from "rxjs";
+import { roomNameValidator } from "./room.validator";
 
 @Component({
     selector: "tell-it-app-home",
@@ -42,7 +42,9 @@ export class HomeComponent implements OnDestroy {
             .roomJoined()
             .pipe(takeUntil(this.unsubscribe$))
             .subscribe(({ userID, room }) => {
-                sessionStorage.setItem("playerID", userID);
+                if(userID) {
+                    sessionStorage.setItem("playerID", userID);
+                }
                 this.router.navigate(["/room", room]);
             });
 

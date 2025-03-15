@@ -1,12 +1,12 @@
+import { AsyncPipe } from "@angular/common";
 import { ChangeDetectionStrategy, Component, OnDestroy, OnInit } from "@angular/core";
 import { ActivatedRoute, Router } from "@angular/router";
-import { UserOverview } from "@tell-it-web/domain/api-interfaces";
 import { SocketService } from "@tell-it-web/data-access";
+import { UserOverview } from "@tell-it-web/domain/api-interfaces";
 import { GameStatus, StoryData } from "@tell-it-web/domain/game";
-import { Subject, takeUntil, Observable, fromEvent, map } from "rxjs";
-import { RoomService } from "./room.service";
+import { fromEvent, map, Observable, Subject, takeUntil } from "rxjs";
 import { MessageComponent } from "./message/message.component";
-import { AsyncPipe } from "@angular/common";
+import { RoomService } from "./room.service";
 
 @Component({
     selector: "tell-it-app-room",

@@ -12,15 +12,6 @@
     "include": [],
     "references": [
         {
-            "path": "../data-access"
-        },
-        {
-            "path": "../../shared/domain"
-        },
-        {
-            "path": "../../shared/utils"
-        },
-        {
             "path": "./tsconfig.lib.json"
         },
         {
