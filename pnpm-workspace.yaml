@@ -5,4 +5,4 @@ packages:
     - packages/tell-it/api/*
     - packages/tell-it/shared/*
 catalog:
-    "@angular/forms": ^19.2.0
+    "@angular/forms": 19.1.0

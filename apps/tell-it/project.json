@@ -1,9 +1,9 @@
 {
-    "name": "tell-it",
+    "name": "tell-it-web",
     "$schema": "../../node_modules/nx/schemas/project-schema.json",
     "projectType": "application",
     "sourceRoot": "apps/tell-it/src",
-    "prefix": "tell-it-app",
+    "prefix": "tell-it-web",
     "targets": {
         "build": {
             "executor": "@angular-devkit/build-angular:browser",
@@ -15,8 +15,15 @@
                 "polyfills": "apps/tell-it/src/polyfills.ts",
                 "tsConfig": "apps/tell-it/tsconfig.app.json",
                 "inlineStyleLanguage": "scss",
-                "assets": ["apps/tell-it/src/favicon.ico", "apps/tell-it/src/favicon", "apps/tell-it/src/assets"],
-                "styles": ["apps/tell-it/src/styles.scss", "libs/tell-it/ui/src/lib/styles/variables.scss"],
+                "assets": [
+                    "apps/tell-it/src/favicon.ico",
+                    "apps/tell-it/src/favicon",
+                    "apps/tell-it/src/assets"
+                ],
+                "styles": [
+                    "apps/tell-it/src/styles.scss",
+                    "packages/tell-it/web/ui/src/lib/styles/variables.scss"
+                ],
                 "scripts": []
             },
             "configurations": {
@@ -56,10 +63,10 @@
             "executor": "@angular-devkit/build-angular:dev-server",
             "configurations": {
                 "production": {
-                    "buildTarget": "tell-it:build:production"
+                    "buildTarget": "tell-it-web:build:production"
                 },
                 "development": {
-                    "buildTarget": "tell-it:build:development"
+                    "buildTarget": "tell-it-web:build:development"
                 }
             },
             "defaultConfiguration": "development",
@@ -67,10 +74,18 @@
                 "proxyConfig": "apps/tell-it/proxy.conf.json"
             }
         },
+        "serve-static": {
+            "executor": "@nx/web:file-server",
+            "options": {
+                "buildTarget": "tell-it-web:build",
+                "staticFilePath": "dist/apps/tell-it/browser",
+                "spa": true
+            }
+        },
         "extract-i18n": {
             "executor": "@angular-devkit/build-angular:extract-i18n",
             "options": {
-                "buildTarget": "tell-it:build"
+                "buildTarget": "tell-it-web:build"
             }
         },
         "lint": {

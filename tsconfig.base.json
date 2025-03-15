@@ -9,8 +9,8 @@
         "emitDecoratorMetadata": true,
         "importHelpers": true,
         "isolatedModules": true,
-        "lib": ["es2022"],
-        "module": "nodenext",
+        "lib": ["es2022", "dom"],
+        "module": "esnext",
         "moduleResolution": "nodenext",
         "noEmitOnError": true,
         "noFallthroughCasesInSwitch": true,
@@ -19,7 +19,19 @@
         "noUnusedLocals": true,
         "resolveJsonModule": true,
         "skipLibCheck": true,
+        "skipDefaultLibCheck": true,
         "strict": true,
-        "target": "es2022"
+        "target": "es2022",
+        "baseUrl": ".",
+        "rootDir": ".",
+        "paths": {
+            "@tell-it-web/data-access": ["packages/tell-it/web/data-access/src/index.ts"],
+            "@tell-it-web/domain": ["packages/tell-it/shared/domain/src/index.ts"],
+            "@tell-it-web/domain/*": ["packages/tell-it/shared/domain/src/lib/*"],
+            "@tell-it-web/home": ["packages/tell-it/web/home/src/index.ts"],
+            "@tell-it-web/room": ["packages/tell-it/web/room/src/index.ts"],
+            "@tell-it-web/ui": ["packages/tell-it/web/ui/src/index.ts"],
+            "@tell-it-web/utils": ["packages/tell-it/shared/utils/src/index.ts"]
+        }
     }
 }

@@ -4,9 +4,28 @@
         "outDir": "../../dist/out-tsc",
         "types": [],
         "target": "ES2022",
-        "useDefineForClassFields": false
+        "module": "esnext",
+        "moduleResolution": "node",
+        "esModuleInterop": true,
+        "forceConsistentCasingInFileNames": true,
+        "strict": true,
+        "noImplicitOverride": true,
+        "noPropertyAccessFromIndexSignature": true,
+        "noImplicitReturns": true,
+        "noFallthroughCasesInSwitch": true
     },
     "files": ["src/main.ts", "src/polyfills.ts"],
-    "include": ["src/**/*.d.ts"],
-    "exclude": ["jest.config.ts"]
+    "include": ["src/**/*.d.ts", "src/**/*.ts"],
+    "exclude": ["jest.config.ts", "src/**/*.test.ts", "src/**/*.spec.ts"],
+    "references": [
+        {
+            "path": "../../packages/tell-it/web/room/tsconfig.lib.json"
+        },
+        {
+            "path": "../../packages/tell-it/web/home/tsconfig.lib.json"
+        },
+        {
+            "path": "../../packages/tell-it/web/data-access/tsconfig.lib.json"
+        }
+    ]
 }

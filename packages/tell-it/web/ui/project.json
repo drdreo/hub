@@ -1,0 +1,20 @@
+{
+    "name": "@tell-it-web/ui",
+    "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+    "projectType": "library",
+    "sourceRoot": "packages/tell-it/web/ui/src",
+    "prefix": "tell-it-app",
+    "targets": {
+        "test": {
+            "executor": "@nx/jest:jest",
+            "outputs": ["{workspaceRoot}/coverage/packages/tell-it/web/ui"],
+            "options": {
+                "jestConfig": "packages/tell-it/web/ui/jest.config.ts"
+            }
+        },
+        "lint": {
+            "executor": "@nx/eslint:lint"
+        }
+    },
+    "tags": ["scope:client type:ui"]
+}
