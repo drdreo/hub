@@ -42,7 +42,7 @@ export class HomeComponent implements OnDestroy {
             .roomJoined()
             .pipe(takeUntil(this.unsubscribe$))
             .subscribe(({ userID, room }) => {
-                if(userID) {
+                if (userID) {
                     sessionStorage.setItem("playerID", userID);
                 }
                 this.router.navigate(["/room", room]);
