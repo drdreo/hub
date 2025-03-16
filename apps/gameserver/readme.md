@@ -9,25 +9,29 @@ The game server provides a centralized infrastructure for managing WebSocket con
 ## Core Components
 
 ### Connection Management
-- WebSocket connection handling using Gorilla WebSocket
-- Client session tracking and lifecycle management
-- Bidirectional communication with browser clients
+
+-   WebSocket connection handling using Gorilla WebSocket
+-   Client session tracking and lifecycle management
+-   Bidirectional communication with browser clients
 
 ### Room System
-- Dynamic room creation and management
-- Room joining/leaving logic
-- Targeted message broadcasting (to specific clients or rooms)
-- Room state persistence
+
+-   Dynamic room creation and management
+-   Room joining/leaving logic
+-   Targeted message broadcasting (to specific clients or rooms)
+-   Room state persistence
 
 ### Message Routing
-- Protocol-based message routing
-- Game-specific message handling
-- Efficient message distribution
+
+-   Protocol-based message routing
+-   Game-specific message handling
+-   Efficient message distribution
 
 ### Game Registry
-- Centralized registry for game implementations
-- Dynamic loading of game logic
-- Game-specific configuration and initialization
+
+-   Centralized registry for game implementations
+-   Dynamic loading of game logic
+-   Game-specific configuration and initialization
 
 ## Architecture Diagram
 
@@ -113,13 +117,13 @@ The server provides a framework-agnostic client API that can be integrated with 
 const connection = new GameConnection("ws://localhost:8080/ws");
 
 connection
-  .on("room_joined", (data) => {
-    console.log(`Joined room: ${data.roomId}`);
-  })
-  .on("game_state", (state) => {
-    // Update UI with new game state
-    updateGameUI(state);
-  });
+    .on("room_joined", data => {
+        console.log(`Joined room: ${data.roomId}`);
+    })
+    .on("game_state", state => {
+        // Update UI with new game state
+        updateGameUI(state);
+    });
 
 // Join a room
 connection.joinRoom("room123", { gameType: "chess" });
@@ -140,8 +144,8 @@ connection.send("move", { from: "e2", to: "e4" });
 
 ## Benefits
 
-- Centralized infrastructure for multiple games
-- Shared connection handling and room management
-- Efficient resource usage
-- Easy addition of new games
-- Framework-agnostic client API
+-   Centralized infrastructure for multiple games
+-   Shared connection handling and room management
+-   Efficient resource usage
+-   Easy addition of new games
+-   Framework-agnostic client API

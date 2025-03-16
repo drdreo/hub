@@ -1,7 +1,7 @@
 package client
 
 import (
-	"encoding/json"
+	"github.com/drdreo/hub/gameserver/internal/room"
 	"log"
 	"sync"
 	"time"
@@ -24,19 +24,12 @@ const (
 	maxMessageSize = 512
 )
 
-// Room interface - forward declaration
-type Room interface {
-	ID() string
-	Broadcast(message []byte, exclude ...Client)
-	Leave(client Client)
-}
-
 // Client represents a connected websocket client
 type Client interface {
 	ID() string
 	Send(message []byte) error
-	Room() Room
-	SetRoom(room Room)
+	Room() room.Room
+	SetRoom(room room.Room)
 	Close()
 }
 
@@ -45,7 +38,7 @@ type WebSocketClient struct {
 	id        string
 	conn      *websocket.Conn
 	send      chan []byte
-	room      Room
+	room      room.Room
 	mu        sync.Mutex
 	closed    bool
 	OnMessage func(message []byte)
@@ -85,14 +78,14 @@ func (c *WebSocketClient) Send(message []byte) error {
 }
 
 // Room returns the client's current room
-func (c *WebSocketClient) Room() Room {
+func (c *WebSocketClient) Room() room.Room {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return c.room
 }
 
 // SetRoom updates the client's current room
-func (c *WebSocketClient) SetRoom(room Room) {
+func (c *WebSocketClient) SetRoom(room room.Room) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.room = room
