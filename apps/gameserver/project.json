@@ -1,0 +1,26 @@
+{
+    "name": "gameserver",
+    "projectType": "application",
+    "sourceRoot": "apps/gameserver",
+    "targets": {
+        "build": {
+            "executor": "nx:run-commands",
+            "options": {
+                "command": "cd apps/gameserver && go build -o ../../dist/apps/gameserver/server ./cmd/server"
+            }
+        },
+        "serve": {
+            "executor": "nx:run-commands",
+            "options": {
+                "command": "cd apps/gameserver && go run ./cmd/server/main.go"
+            }
+        },
+        "test": {
+            "executor": "nx:run-commands",
+            "options": {
+                "command": "cd apps/gameserver && go test ./..."
+            }
+        }
+    },
+    "tags": []
+}
