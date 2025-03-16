@@ -1,7 +1,7 @@
 package client
 
 import (
-	"github.com/drdreo/hub/gameserver/internal/room"
+	"github.com/drdreo/hub/gameserver/pkg/interfaces"
 	"log"
 	"sync"
 	"time"
@@ -28,8 +28,8 @@ const (
 type Client interface {
 	ID() string
 	Send(message []byte) error
-	Room() room.Room
-	SetRoom(room room.Room)
+	Room() interfaces.Room
+	SetRoom(room interfaces.Room)
 	Close()
 }
 
@@ -38,7 +38,7 @@ type WebSocketClient struct {
 	id        string
 	conn      *websocket.Conn
 	send      chan []byte
-	room      room.Room
+	room      interfaces.Room
 	mu        sync.Mutex
 	closed    bool
 	OnMessage func(message []byte)
@@ -78,14 +78,14 @@ func (c *WebSocketClient) Send(message []byte) error {
 }
 
 // Room returns the client's current room
-func (c *WebSocketClient) Room() room.Room {
+func (c *WebSocketClient) Room() interfaces.Room {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return c.room
 }
 
 // SetRoom updates the client's current room
-func (c *WebSocketClient) SetRoom(room room.Room) {
+func (c *WebSocketClient) SetRoom(room interfaces.Room) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.room = room

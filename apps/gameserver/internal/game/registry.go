@@ -3,51 +3,34 @@ package game
 import (
     "encoding/json"
     "errors"
-    "github.com/drdreo/hub/gameserver/internal/room"
+    "github.com/drdreo/hub/gameserver/pkg/interfaces"
     "maps"
     "slices"
     "sync"
 )
 
-type Client interface {
-    ID() string
-    Send(message []byte) error
-    Room() room.Room
-    SetRoom(room room.Room)
-    Close()
-}
-
-// Game defines the interface for game implementations
-type Game interface {
-    Type() string
-    HandleMessage(client Client, room room.Room, msgType string, payload []byte)
-    InitializeRoom(room room.Room, options json.RawMessage) error
-    OnClientJoin(client Client, room room.Room)
-    OnClientLeave(client Client, room room.Room)
-}
-
 // Registry manages game registrations
 type Registry struct {
-    games map[string]Game
+    games map[string]interfaces.Game
     mu    sync.RWMutex
 }
 
 // NewRegistry creates a new game registry
 func NewRegistry() *Registry {
     return &Registry{
-        games: make(map[string]Game),
+        games: make(map[string]interfaces.Game),
     }
 }
 
 // RegisterGame adds a game to the registry
-func (r *Registry) RegisterGame(game Game) {
+func (r *Registry) RegisterGame(game interfaces.Game) {
     r.mu.Lock()
     defer r.mu.Unlock()
     r.games[game.Type()] = game
 }
 
 // GetGame retrieves a game by type
-func (r *Registry) GetGame(gameType string) (Game, error) {
+func (r *Registry) GetGame(gameType string) (interfaces.Game, error) {
     r.mu.RLock()
     defer r.mu.RUnlock()
 
@@ -69,7 +52,7 @@ func (r *Registry) HasGame(gameType string) bool {
 }
 
 // HandleMessage routes a message to the appropriate game handler
-func (r *Registry) HandleMessage(client Client, msgType string, payload []byte) error {
+func (r *Registry) HandleMessage(client interfaces.Client, msgType string, payload []byte) error {
     room := client.Room()
     if room == nil {
         return errors.New("client not in a room")
@@ -86,7 +69,7 @@ func (r *Registry) HandleMessage(client Client, msgType string, payload []byte) 
 }
 
 // InitializeRoom initializes a room with game-specific state
-func (r *Registry) InitializeRoom(room room.Room, options json.RawMessage) error {
+func (r *Registry) InitializeRoom(room interfaces.Room, options json.RawMessage) error {
     gameType := room.GameType()
     game, err := r.GetGame(gameType)
     if err != nil {
@@ -97,7 +80,7 @@ func (r *Registry) InitializeRoom(room room.Room, options json.RawMessage) error
 }
 
 // HandleClientJoin notifies the game when a client joins
-func (r *Registry) HandleClientJoin(client Client, room room.Room) error {
+func (r *Registry) HandleClientJoin(client interfaces.Client, room interfaces.Room) error {
     gameType := room.GameType()
     game, err := r.GetGame(gameType)
     if err != nil {
@@ -109,7 +92,7 @@ func (r *Registry) HandleClientJoin(client Client, room room.Room) error {
 }
 
 // HandleClientLeave notifies the game when a client leaves
-func (r *Registry) HandleClientLeave(client Client, room room.Room) error {
+func (r *Registry) HandleClientLeave(client interfaces.Client, room interfaces.Room) error {
     gameType := room.GameType()
     game, err := r.GetGame(gameType)
     if err != nil {

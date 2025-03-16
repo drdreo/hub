@@ -3,6 +3,7 @@ package room
 import (
 	"encoding/json"
 	"errors"
+	"github.com/drdreo/hub/gameserver/pkg/interfaces"
 	"maps"
 	"slices"
 	"sync"
@@ -10,26 +11,21 @@ import (
 
 // RoomManager handles the creation and tracking of game rooms
 type RoomManager struct {
-	rooms        map[string]Room
+	rooms        map[string]interfaces.Room
 	mu           sync.RWMutex
-	gameRegistry GameRegistry
-}
-
-type GameRegistry interface {
-	HasGame(gameType string) bool
-	InitializeRoom(room Room, options json.RawMessage) error
+	gameRegistry interfaces.GameRegistry
 }
 
 // NewRoomManager creates a new room manager
-func NewRoomManager(registry GameRegistry) *RoomManager {
+func NewRoomManager(registry interfaces.GameRegistry) *RoomManager {
 	return &RoomManager{
-		rooms:        make(map[string]Room),
+		rooms:        make(map[string]interfaces.Room),
 		gameRegistry: registry,
 	}
 }
 
 // CreateRoom creates a new game room
-func (m *RoomManager) CreateRoom(gameType string, options json.RawMessage) (Room, error) {
+func (m *RoomManager) CreateRoom(gameType string, options json.RawMessage) (interfaces.Room, error) {
 	// Verify game type exists
 	if !m.gameRegistry.HasGame(gameType) {
 		return nil, errors.New("unknown game type")
@@ -51,7 +47,7 @@ func (m *RoomManager) CreateRoom(gameType string, options json.RawMessage) (Room
 }
 
 // GetRoom retrieves a room by ID
-func (m *RoomManager) GetRoom(roomID string) (Room, error) {
+func (m *RoomManager) GetRoom(roomID string) (interfaces.Room, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
@@ -75,7 +71,7 @@ func (m *RoomManager) RemoveRoom(roomID string) {
 }
 
 // ListRooms returns a list of all active rooms
-func (m *RoomManager) ListRooms() []Room {
+func (m *RoomManager) ListRooms() []interfaces.Room {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
@@ -83,11 +79,11 @@ func (m *RoomManager) ListRooms() []Room {
 }
 
 // ListRoomsByGameType returns rooms of a specific game type
-func (m *RoomManager) ListRoomsByGameType(gameType string) []Room {
+func (m *RoomManager) ListRoomsByGameType(gameType string) []interfaces.Room {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	var roomList []Room
+	var roomList []interfaces.Room
 	for _, room := range m.rooms {
 		if room.GameType() == gameType {
 			roomList = append(roomList, room)

@@ -2,8 +2,7 @@ package sample
 
 import (
 	"encoding/json"
-	"github.com/drdreo/hub/gameserver/internal/client"
-	"github.com/drdreo/hub/gameserver/internal/room"
+	"github.com/drdreo/hub/gameserver/pkg/interfaces"
 	"math/rand"
 )
 
@@ -37,13 +36,18 @@ func NewTicTacToe() *TicTacToe {
 	return &TicTacToe{}
 }
 
+func RegisterTicTacToeGame(r interfaces.GameRegistry) {
+	g := NewTicTacToe()
+	r.RegisterGame(g)
+}
+
 // Type returns the game type
 func (g *TicTacToe) Type() string {
 	return "tictactoe"
 }
 
 // InitializeRoom sets up a new room with the initial game state
-func (g *TicTacToe) InitializeRoom(room room.Room, options json.RawMessage) error {
+func (g *TicTacToe) InitializeRoom(room interfaces.Room, options json.RawMessage) error {
 	// Create initial game state
 	state := GameState{
 		Board:       [3][3]string{{"", "", ""}, {"", "", ""}, {"", "", ""}},
@@ -59,7 +63,7 @@ func (g *TicTacToe) InitializeRoom(room room.Room, options json.RawMessage) erro
 }
 
 // OnClientJoin handles a client joining the room
-func (g *TicTacToe) OnClientJoin(client client.Client, room room.Room) {
+func (g *TicTacToe) OnClientJoin(client interfaces.Client, room interfaces.Room) {
 	state := room.State().(GameState)
 
 	// Only allow 2 players
@@ -106,7 +110,7 @@ func (g *TicTacToe) OnClientJoin(client client.Client, room room.Room) {
 }
 
 // OnClientLeave handles a client leaving the room
-func (g *TicTacToe) OnClientLeave(client client.Client, room room.Room) {
+func (g *TicTacToe) OnClientLeave(client interfaces.Client, room interfaces.Room) {
 	state := room.State().(GameState)
 
 	// Remove player from game
@@ -125,7 +129,7 @@ func (g *TicTacToe) OnClientLeave(client client.Client, room room.Room) {
 }
 
 // HandleMessage processes game-specific messages
-func (g *TicTacToe) HandleMessage(client client.Client, room room.Room, msgType string, payload []byte) {
+func (g *TicTacToe) HandleMessage(client interfaces.Client, room interfaces.Room, msgType string, payload []byte) {
 	switch msgType {
 	case "make_move":
 		g.handleMakeMove(client, room, payload)
@@ -137,7 +141,7 @@ func (g *TicTacToe) HandleMessage(client client.Client, room room.Room, msgType 
 }
 
 // handleMakeMove processes a move from a player
-func (g *TicTacToe) handleMakeMove(client client.Client, room room.Room, payload []byte) {
+func (g *TicTacToe) handleMakeMove(client interfaces.Client, room interfaces.Room, payload []byte) {
 	// Parse move payload
 	var move MovePayload
 	if err := json.Unmarshal(payload, &move); err != nil {
@@ -200,7 +204,7 @@ func (g *TicTacToe) handleMakeMove(client client.Client, room room.Room, payload
 }
 
 // handleRestartGame resets the game
-func (g *TicTacToe) handleRestartGame(client client.Client, room room.Room) {
+func (g *TicTacToe) handleRestartGame(client interfaces.Client, room interfaces.Room) {
 	state := room.State().(GameState)
 
 	// Only allow restart if game is over
@@ -269,7 +273,7 @@ func checkDraw(board [3][3]string) bool {
 }
 
 // broadcastGameState sends the current game state to all clients in the room
-func broadcastGameState(room room.Room) {
+func broadcastGameState(room interfaces.Room) {
 	state := room.State()
 
 	// Create a public view of the game state that hides sensitive info

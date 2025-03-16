@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"github.com/drdreo/hub/gameserver/games/sample"
 	"github.com/drdreo/hub/gameserver/internal/client"
 	"github.com/drdreo/hub/gameserver/internal/game"
 	"github.com/drdreo/hub/gameserver/internal/room"
@@ -40,7 +41,7 @@ func main() {
 	messageRouter := router.NewRouter(roomManager, gameRegistry)
 
 	// Register example game (to be replaced with real game implementations)
-	// registerExampleGame(gameRegistry)
+	sample.RegisterTicTacToeGame(gameRegistry)
 
 	http.HandleFunc("/", homeHandler)
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {

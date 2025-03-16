@@ -2,39 +2,25 @@ package router
 
 import (
 	"encoding/json"
-	"github.com/drdreo/hub/gameserver/internal/room"
+	"github.com/drdreo/hub/gameserver/pkg/interfaces"
 
 	"github.com/drdreo/hub/gameserver/internal/protocol"
 )
 
-type Client interface {
-	ID() string
-	Send(message []byte) error
-	Room() room.Room
-	SetRoom(room room.Room)
-	Close()
-}
-
 type RoomManager interface {
-	CreateRoom(gameType string, options json.RawMessage) (room.Room, error)
-	GetRoom(roomID string) (room.Room, error)
+	CreateRoom(gameType string, options json.RawMessage) (interfaces.Room, error)
+	GetRoom(roomID string) (interfaces.Room, error)
 	RemoveRoom(roomID string)
-}
-
-type GameRegistry interface {
-	HandleMessage(client Client, msgType string, payload []byte) error
-	HandleClientJoin(client Client, room room.Room) error
-	HandleClientLeave(client Client, room room.Room) error
 }
 
 // Router handles WebSocket message routing
 type Router struct {
 	roomManager  RoomManager
-	gameRegistry GameRegistry
+	gameRegistry interfaces.GameRegistry
 }
 
 // NewRouter creates a new message router
-func NewRouter(roomManager RoomManager, gameRegistry GameRegistry) *Router {
+func NewRouter(roomManager RoomManager, gameRegistry interfaces.GameRegistry) *Router {
 	return &Router{
 		roomManager:  roomManager,
 		gameRegistry: gameRegistry,
@@ -42,7 +28,7 @@ func NewRouter(roomManager RoomManager, gameRegistry GameRegistry) *Router {
 }
 
 // HandleMessage processes an incoming message from a client
-func (r *Router) HandleMessage(client Client, messageData []byte) {
+func (r *Router) HandleMessage(client interfaces.Client, messageData []byte) {
 	var message protocol.Message
 	if err := json.Unmarshal(messageData, &message); err != nil {
 		client.Send(protocol.NewErrorResponse("error", "Invalid message format"))
@@ -72,7 +58,7 @@ func (r *Router) HandleMessage(client Client, messageData []byte) {
 }
 
 // handleCreateRoom creates a new game room
-func (r *Router) handleCreateRoom(client Client, msg protocol.Message) {
+func (r *Router) handleCreateRoom(client interfaces.Client, msg protocol.Message) {
 	var createOptions struct {
 		GameType string          `json:"gameType"`
 		Options  json.RawMessage `json:"options,omitempty"`
@@ -106,7 +92,7 @@ func (r *Router) handleCreateRoom(client Client, msg protocol.Message) {
 }
 
 // handleJoinRoom joins an existing room
-func (r *Router) handleJoinRoom(client Client, msg protocol.Message) {
+func (r *Router) handleJoinRoom(client interfaces.Client, msg protocol.Message) {
 	var joinOptions struct {
 		RoomID string `json:"roomId"`
 	}
@@ -141,7 +127,7 @@ func (r *Router) handleJoinRoom(client Client, msg protocol.Message) {
 }
 
 // handleLeaveRoom leaves the current room
-func (r *Router) handleLeaveRoom(client Client) {
+func (r *Router) handleLeaveRoom(client interfaces.Client) {
 	room := client.Room()
 	if room == nil {
 		client.Send(protocol.NewErrorResponse("leave_room_result", "Client not in a room"))
@@ -163,7 +149,7 @@ func (r *Router) handleLeaveRoom(client Client) {
 }
 
 // handleGameAction forwards a game-specific action to the game handler
-func (r *Router) handleGameAction(client Client, msg protocol.Message) {
+func (r *Router) handleGameAction(client interfaces.Client, msg protocol.Message) {
 	if client.Room() == nil {
 		client.Send(protocol.NewErrorResponse("game_action_result", "Client not in a room"))
 		return

@@ -3,39 +3,18 @@ package room
 import (
 	"encoding/json"
 	"errors"
+	"github.com/drdreo/hub/gameserver/pkg/interfaces"
 	"sync"
 
 	"github.com/google/uuid"
 )
 
-// Client interface
-type Client interface {
-	ID() string
-	Send(message []byte) error
-	Room() Room
-	SetRoom(room Room)
-	Close()
-}
-
-// Room interface
-type Room interface {
-	ID() string
-	GameType() string
-	Join(client Client) error
-	Leave(client Client)
-	Broadcast(message []byte, exclude ...Client)
-	BroadcastTo(message []byte, clients ...Client)
-	Clients() map[string]Client
-	State() interface{}
-	SetState(state interface{})
-	Close()
-}
 
 // GameRoom implements the Room interface
 type GameRoom struct {
 	id       string
 	gameType string
-	clients  map[string]Client
+	clients  map[string]interfaces.Client
 	state    interface{}
 	mu       sync.RWMutex
 	closed   bool
@@ -46,7 +25,7 @@ func NewRoom(gameType string) *GameRoom {
 	return &GameRoom{
 		id:       uuid.New().String(),
 		gameType: gameType,
-		clients:  make(map[string]Client),
+		clients:  make(map[string]interfaces.Client),
 		closed:   false,
 	}
 }
@@ -62,7 +41,7 @@ func (room *GameRoom) GameType() string {
 }
 
 // Join adds a client to the room
-func (room *GameRoom) Join(client Client) error {
+func (room *GameRoom) Join(client interfaces.Client) error {
 	room.mu.Lock()
 	defer room.mu.Unlock()
 
@@ -93,7 +72,7 @@ func (room *GameRoom) Join(client Client) error {
 }
 
 // Leave removes a client from the room
-func (room *GameRoom) Leave(client Client) {
+func (room *GameRoom) Leave(client interfaces.Client) {
 	room.mu.Lock()
 	defer room.mu.Unlock()
 
@@ -116,7 +95,7 @@ func (room *GameRoom) Leave(client Client) {
 }
 
 // Broadcast sends a message to all clients in the room except excluded ones
-func (room *GameRoom) Broadcast(message []byte, exclude ...Client) {
+func (room *GameRoom) Broadcast(message []byte, exclude ...interfaces.Client) {
 	room.mu.RLock()
 	defer room.mu.RUnlock()
 
@@ -133,19 +112,19 @@ func (room *GameRoom) Broadcast(message []byte, exclude ...Client) {
 }
 
 // BroadcastTo sends a message to specific clients in the room
-func (room *GameRoom) BroadcastTo(message []byte, clients ...Client) {
+func (room *GameRoom) BroadcastTo(message []byte, clients ...interfaces.Client) {
 	for _, client := range clients {
 		client.Send(message)
 	}
 }
 
 // Clients returns a map of clients in the room
-func (room *GameRoom) Clients() map[string]Client {
+func (room *GameRoom) Clients() map[string]interfaces.Client {
 	room.mu.RLock()
 	defer room.mu.RUnlock()
 
 	// Return a copy to avoid race conditions
-	clientsCopy := make(map[string]Client)
+	clientsCopy := make(map[string]interfaces.Client)
 	for id, client := range room.clients {
 		clientsCopy[id] = client
 	}
