@@ -3,7 +3,7 @@ package room
 import (
 	"encoding/json"
 	"errors"
-	"github.com/drdreo/hub/gameserver/pkg/interfaces"
+	"github.com/drdreo/hub/gameserver/internal/interfaces"
 	"sync"
 
 	"github.com/google/uuid"

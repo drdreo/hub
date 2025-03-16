@@ -7,6 +7,7 @@ import (
 	"github.com/drdreo/hub/gameserver/internal/game"
 	"github.com/drdreo/hub/gameserver/internal/room"
 	"github.com/drdreo/hub/gameserver/internal/router"
+	"github.com/drdreo/hub/gameserver/internal/session"
 	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
@@ -30,6 +31,9 @@ func main() {
 	}
 
 	var port = os.Getenv("PORT")
+
+	// Initialize the global session store with 5 minute expiry
+	session.InitGlobalStore(300)
 
 	// Initialize game registry
 	gameRegistry := game.NewRegistry()

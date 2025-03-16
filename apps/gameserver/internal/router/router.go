@@ -2,7 +2,8 @@ package router
 
 import (
 	"encoding/json"
-	"github.com/drdreo/hub/gameserver/pkg/interfaces"
+	"github.com/drdreo/hub/gameserver/internal/interfaces"
+	"github.com/drdreo/hub/gameserver/internal/session"
 
 	"github.com/drdreo/hub/gameserver/internal/protocol"
 )
@@ -17,6 +18,12 @@ type RoomManager interface {
 type Router struct {
 	roomManager  RoomManager
 	gameRegistry interfaces.GameRegistry
+}
+
+// ReconnectPayload the reconnect message
+type ReconnectPayload struct {
+	ClientID string `json:"clientId"`
+	RoomID   string `json:"roomId"`
 }
 
 // NewRouter creates a new message router
@@ -44,6 +51,8 @@ func (r *Router) HandleMessage(client interfaces.Client, messageData []byte) {
 		r.handleLeaveRoom(client)
 	case "game_action":
 		r.handleGameAction(client, message)
+	case "reconnect":
+		r.handleReconnect(client, message)
 	default:
 		// Forward to game-specific handler
 		if client.Room() != nil {
@@ -159,4 +168,57 @@ func (r *Router) handleGameAction(client interfaces.Client, msg protocol.Message
 		client.Send(protocol.NewErrorResponse("game_action_result", err.Error()))
 		return
 	}
+}
+
+// handleReconnect tries to reconnect the new socket to an existing room
+func (r *Router) handleReconnect(client interfaces.Client, msg protocol.Message) {
+	if client.Room() != nil {
+		client.Send(protocol.NewErrorResponse("reconnect_result", "Client is already in a room"))
+		return
+	}
+
+	var recon ReconnectPayload
+	if err := json.Unmarshal(msg.Payload, &recon); err != nil {
+		client.Send(protocol.NewErrorResponse("reconnect_result", err.Error()))
+		return
+	}
+
+	// Get session store
+	sessionStore := session.GetSessionStore()
+	sessionData, exists := sessionStore.GetSession(recon.ClientID)
+	if !exists {
+		client.Send(protocol.NewErrorResponse("reconnect_result", "Session expired or not found"))
+		return
+	}
+
+	// Find room (either from session or from request)
+	roomID := sessionData.RoomID
+	if recon.RoomID != "" {
+		roomID = recon.RoomID // Optional: override with provided roomID
+	}
+
+	// Get the room
+	targetRoom, err := r.roomManager.GetRoom(roomID)
+	if err != nil {
+		client.Send(protocol.NewErrorResponse("reconnect_result", "Room not found"))
+		return
+	}
+
+	// Join room and reconnect
+	if err := targetRoom.Join(client); err != nil {
+		client.Send(protocol.NewErrorResponse("reconnect_result", err.Error()))
+		return
+	}
+
+	// Handle reconnection at game level
+	r.gameRegistry.HandleClientReconnect(client, targetRoom, recon.ClientID)
+
+	// Remove the old session
+	sessionStore.RemoveSession(recon.ClientID)
+
+	response := map[string]interface{}{
+		"roomId":   targetRoom.ID(),
+		"gameType": targetRoom.GameType(),
+	}
+	client.Send(protocol.NewSuccessResponse("reconnect_result", response))
 }

@@ -1,7 +1,8 @@
 package client
 
 import (
-	"github.com/drdreo/hub/gameserver/pkg/interfaces"
+	"github.com/drdreo/hub/gameserver/internal/interfaces"
+	"github.com/drdreo/hub/gameserver/internal/session"
 	"log"
 	"sync"
 	"time"
@@ -101,12 +102,35 @@ func (c *WebSocketClient) Close() {
 	}
 
 	c.closed = true
-	c.conn.Close()
-	close(c.send)
 
+	// Store session if client is in a room
 	if c.room != nil {
+		// Get the global session store (see integration notes below)
+		sessionStore := session.GetSessionStore()
+
+		// Extract relevant player info from room state
+		var playerInfo interface{}
+		if state, ok := c.room.State().(map[string]interface{}); ok {
+			if players, exists := state["players"].(map[string]interface{}); exists {
+				playerInfo = players[c.id]
+			}
+		}
+
+		sessionStore.StoreSession(c.id, session.SessionData{
+			ClientID:   c.id,
+			RoomID:     c.room.ID(),
+			GameType:   c.room.GameType(),
+			LastActive: time.Now(),
+			// Add game-specific data if needed
+			ExtraData: map[string]interface{}{
+				"playerInfo": playerInfo,
+			},
+		})
 		c.room.Leave(c)
 	}
+
+	c.conn.Close()
+	close(c.send)
 }
 
 // StartPumps begins reading from and writing to the websocket

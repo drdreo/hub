@@ -1,37 +1,40 @@
 # Game Server Architecture
 
-This document outlines the architecture of the WebSocket-based game server implemented in Go, designed to support multiple room-based multiplayer browser games.
+This document outlines the architecture of the WebSocket-based game server implemented in Go, designed to support
+multiple room-based multiplayer browser games.
 
 ## Overview
 
-The game server provides a centralized infrastructure for managing WebSocket connections, rooms, and game sessions. It uses a plugin-based architecture that allows different games to register their logic with the server while sharing common infrastructure.
+The game server provides a centralized infrastructure for managing WebSocket connections, rooms, and game sessions. It
+uses a plugin-based architecture that allows different games to register their logic with the server while sharing
+common infrastructure.
 
 ## Core Components
 
 ### Connection Management
 
--   WebSocket connection handling using Gorilla WebSocket
--   Client session tracking and lifecycle management
--   Bidirectional communication with browser clients
+- WebSocket connection handling using Gorilla WebSocket
+- Client session tracking and lifecycle management
+- Bidirectional communication with browser clients
 
 ### Room System
 
--   Dynamic room creation and management
--   Room joining/leaving logic
--   Targeted message broadcasting (to specific clients or rooms)
--   Room state persistence
+- Dynamic room creation and management
+- Room joining/leaving logic
+- Targeted message broadcasting (to specific clients or rooms)
+- Room state persistence
 
 ### Message Routing
 
--   Protocol-based message routing
--   Game-specific message handling
--   Efficient message distribution
+- Protocol-based message routing
+- Game-specific message handling
+- Efficient message distribution
 
 ### Game Registry
 
--   Centralized registry for game implementations
--   Dynamic loading of game logic
--   Game-specific configuration and initialization
+- Centralized registry for game implementations
+- Dynamic loading of game logic
+- Game-specific configuration and initialization
 
 ## Architecture Diagram
 
@@ -67,34 +70,34 @@ The game server provides a centralized infrastructure for managing WebSocket con
 ```go
 // Client interface
 type Client interface {
-    ID() string
-    Send(message []byte) error
-    Room() Room
-    SetRoom(room Room)
-    Close()
+ID() string
+Send(message []byte) error
+Room() Room
+SetRoom(room Room)
+Close()
 }
 
 // Room interface
 type Room interface {
-    ID() string
-    GameType() string
-    Join(client Client) error
-    Leave(client Client)
-    Broadcast(message []byte, exclude ...Client)
-    BroadcastTo(message []byte, clients ...Client)
-    Clients() map[string]Client
-    State() interface{}
-    SetState(state interface{})
-    Close()
+ID() string
+GameType() string
+Join(client Client) error
+Leave(client Client)
+Broadcast(message []byte, exclude ...Client)
+BroadcastTo(message []byte, clients ...Client)
+Clients() map[string]Client
+State() interface{}
+SetState(state interface{})
+Close()
 }
 
 // Game interface
 type Game interface {
-    Type() string
-    HandleMessage(client Client, room Room, msgType string, payload []byte)
-    InitializeRoom(room Room, options json.RawMessage) error
-    OnClientJoin(client Client, room Room)
-    OnClientLeave(client Client, room Room)
+Type() string
+HandleMessage(client Client, room Room, msgType string, payload []byte)
+InitializeRoom(room Room, options json.RawMessage) error
+OnClientJoin(client Client, room Room)
+OnClientLeave(client Client, room Room)
 }
 ```
 
@@ -142,10 +145,18 @@ connection.send("move", { from: "e2", to: "e4" });
 6. Client library development
 7. Testing and optimization
 
-## Benefits
+## Reconnection Flow
 
--   Centralized infrastructure for multiple games
--   Shared connection handling and room management
--   Efficient resource usage
--   Easy addition of new games
--   Framework-agnostic client API
+1. Client disconnects (browser refresh)
+    + client.Close() stores session data in global session store
+    + Session includes client ID, room ID, game type, and metadata
+    + Client reconnects (browser loaded)
+
+2. Client sends "reconnect" message with old client ID from localStorage
+    + Server fetches session data from global store
+    + Server rejoins client to the room
+    + Game handles reconnection logic via OnClientReconnect
+    + Session is removed from the store
+    + Expired sessions
+
+3. Cleanup routine automatically removes sessions after timeout

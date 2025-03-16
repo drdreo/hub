@@ -3,7 +3,7 @@ package game
 import (
     "encoding/json"
     "errors"
-    "github.com/drdreo/hub/gameserver/pkg/interfaces"
+    "github.com/drdreo/hub/gameserver/internal/interfaces"
     "maps"
     "slices"
     "sync"
@@ -100,6 +100,18 @@ func (r *Registry) HandleClientLeave(client interfaces.Client, room interfaces.R
     }
 
     game.OnClientLeave(client, room)
+    return nil
+}
+
+// HandleClientReconnect notifies the game when a client leaves
+func (r *Registry) HandleClientReconnect(client interfaces.Client, room interfaces.Room, oldClientId string) error {
+    gameType := room.GameType()
+    game, err := r.GetGame(gameType)
+    if err != nil {
+        return err
+    }
+
+    game.OnClientReconnect(client, room, oldClientId)
     return nil
 }
 

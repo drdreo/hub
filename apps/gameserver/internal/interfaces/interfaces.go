@@ -30,6 +30,7 @@ type Game interface {
 	InitializeRoom(room Room, options json.RawMessage) error
 	OnClientJoin(client Client, room Room)
 	OnClientLeave(client Client, room Room)
+	OnClientReconnect(client Client, room Room, oldClientId string)
 }
 
 type GameRegistry interface {
@@ -40,4 +41,5 @@ type GameRegistry interface {
 	HandleMessage(client Client, msgType string, payload []byte) error
 	HandleClientJoin(client Client, room Room) error
 	HandleClientLeave(client Client, room Room) error
+	HandleClientReconnect(client Client, room Room, oldClientId string) error
 }
