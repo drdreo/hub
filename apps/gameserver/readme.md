@@ -13,28 +13,28 @@ common infrastructure.
 
 ### Connection Management
 
-- WebSocket connection handling using Gorilla WebSocket
-- Client session tracking and lifecycle management
-- Bidirectional communication with browser clients
+-   WebSocket connection handling using Gorilla WebSocket
+-   Client session tracking and lifecycle management
+-   Bidirectional communication with browser clients
 
 ### Room System
 
-- Dynamic room creation and management
-- Room joining/leaving logic
-- Targeted message broadcasting (to specific clients or rooms)
-- Room state persistence
+-   Dynamic room creation and management
+-   Room joining/leaving logic
+-   Targeted message broadcasting (to specific clients or rooms)
+-   Room state persistence
 
 ### Message Routing
 
-- Protocol-based message routing
-- Game-specific message handling
-- Efficient message distribution
+-   Protocol-based message routing
+-   Game-specific message handling
+-   Efficient message distribution
 
 ### Game Registry
 
-- Centralized registry for game implementations
-- Dynamic loading of game logic
-- Game-specific configuration and initialization
+-   Centralized registry for game implementations
+-   Dynamic loading of game logic
+-   Game-specific configuration and initialization
 
 ## Architecture Diagram
 
@@ -148,15 +148,17 @@ connection.send("move", { from: "e2", to: "e4" });
 ## Reconnection Flow
 
 1. Client disconnects (browser refresh)
-    + client.Close() stores session data in global session store
-    + Session includes client ID, room ID, game type, and metadata
-    + Client reconnects (browser loaded)
+
+    - client.Close() stores session data in global session store
+    - Session includes client ID, room ID, game type, and metadata
+    - Client reconnects (browser loaded)
 
 2. Client sends "reconnect" message with old client ID from localStorage
-    + Server fetches session data from global store
-    + Server rejoins client to the room
-    + Game handles reconnection logic via OnClientReconnect
-    + Session is removed from the store
-    + Expired sessions
+
+    - Server fetches session data from global store
+    - Server rejoins client to the room
+    - Game handles reconnection logic via OnClientReconnect
+    - Session is removed from the store
+    - Expired sessions
 
 3. Cleanup routine automatically removes sessions after timeout
