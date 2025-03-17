@@ -22,7 +22,7 @@ const (
 	pingPeriod = (pongWait * 9) / 10
 
 	// Maximum message size allowed from peer
-	maxMessageSize = 512
+	maxMessageSize = 2048
 )
 
 // Client represents a connected websocket client
@@ -186,13 +186,18 @@ func (c *WebSocketClient) writePump() {
 			if err != nil {
 				return
 			}
+			// Start JSON array
+			w.Write([]byte("["))
 			w.Write(message)
 
-			// Add queued messages to the current websocket message
+			// Add queued messages to the current websocket message with a delimiter
 			n := len(c.send)
 			for i := 0; i < n; i++ {
+				w.Write([]byte(","))
 				w.Write(<-c.send)
 			}
+			// Close JSON array
+			w.Write([]byte("]"))
 
 			if err := w.Close(); err != nil {
 				return

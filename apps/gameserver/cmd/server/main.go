@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/drdreo/hub/gameserver/games/sample"
+	"github.com/drdreo/hub/gameserver/games/tictactoe"
 	"github.com/drdreo/hub/gameserver/internal/client"
 	"github.com/drdreo/hub/gameserver/internal/game"
 	"github.com/drdreo/hub/gameserver/internal/room"
@@ -25,7 +25,7 @@ var upgrader = websocket.Upgrader{
 }
 
 func main() {
-	err := godotenv.Load()
+	err := godotenv.Load("../../.env")
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
@@ -45,7 +45,7 @@ func main() {
 	messageRouter := router.NewRouter(roomManager, gameRegistry)
 
 	// Register example game (to be replaced with real game implementations)
-	sample.RegisterTicTacToeGame(gameRegistry)
+	tictactoe.RegisterTicTacToeGame(gameRegistry)
 
 	http.HandleFunc("/", homeHandler)
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {

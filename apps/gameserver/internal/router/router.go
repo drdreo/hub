@@ -4,9 +4,13 @@ import (
 	"encoding/json"
 	"github.com/drdreo/hub/gameserver/internal/interfaces"
 	"github.com/drdreo/hub/gameserver/internal/session"
+	"log"
+	"os"
 
 	"github.com/drdreo/hub/gameserver/internal/protocol"
 )
+
+var logger = log.New(os.Stdout, "", log.LstdFlags|log.Lshortfile)
 
 type RoomManager interface {
 	CreateRoom(gameType string, options json.RawMessage) (interfaces.Room, error)
@@ -28,6 +32,8 @@ type ReconnectPayload struct {
 
 // NewRouter creates a new message router
 func NewRouter(roomManager RoomManager, gameRegistry interfaces.GameRegistry) *Router {
+	logger.Println("creating new router")
+
 	return &Router{
 		roomManager:  roomManager,
 		gameRegistry: gameRegistry,
@@ -38,6 +44,8 @@ func NewRouter(roomManager RoomManager, gameRegistry interfaces.GameRegistry) *R
 func (r *Router) HandleMessage(client interfaces.Client, messageData []byte) {
 	var message protocol.Message
 	if err := json.Unmarshal(messageData, &message); err != nil {
+		logger.Printf("Invalid message format %v\n", messageData)
+
 		client.Send(protocol.NewErrorResponse("error", "Invalid message format"))
 		return
 	}
@@ -78,6 +86,8 @@ func (r *Router) handleCreateRoom(client interfaces.Client, msg protocol.Message
 		return
 	}
 
+	logger.Printf("handleCreateRoom: %v\n", createOptions)
+
 	room, err := r.roomManager.CreateRoom(createOptions.GameType, createOptions.Options)
 	if err != nil {
 		client.Send(protocol.NewErrorResponse("create_room_result", err.Error()))
@@ -111,6 +121,9 @@ func (r *Router) handleJoinRoom(client interfaces.Client, msg protocol.Message) 
 		return
 	}
 
+	logger.Wi
+	logger.Printf("handleJoinRoom: %v\n", joinOptions)
+
 	room, err := r.roomManager.GetRoom(joinOptions.RoomID)
 	if err != nil {
 		client.Send(protocol.NewErrorResponse("join_room_result", err.Error()))
@@ -132,6 +145,8 @@ func (r *Router) handleJoinRoom(client interfaces.Client, msg protocol.Message) 
 		"gameType": room.GameType(),
 		"clients":  len(room.Clients()),
 	}
+
+	logger.Printf("handleJoinRoom successful. RoomId: %s\n", room.ID())
 	client.Send(protocol.NewSuccessResponse("join_room_result", response))
 }
 

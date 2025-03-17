@@ -96,9 +96,6 @@ func (room *GameRoom) Leave(client interfaces.Client) {
 
 // Broadcast sends a message to all clients in the room except excluded ones
 func (room *GameRoom) Broadcast(message []byte, exclude ...interfaces.Client) {
-	room.mu.RLock()
-	defer room.mu.RUnlock()
-
 	excludeMap := make(map[string]bool)
 	for _, client := range exclude {
 		excludeMap[client.ID()] = true

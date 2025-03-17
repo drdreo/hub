@@ -1,4 +1,4 @@
-package sample
+package tictactoe
 
 import (
 	"encoding/json"
