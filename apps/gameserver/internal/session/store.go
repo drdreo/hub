@@ -75,7 +75,7 @@ func (s *Store) RemoveSession(clientID string) {
     s.mu.Lock()
     defer s.mu.Unlock()
 
-    log.Info().Str("clientId", clientID).Msg("removing session")
+    log.Debug().Str("clientId", clientID).Msg("removing session")
     delete(s.sessions, clientID)
 }
 

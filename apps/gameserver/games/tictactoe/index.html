@@ -126,6 +126,7 @@
         </button>
 
         <script type="application/javascript">
+            let lastKnownState;
             // Game state
             const gameState = {
                 clientId: null,
@@ -228,16 +229,19 @@
                 roomIdInput.value = data.roomId;
                 roomIdInput.readOnly = true;
 
-
                 sessionStorage.setItem("clientId", data.clientId);
                 sessionStorage.setItem("roomId", data.roomId);
+
+                if (lastKnownState){
+                    updateGameState(lastKnownState);
+                }
             }
 
-            function checkReconnect(){
-                         const clientId = sessionStorage.getItem("clientId");
-                         const roomId = sessionStorage.getItem("roomId");
+            function checkReconnect() {
+                const clientId = sessionStorage.getItem("clientId");
+                const roomId = sessionStorage.getItem("roomId");
 
-                if (clientId && roomId){
+                if (clientId && roomId) {
                     const message = {
                         type: "reconnect",
                         payload: {
@@ -252,6 +256,7 @@
 
             // Update game state from server
             function updateGameState(state) {
+                lastKnownState = state;
                 // Update board
                 for (let row = 0; row < 3; row++) {
                     for (let col = 0; col < 3; col++) {
@@ -264,7 +269,12 @@
                 }
 
                 // Update game status
+                console.log("current", state.currentTurn);
+                console.log("gameState", gameState);
+                console.log("clientId", gameState.clientId);
                 gameState.isMyTurn = state.currentTurn === gameState.clientId;
+                console.log("isMyTurn", gameState.isMyTurn);
+
                 gameState.gameOver = state.gameOver;
 
                 // Update status message
