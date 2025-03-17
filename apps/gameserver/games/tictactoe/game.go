@@ -190,7 +190,7 @@ func (g *TicTacToe) handleMakeMove(client interfaces.Client, room interfaces.Roo
 		return
 	}
 
-	log.Debug().Str("clientID", client.ID()).Fields(move).Msg("player move")
+	log.Debug().Str("clientID", client.ID()).Msg("player move")
 
 	// Get current game state
 	state := room.State().(GameState)

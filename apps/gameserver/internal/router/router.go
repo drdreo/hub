@@ -157,6 +157,8 @@ func (r *Router) handleLeaveRoom(client interfaces.Client) {
 		return
 	}
 
+	log.Debug().Str("clientID", client.ID()).Msg("handleJoinRoom")
+
 	// Notify game about client leave
 	r.gameRegistry.HandleClientLeave(client, room)
 
@@ -199,6 +201,8 @@ func (r *Router) handleReconnect(client interfaces.Client, msg protocol.Message)
 		client.Send(protocol.NewErrorResponse("reconnect_result", err.Error()))
 		return
 	}
+
+	log.Debug().Str("oldClientID", recon.ClientID).Str("newClientID", client.ID()).Msg("handleReconnect")
 
 	// Get session store
 	sessionStore := session.GetSessionStore()

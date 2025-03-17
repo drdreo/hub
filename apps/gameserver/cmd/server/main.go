@@ -131,5 +131,5 @@ func wsHandler(w http.ResponseWriter, r *http.Request, router *router.Router) {
 	// Send welcome message
 	c.Send([]byte(`{"type":"welcome","message":"Connected to game server"}`))
 
-	log.Debug().Str("id", c.ID()).Msg("Client connected")
+	log.Debug().Str("id", c.ID()).Msg("client connected")
 }

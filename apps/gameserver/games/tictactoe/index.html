@@ -125,7 +125,7 @@
             Restart Game
         </button>
 
-        <script>
+        <script type="application/javascript">
             // Game state
             const gameState = {
                 clientId: null,
@@ -157,6 +157,7 @@
 
                 gameState.socket.onopen = () => {
                     statusElement.textContent = "Connected to server";
+                    checkReconnect();
                 };
 
                 gameState.socket.onclose = () => {
@@ -211,6 +212,9 @@
 
                 // Enable copy-paste for room ID to invite others
                 roomIdInput.readOnly = true;
+
+                sessionStorage.setItem("clientId", data.clientId);
+                sessionStorage.setItem("roomId", data.roomId);
             }
 
             // Handle successful reconnection
@@ -223,6 +227,27 @@
                 playerInfoElement.textContent = `You are playing as: ${data.symbol}`;
                 roomIdInput.value = data.roomId;
                 roomIdInput.readOnly = true;
+
+
+                sessionStorage.setItem("clientId", data.clientId);
+                sessionStorage.setItem("roomId", data.roomId);
+            }
+
+            function checkReconnect(){
+                         const clientId = sessionStorage.getItem("clientId");
+                         const roomId = sessionStorage.getItem("roomId");
+
+                if (clientId && roomId){
+                    const message = {
+                        type: "reconnect",
+                        payload: {
+                            roomId,
+                            clientId
+                        }
+                    };
+
+                    gameState.socket.send(JSON.stringify(message));
+                }
             }
 
             // Update game state from server

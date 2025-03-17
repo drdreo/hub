@@ -52,7 +52,9 @@ func (s *Store) StoreSession(clientID string, data SessionData) {
     s.mu.Lock()
     defer s.mu.Unlock()
     data.LastActive = time.Now()
+
     s.sessions[clientID] = data
+    log.Debug().Str("clientId", clientID).Time("lastActive", data.LastActive).Msg("session stored")
 }
 
 func (s *Store) GetSession(clientID string) (SessionData, bool) {
@@ -78,7 +80,7 @@ func (s *Store) RemoveSession(clientID string) {
 }
 
 func (s *Store) cleanupRoutine() {
-    ticker := time.NewTicker(30 * time.Second)
+    ticker := time.NewTicker(60 * time.Second)
     defer ticker.Stop()
 
     for range ticker.C {
