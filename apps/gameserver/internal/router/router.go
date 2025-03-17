@@ -3,14 +3,10 @@ package router
 import (
 	"encoding/json"
 	"github.com/drdreo/hub/gameserver/internal/interfaces"
-	"github.com/drdreo/hub/gameserver/internal/session"
-	"log"
-	"os"
-
 	"github.com/drdreo/hub/gameserver/internal/protocol"
+	"github.com/drdreo/hub/gameserver/internal/session"
+	"github.com/rs/zerolog/log"
 )
-
-var logger = log.New(os.Stdout, "", log.LstdFlags|log.Lshortfile)
 
 type RoomManager interface {
 	CreateRoom(gameType string, options json.RawMessage) (interfaces.Room, error)
@@ -32,7 +28,7 @@ type ReconnectPayload struct {
 
 // NewRouter creates a new message router
 func NewRouter(roomManager RoomManager, gameRegistry interfaces.GameRegistry) *Router {
-	logger.Println("creating new router")
+	log.Debug().Msg("creating new router")
 
 	return &Router{
 		roomManager:  roomManager,
@@ -44,7 +40,7 @@ func NewRouter(roomManager RoomManager, gameRegistry interfaces.GameRegistry) *R
 func (r *Router) HandleMessage(client interfaces.Client, messageData []byte) {
 	var message protocol.Message
 	if err := json.Unmarshal(messageData, &message); err != nil {
-		logger.Printf("Invalid message format %v\n", messageData)
+		log.Error().Err(err).Msg("Invalid message format")
 
 		client.Send(protocol.NewErrorResponse("error", "Invalid message format"))
 		return
@@ -86,7 +82,7 @@ func (r *Router) handleCreateRoom(client interfaces.Client, msg protocol.Message
 		return
 	}
 
-	logger.Printf("handleCreateRoom: %v\n", createOptions)
+	log.Debug().Fields(createOptions).Msg("handleCreateRoom")
 
 	room, err := r.roomManager.CreateRoom(createOptions.GameType, createOptions.Options)
 	if err != nil {
@@ -121,17 +117,18 @@ func (r *Router) handleJoinRoom(client interfaces.Client, msg protocol.Message) 
 		return
 	}
 
-	logger.Wi
-	logger.Printf("handleJoinRoom: %v\n", joinOptions)
+	log.Debug().Fields(joinOptions).Msg("handleJoinRoom")
 
 	room, err := r.roomManager.GetRoom(joinOptions.RoomID)
 	if err != nil {
+		log.Error().Err(err).Str("id", joinOptions.RoomID).Msg("failed to get room")
 		client.Send(protocol.NewErrorResponse("join_room_result", err.Error()))
 		return
 	}
 
 	// Join the room
 	if err := room.Join(client); err != nil {
+		log.Error().Err(err).Str("id", room.ID()).Msg("failed to join room")
 		client.Send(protocol.NewErrorResponse("join_room_result", err.Error()))
 		return
 	}
@@ -146,7 +143,8 @@ func (r *Router) handleJoinRoom(client interfaces.Client, msg protocol.Message) 
 		"clients":  len(room.Clients()),
 	}
 
-	logger.Printf("handleJoinRoom successful. RoomId: %s\n", room.ID())
+	log.Info().Str("roomID", room.ID()).Msg("client joined room")
+
 	client.Send(protocol.NewSuccessResponse("join_room_result", response))
 }
 
@@ -154,6 +152,7 @@ func (r *Router) handleJoinRoom(client interfaces.Client, msg protocol.Message) 
 func (r *Router) handleLeaveRoom(client interfaces.Client) {
 	room := client.Room()
 	if room == nil {
+		log.Warn().Str("id", client.ID()).Msg("client tried to leave room but room is not set")
 		client.Send(protocol.NewErrorResponse("leave_room_result", "Client not in a room"))
 		return
 	}
@@ -169,6 +168,9 @@ func (r *Router) handleLeaveRoom(client interfaces.Client) {
 	response := map[string]string{
 		"roomId": roomID,
 	}
+
+	log.Info().Str("roomID", roomID).Msg("client left room")
+
 	client.Send(protocol.NewSuccessResponse("leave_room_result", response))
 }
 
@@ -235,5 +237,8 @@ func (r *Router) handleReconnect(client interfaces.Client, msg protocol.Message)
 		"roomId":   targetRoom.ID(),
 		"gameType": targetRoom.GameType(),
 	}
+
+	log.Info().Str("roomId", targetRoom.ID()).Str("gameType", targetRoom.GameType()).Msg("client reconnected")
+
 	client.Send(protocol.NewSuccessResponse("reconnect_result", response))
 }

@@ -4,6 +4,7 @@ import (
     "encoding/json"
     "errors"
     "github.com/drdreo/hub/gameserver/internal/interfaces"
+    "github.com/rs/zerolog/log"
     "maps"
     "slices"
     "sync"
@@ -17,6 +18,7 @@ type Registry struct {
 
 // NewRegistry creates a new game registry
 func NewRegistry() *Registry {
+    log.Debug().Msg("game registry created")
     return &Registry{
         games: make(map[string]interfaces.Game),
     }
@@ -27,6 +29,7 @@ func (r *Registry) RegisterGame(game interfaces.Game) {
     r.mu.Lock()
     defer r.mu.Unlock()
     r.games[game.Type()] = game
+    log.Debug().Str("type", game.Type()).Msg("game registered")
 }
 
 // GetGame retrieves a game by type

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/drdreo/hub/gameserver/internal/interfaces"
+	"github.com/rs/zerolog/log"
 	"maps"
 	"slices"
 	"sync"
@@ -32,6 +33,7 @@ func (m *RoomManager) CreateRoom(gameType string, options json.RawMessage) (inte
 	}
 
 	room := NewRoom(gameType)
+	log.Info().Str("id", room.ID()).Str("type", room.GameType()).Msg("room created")
 
 	// Initialize with game-specific settings
 	if err := m.gameRegistry.InitializeRoom(room, options); err != nil {
@@ -42,6 +44,8 @@ func (m *RoomManager) CreateRoom(gameType string, options json.RawMessage) (inte
 	m.mu.Lock()
 	m.rooms[room.ID()] = room
 	m.mu.Unlock()
+
+	log.Debug().Msg("room stored")
 
 	return room, nil
 }

@@ -9,9 +9,13 @@ import (
 	"github.com/drdreo/hub/gameserver/internal/router"
 	"github.com/drdreo/hub/gameserver/internal/session"
 	"github.com/gorilla/websocket"
-	"log"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"net/http"
 	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -25,12 +29,28 @@ var upgrader = websocket.Upgrader{
 }
 
 func main() {
-	err := godotenv.Load("../../.env")
-	if err != nil {
-		log.Fatal("Error loading .env file")
+	zerolog.CallerMarshalFunc = func(pc uintptr, file string, line int) string {
+		return filepath.Base(file) + ":" + strconv.Itoa(line)
 	}
 
-	var port = os.Getenv("PORT")
+	zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	log.Logger = log.With().Caller().Logger().Output(zerolog.ConsoleWriter{Out: os.Stdout})
+
+	path, err := os.Getwd()
+	if err != nil {
+		log.Print(err)
+	}
+
+	envPath := ".env"
+	if strings.HasSuffix(path, "\\server") {
+		envPath = "../../.env"
+	}
+
+	log.Info().Str("env", envPath).Msg("Loading env file")
+	err = godotenv.Load(envPath)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Error loading .env file")
+	}
 
 	// Initialize the global session store with 5 minute expiry
 	session.InitGlobalStore(300)
@@ -68,11 +88,12 @@ func main() {
 		w.Write(jsonData)
 	})
 
+	var port = os.Getenv("PORT")
 	addr := "0.0.0.0:" + port
-	log.Printf("🎮 server starting on %s ...\n", addr)
+	log.Info().Fields(map[string]interface{}{"port": port, "address": addr}).Msg("🎮 Server starting")
 
 	if err := http.ListenAndServe(addr, nil); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
+		log.Fatal().Err(err).Msg("Failed to start server")
 	}
 }
 
@@ -92,7 +113,7 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 func wsHandler(w http.ResponseWriter, r *http.Request, router *router.Router) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Println("Error upgrading connection:", err)
+		log.Error().Err(err).Msg("Error upgrading connection")
 		return
 	}
 
@@ -110,5 +131,5 @@ func wsHandler(w http.ResponseWriter, r *http.Request, router *router.Router) {
 	// Send welcome message
 	c.Send([]byte(`{"type":"welcome","message":"Connected to game server"}`))
 
-	log.Printf("Client connected: %s", c.ID())
+	log.Debug().Str("id", c.ID()).Msg("Client connected")
 }

@@ -3,6 +3,7 @@ package tictactoe
 import (
 	"encoding/json"
 	"github.com/drdreo/hub/gameserver/internal/interfaces"
+	"github.com/rs/zerolog/log"
 	"math/rand"
 )
 
@@ -105,8 +106,8 @@ func (g *TicTacToe) OnClientJoin(client interfaces.Client, room interfaces.Room)
 	// Send welcome message
 	client.Send(createSuccessMessage("joined", map[string]interface{}{
 		"clientId": client.ID(),
-		"symbol": state.Players[client.ID()].Symbol,
-		"roomId": room.ID(),
+		"symbol":   state.Players[client.ID()].Symbol,
+		"roomId":   room.ID(),
 	}))
 }
 
@@ -131,41 +132,41 @@ func (g *TicTacToe) OnClientLeave(client interfaces.Client, room interfaces.Room
 
 // OnClientReconnect handles reconnecting a client to the game
 func (g *TicTacToe) OnClientReconnect(client interfaces.Client, room interfaces.Room, oldClientID string) {
-    state := room.State().(GameState)
+	state := room.State().(GameState)
 
-    // Check if the old client ID was a player in this game
-    playerInfo, exists := state.Players[oldClientID]
-    if !exists {
-        client.Send(createErrorMessage("No player found with the provided ID"))
-        return
-    }
+	// Check if the old client ID was a player in this game
+	playerInfo, exists := state.Players[oldClientID]
+	if !exists {
+		client.Send(createErrorMessage("No player found with the provided ID"))
+		return
+	}
 
-    // Replace the old client ID with the new one, maintaining the same player info
-    delete(state.Players, oldClientID)
-    state.Players[client.ID()] = playerInfo
+	// Replace the old client ID with the new one, maintaining the same player info
+	delete(state.Players, oldClientID)
+	state.Players[client.ID()] = playerInfo
 
-    // If it was this player's turn, update the current turn
-    if state.CurrentTurn == oldClientID {
-        state.CurrentTurn = client.ID()
-    }
+	// If it was this player's turn, update the current turn
+	if state.CurrentTurn == oldClientID {
+		state.CurrentTurn = client.ID()
+	}
 
-    // Update the winner reference if applicable
-    if state.Winner == oldClientID {
-        state.Winner = client.ID()
-    }
+	// Update the winner reference if applicable
+	if state.Winner == oldClientID {
+		state.Winner = client.ID()
+	}
 
-    // Update state
-    room.SetState(state)
+	// Update state
+	room.SetState(state)
 
-    // Broadcast updated state to all clients
-    broadcastGameState(room)
+	// Broadcast updated state to all clients
+	broadcastGameState(room)
 
-    // Send welcome back message to the reconnected client
-    client.Send(createSuccessMessage("reconnected", map[string]interface{}{
-        "clientId": client.ID(),
-        "symbol": playerInfo.Symbol,
-        "roomId": room.ID(),
-    }))
+	// Send welcome back message to the reconnected client
+	client.Send(createSuccessMessage("reconnected", map[string]interface{}{
+		"clientId": client.ID(),
+		"symbol":   playerInfo.Symbol,
+		"roomId":   room.ID(),
+	}))
 }
 
 // HandleMessage processes game-specific messages
@@ -188,6 +189,8 @@ func (g *TicTacToe) handleMakeMove(client interfaces.Client, room interfaces.Roo
 		client.Send(createErrorMessage("Invalid move format"))
 		return
 	}
+
+	log.Debug().Str("clientID", client.ID()).Fields(move).Msg("player move")
 
 	// Get current game state
 	state := room.State().(GameState)
@@ -223,14 +226,18 @@ func (g *TicTacToe) handleMakeMove(client interfaces.Client, room interfaces.Roo
 	if checkWin(state.Board) {
 		state.Winner = client.ID()
 		state.GameOver = true
+
+		log.Debug().Str("winner", client.ID()).Msg("game over")
 	} else if checkDraw(state.Board) {
 		state.DrawGame = true
 		state.GameOver = true
+		log.Debug().Msg("game draw")
 	} else {
 		// Switch turns
 		for id := range state.Players {
 			if id != client.ID() {
 				state.CurrentTurn = id
+				log.Debug().Str("player", id).Msg("next player")
 				break
 			}
 		}
@@ -245,6 +252,8 @@ func (g *TicTacToe) handleMakeMove(client interfaces.Client, room interfaces.Roo
 
 // handleRestartGame resets the game
 func (g *TicTacToe) handleRestartGame(client interfaces.Client, room interfaces.Room) {
+	log.Debug().Msg("restarting")
+
 	state := room.State().(GameState)
 
 	// Only allow restart if game is over

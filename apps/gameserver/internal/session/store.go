@@ -2,6 +2,7 @@
 package session
 
 import (
+    "github.com/rs/zerolog/log"
     "sync"
     "time"
 )
@@ -41,6 +42,8 @@ func NewStore(expirySeconds int64) *Store {
         expirySeconds: expirySeconds,
     }
 
+    log.Debug().Int64("expiry", expirySeconds).Msg("created new session store")
+
     go store.cleanupRoutine()
     return store
 }
@@ -69,6 +72,8 @@ func (s *Store) GetSession(clientID string) (SessionData, bool) {
 func (s *Store) RemoveSession(clientID string) {
     s.mu.Lock()
     defer s.mu.Unlock()
+
+    log.Info().Str("clientId", clientID).Msg("removing session")
     delete(s.sessions, clientID)
 }
 
@@ -82,6 +87,8 @@ func (s *Store) cleanupRoutine() {
 }
 
 func (s *Store) cleanup() {
+    log.Info().Msg("check expired sessions and cleanup")
+
     s.mu.Lock()
     defer s.mu.Unlock()
     now := time.Now()
