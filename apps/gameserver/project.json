@@ -27,7 +27,12 @@
         "test": {
             "executor": "nx:run-commands",
             "options": {
-                "command": "go test ./{projectRoot}/..."
+                "commands": [
+                    {
+                        "command": "go test ./{projectRoot}/...",
+                        "forwardAllArgs": false
+                    }
+                ]
             }
         },
         "deploy": {

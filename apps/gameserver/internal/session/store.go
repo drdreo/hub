@@ -1,4 +1,3 @@
-// pkg/session/store.go
 package session
 
 import (
