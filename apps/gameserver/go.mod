@@ -1,4 +1,4 @@
-module github.com/drdreo/hub/gameserver
+module gameserver
 
 go 1.24.1
 

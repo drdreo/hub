@@ -2,9 +2,9 @@ package router
 
 import (
 	"encoding/json"
-	"github.com/drdreo/hub/gameserver/internal/interfaces"
-	"github.com/drdreo/hub/gameserver/internal/protocol"
-	"github.com/drdreo/hub/gameserver/internal/session"
+	"gameserver/internal/interfaces"
+	"gameserver/internal/protocol"
+	"gameserver/internal/session"
 	"github.com/rs/zerolog/log"
 )
 

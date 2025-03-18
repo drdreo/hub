@@ -3,7 +3,7 @@ package game
 import (
     "encoding/json"
     "errors"
-    "github.com/drdreo/hub/gameserver/internal/interfaces"
+    "gameserver/internal/interfaces"
     "github.com/rs/zerolog/log"
     "maps"
     "slices"

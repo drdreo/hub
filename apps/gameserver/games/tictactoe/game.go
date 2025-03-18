@@ -2,7 +2,7 @@ package tictactoe
 
 import (
 	"encoding/json"
-	"github.com/drdreo/hub/gameserver/internal/interfaces"
+	"gameserver/internal/interfaces"
 	"github.com/rs/zerolog/log"
 	"math/rand"
 )

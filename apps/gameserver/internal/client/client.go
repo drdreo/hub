@@ -1,8 +1,8 @@
 package client
 
 import (
-	"github.com/drdreo/hub/gameserver/internal/interfaces"
-	"github.com/drdreo/hub/gameserver/internal/session"
+	"gameserver/internal/interfaces"
+	"gameserver/internal/session"
 	"log"
 	"sync"
 	"time"
