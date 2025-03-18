@@ -190,7 +190,7 @@ func (g *TicTacToe) handleMakeMove(client interfaces.Client, room interfaces.Roo
 		return
 	}
 
-	log.Debug().Str("clientID", client.ID()).Msg("player move")
+	log.Debug().Str("clientID", client.ID()).Msg("player makes a move")
 
 	// Get current game state
 	state := room.State().(GameState)
@@ -203,7 +203,7 @@ func (g *TicTacToe) handleMakeMove(client interfaces.Client, room interfaces.Roo
 
 	// Check if it's the player's turn
 	if state.CurrentTurn != client.ID() {
-		log.Error().Str("clientID", client.ID()).Str("current", state.CurrentTurn).Msg("Not your turn")
+		log.Warn().Str("current", state.CurrentTurn).Str("clientID", client.ID()).Msg("NOT YOUR TURN")
 		client.Send(createErrorMessage("Not your turn"))
 		return
 	}
@@ -220,8 +220,6 @@ func (g *TicTacToe) handleMakeMove(client interfaces.Client, room interfaces.Roo
 		return
 	}
 
-	log.Debug().Msg("making the player move")
-
 	// Make the move
 	state.Board[move.Row][move.Col] = state.Players[client.ID()].Symbol
 
@@ -230,29 +228,24 @@ func (g *TicTacToe) handleMakeMove(client interfaces.Client, room interfaces.Roo
 		state.Winner = client.ID()
 		state.GameOver = true
 
-		log.Debug().Str("winner", client.ID()).Msg("game over")
+		log.Info().Str("winner", client.ID()).Msg("game over")
 	} else if checkDraw(state.Board) {
 		state.DrawGame = true
 		state.GameOver = true
-		log.Debug().Msg("game draw")
+		log.Info().Msg("game draw")
 	} else {
 		// Switch turns
 		for id := range state.Players {
 			if id != client.ID() {
 				state.CurrentTurn = id
-				log.Debug().Str("player", id).Msg("next player")
 				break
 			}
 		}
 
-		log.Debug().Msg("updated current player")
+		log.Debug().Str("current", state.CurrentTurn).Msg("updated current player")
 	}
 
-	// Update state
 	room.SetState(state)
-	log.Debug().Msg("updated state")
-
-	// Broadcast updated state
 	broadcastGameState(room)
 }
 
@@ -340,8 +333,6 @@ func broadcastGameState(room interfaces.Room) {
 
 // Helper functions for creating messages
 func createSuccessMessage(msgType string, data interface{}) []byte {
-	log.Info().Msg(msgType)
-
 	msg := map[string]interface{}{
 		"type":    msgType,
 		"success": true,
@@ -352,7 +343,6 @@ func createSuccessMessage(msgType string, data interface{}) []byte {
 }
 
 func createErrorMessage(errMsg string) []byte {
-	log.Error().Msg(errMsg)
 	msg := map[string]interface{}{
 		"type":    "error",
 		"success": false,

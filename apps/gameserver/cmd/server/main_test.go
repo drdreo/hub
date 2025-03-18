@@ -3,7 +3,6 @@ package main
 import (
     "encoding/json"
     "fmt"
-    testgame "gameserver/games/test"
     "gameserver/games/tictactoe"
     "gameserver/internal/client"
     "gameserver/internal/game"
@@ -88,6 +87,7 @@ func TestGameFlowIntegration(t *testing.T) {
     // Since first player is random in tictactoe, reset to client1
     state := client1.Room().State().(tictactoe.GameState)
     state.CurrentTurn = client1.ID()
+    client1.Room().SetState(state)
 
     // Make game moves
     testRouter.HandleMessage(client1, []byte(`{"type":"make_move","data":{"action":"make_move","position":0}}`))
