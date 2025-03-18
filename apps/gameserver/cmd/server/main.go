@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/drdreo/hub/gameserver/games/tictactoe"
 	"github.com/drdreo/hub/gameserver/internal/client"
 	"github.com/drdreo/hub/gameserver/internal/game"
@@ -15,9 +16,6 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
-
-	"github.com/joho/godotenv"
 )
 
 var upgrader = websocket.Upgrader{
@@ -35,22 +33,6 @@ func main() {
 
 	zerolog.SetGlobalLevel(zerolog.DebugLevel)
 	log.Logger = log.With().Caller().Logger().Output(zerolog.ConsoleWriter{Out: os.Stdout})
-
-	path, err := os.Getwd()
-	if err != nil {
-		log.Print(err)
-	}
-
-	envPath := ".env"
-	if strings.HasSuffix(path, "\\server") {
-		envPath = "../../.env"
-	}
-
-	log.Info().Str("env", envPath).Msg("Loading env file")
-	err = godotenv.Load(envPath)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Error loading .env file")
-	}
 
 	// Initialize the global session store with 5 minute expiry
 	session.InitGlobalStore(300)
@@ -88,8 +70,9 @@ func main() {
 		w.Write(jsonData)
 	})
 
-	var port = os.Getenv("PORT")
-	addr := "0.0.0.0:" + port
+	port, _ := strconv.Atoi(os.Getenv("PORT"))
+	addr := fmt.Sprintf(":%d", port)
+
 	log.Info().Fields(map[string]interface{}{"port": port, "address": addr}).Msg("🎮 Server starting")
 
 	if err := http.ListenAndServe(addr, nil); err != nil {
