@@ -22,7 +22,8 @@ func (m *ClientMock) Send(message []byte) error {
     defer m.mu.Unlock()
 
     m.messages = append(m.messages, message)
-    log.Info().Fields(message).Str("clientId", m.id).Msg("Send()")
+
+    log.Info().Bytes("message", message).Str("clientId", m.id).Msg("Send()")
     return nil
 }
 
