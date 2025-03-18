@@ -2,6 +2,7 @@ package client
 
 import (
     "gameserver/internal/interfaces"
+    "github.com/rs/zerolog/log"
     "sync"
 )
 
@@ -19,7 +20,9 @@ func (m *ClientMock) ID() string {
 func (m *ClientMock) Send(message []byte) error {
     m.mu.Lock()
     defer m.mu.Unlock()
+
     m.messages = append(m.messages, message)
+    log.Info().Fields(message).Str("clientId", m.id).Msg("Send()")
     return nil
 }
 
@@ -35,7 +38,9 @@ func (m *ClientMock) SetRoom(room interfaces.Room) {
     m.room = room
 }
 
-func (m *ClientMock) Close() {}
+func (m *ClientMock) Close() {
+    log.Info().Str("clientId", m.id).Msg("Close()")
+}
 
 func (m *ClientMock) GetSentMessages() [][]byte {
     m.mu.Lock()

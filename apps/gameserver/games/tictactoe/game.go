@@ -203,6 +203,7 @@ func (g *TicTacToe) handleMakeMove(client interfaces.Client, room interfaces.Roo
 
 	// Check if it's the player's turn
 	if state.CurrentTurn != client.ID() {
+		log.Error().Str("clientID", client.ID()).Str("current", state.CurrentTurn).Msg("Not your turn")
 		client.Send(createErrorMessage("Not your turn"))
 		return
 	}
