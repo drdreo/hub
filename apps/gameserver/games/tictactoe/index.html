@@ -244,7 +244,7 @@
                 if (clientId && roomId) {
                     const message = {
                         type: "reconnect",
-                        payload: {
+                        data: {
                             roomId,
                             clientId
                         }
@@ -315,7 +315,7 @@
 
                 const message = {
                     type: "make_move",
-                    payload: {
+                    data: {
                         row: row,
                         col: col
                     }
@@ -333,7 +333,7 @@
 
                 const message = {
                     type: "create_room",
-                    payload: {
+                    data: {
                         gameType: "tictactoe"
                     }
                 };
@@ -356,7 +356,7 @@
 
                 const message = {
                     type: "join_room",
-                    payload: {
+                    data: {
                         roomId: roomId
                     }
                 };
@@ -372,7 +372,7 @@
 
                 const message = {
                     type: "restart_game",
-                    payload: {}
+                    data: {}
                 };
 
                 gameState.socket.send(JSON.stringify(message));

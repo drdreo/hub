@@ -9,7 +9,7 @@ type Message struct {
 	Type     string          `json:"type"`
 	RoomID   string          `json:"roomId,omitempty"`
 	GameType string          `json:"gameType,omitempty"`
-	Payload  json.RawMessage `json:"payload,omitempty"`
+	Data     json.RawMessage `json:"data,omitempty"`
 }
 
 // Response represents a standard response format

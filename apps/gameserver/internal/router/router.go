@@ -60,7 +60,7 @@ func (r *Router) HandleMessage(client interfaces.Client, messageData []byte) {
 	default:
 		// Forward to game-specific handler
 		if client.Room() != nil {
-			err := r.gameRegistry.HandleMessage(client, message.Type, message.Payload)
+			err := r.gameRegistry.HandleMessage(client, message.Type, message.Data)
 			if err != nil {
 				client.Send(protocol.NewErrorResponse("error", err.Error()))
 			}
@@ -77,7 +77,7 @@ func (r *Router) handleCreateRoom(client interfaces.Client, msg protocol.Message
 		Options  json.RawMessage `json:"options,omitempty"`
 	}
 
-	if err := json.Unmarshal(msg.Payload, &createOptions); err != nil {
+	if err := json.Unmarshal(msg.Data, &createOptions); err != nil {
 		client.Send(protocol.NewErrorResponse("create_room_result", "Invalid options format"))
 		return
 	}
@@ -112,7 +112,7 @@ func (r *Router) handleJoinRoom(client interfaces.Client, msg protocol.Message) 
 		RoomID string `json:"roomId"`
 	}
 
-	if err := json.Unmarshal(msg.Payload, &joinOptions); err != nil {
+	if err := json.Unmarshal(msg.Data, &joinOptions); err != nil {
 		client.Send(protocol.NewErrorResponse("join_room_result", "Invalid options format"))
 		return
 	}
@@ -183,7 +183,7 @@ func (r *Router) handleGameAction(client interfaces.Client, msg protocol.Message
 		return
 	}
 
-	if err := r.gameRegistry.HandleMessage(client, "game_action", msg.Payload); err != nil {
+	if err := r.gameRegistry.HandleMessage(client, "game_action", msg.Data); err != nil {
 		client.Send(protocol.NewErrorResponse("game_action_result", err.Error()))
 		return
 	}
@@ -197,7 +197,7 @@ func (r *Router) handleReconnect(client interfaces.Client, msg protocol.Message)
 	}
 
 	var recon ReconnectPayload
-	if err := json.Unmarshal(msg.Payload, &recon); err != nil {
+	if err := json.Unmarshal(msg.Data, &recon); err != nil {
 		client.Send(protocol.NewErrorResponse("reconnect_result", err.Error()))
 		return
 	}

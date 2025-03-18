@@ -55,7 +55,7 @@ func (r *Registry) HasGame(gameType string) bool {
 }
 
 // HandleMessage routes a message to the appropriate game handler
-func (r *Registry) HandleMessage(client interfaces.Client, msgType string, payload []byte) error {
+func (r *Registry) HandleMessage(client interfaces.Client, msgType string, data []byte) error {
     room := client.Room()
     if room == nil {
         return errors.New("client not in a room")
@@ -67,7 +67,7 @@ func (r *Registry) HandleMessage(client interfaces.Client, msgType string, paylo
         return err
     }
 
-    game.HandleMessage(client, room, msgType, payload)
+    game.HandleMessage(client, room, msgType, data)
     return nil
 }
 

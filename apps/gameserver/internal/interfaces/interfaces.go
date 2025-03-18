@@ -26,7 +26,7 @@ type Room interface {
 // Game defines the interface for game implementations
 type Game interface {
 	Type() string
-	HandleMessage(client Client, room Room, msgType string, payload []byte)
+	HandleMessage(client Client, room Room, msgType string, data []byte)
 	InitializeRoom(room Room, options json.RawMessage) error
 	OnClientJoin(client Client, room Room)
 	OnClientLeave(client Client, room Room)
@@ -38,7 +38,7 @@ type GameRegistry interface {
 	GetGame(gameType string) (Game, error)
 	HasGame(gameType string) bool
 	InitializeRoom(room Room, options json.RawMessage) error
-	HandleMessage(client Client, msgType string, payload []byte) error
+	HandleMessage(client Client, msgType string, data []byte) error
 	HandleClientJoin(client Client, room Room) error
 	HandleClientLeave(client Client, room Room) error
 	HandleClientReconnect(client Client, room Room, oldClientId string) error
