@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"gameserver/internal/interfaces"
+	"github.com/rs/zerolog/log"
 	"sync"
 
 	"github.com/google/uuid"
 )
-
 
 // GameRoom implements the Room interface
 type GameRoom struct {
@@ -57,12 +57,11 @@ func (room *GameRoom) Join(client interfaces.Client) error {
 
 	client.SetRoom(room)
 
-
 	room.clients[client.ID()] = client
 
 	// Notify other clients about the new joiner
 	joinMessage, _ := json.Marshal(map[string]interface{}{
-		"type": "client_joined",
+		"type":     "client_joined",
 		"clientId": client.ID(),
 	})
 
@@ -81,7 +80,7 @@ func (room *GameRoom) Leave(client interfaces.Client) {
 
 		// Notify other clients about the departure
 		leaveMessage, _ := json.Marshal(map[string]interface{}{
-			"type": "client_left",
+			"type":     "client_left",
 			"clientId": client.ID(),
 		})
 
@@ -96,6 +95,8 @@ func (room *GameRoom) Leave(client interfaces.Client) {
 
 // Broadcast sends a message to all clients in the room except excluded ones
 func (room *GameRoom) Broadcast(message []byte, exclude ...interfaces.Client) {
+	log.Debug().Msg("room is broadcasting")
+
 	excludeMap := make(map[string]bool)
 	for _, client := range exclude {
 		excludeMap[client.ID()] = true
@@ -103,6 +104,7 @@ func (room *GameRoom) Broadcast(message []byte, exclude ...interfaces.Client) {
 
 	for _, client := range room.clients {
 		if !excludeMap[client.ID()] {
+			log.Debug().Str("clientID", client.ID()).Msg("room broadcast send")
 			client.Send(message)
 		}
 	}
@@ -166,5 +168,4 @@ func (room *GameRoom) Close() {
 // Error definitions
 var (
 	ErrRoomClosed = errors.New("room is closed")
-
 )

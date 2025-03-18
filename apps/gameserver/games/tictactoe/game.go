@@ -219,6 +219,8 @@ func (g *TicTacToe) handleMakeMove(client interfaces.Client, room interfaces.Roo
 		return
 	}
 
+	log.Debug().Msg("making the player move")
+
 	// Make the move
 	state.Board[move.Row][move.Col] = state.Players[client.ID()].Symbol
 
@@ -241,10 +243,13 @@ func (g *TicTacToe) handleMakeMove(client interfaces.Client, room interfaces.Roo
 				break
 			}
 		}
+
+		log.Debug().Msg("updated current player")
 	}
 
 	// Update state
 	room.SetState(state)
+	log.Debug().Msg("updated state")
 
 	// Broadcast updated state
 	broadcastGameState(room)
