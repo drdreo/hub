@@ -339,6 +339,8 @@ func broadcastGameState(room interfaces.Room) {
 
 // Helper functions for creating messages
 func createSuccessMessage(msgType string, data interface{}) []byte {
+	log.Info().Msg(msgType)
+
 	msg := map[string]interface{}{
 		"type":    msgType,
 		"success": true,
@@ -349,6 +351,7 @@ func createSuccessMessage(msgType string, data interface{}) []byte {
 }
 
 func createErrorMessage(errMsg string) []byte {
+	log.Error().Msg(errMsg)
 	msg := map[string]interface{}{
 		"type":    "error",
 		"success": false,

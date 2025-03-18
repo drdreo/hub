@@ -22,7 +22,7 @@ func TestGameFlowIntegration(t *testing.T) {
     client1 := client.NewClientMock("player1")
     client2 := client.NewClientMock("player2")
 
-    // Simulate creating a room
+    // Client1 creating a room
     testRouter.HandleMessage(client1, []byte(`{"type":"create_room","data":{"gameType":"tictactoe"}}`))
 
     messages := client1.GetSentMessages()

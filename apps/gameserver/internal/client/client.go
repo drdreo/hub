@@ -3,7 +3,7 @@ package client
 import (
 	"gameserver/internal/interfaces"
 	"gameserver/internal/session"
-	"log"
+	"github.com/rs/zerolog/log"
 	"sync"
 	"time"
 
@@ -72,8 +72,10 @@ func (c *WebSocketClient) Send(message []byte) error {
 
 	select {
 	case c.send <- message:
+		log.Debug().Msg("Message queued successfully")
 		return nil
 	default:
+		log.Warn().Msg("Dropping message due to full send channel")
 		return websocket.ErrCloseSent
 	}
 }
