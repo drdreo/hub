@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"gameserver/internal/interfaces"
-	"github.com/rs/zerolog/log"
 	"sync"
 
 	"github.com/google/uuid"
