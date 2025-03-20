@@ -6,6 +6,8 @@ import (
 	"gameserver/games/tictactoe"
 	"gameserver/internal/client"
 	"gameserver/internal/game"
+	"gameserver/internal/interfaces"
+	"gameserver/internal/protocol"
 	"gameserver/internal/room"
 	"gameserver/internal/router"
 	"gameserver/internal/session"
@@ -112,7 +114,10 @@ func wsHandler(w http.ResponseWriter, r *http.Request, router *router.Router) {
 	c.StartPumps()
 
 	// Send welcome message
-	c.Send([]byte(`{"type":"welcome","message":"Connected to game server"}`))
+	welcomeMsg := protocol.NewSuccessResponse("welcome", interfaces.M{
+		"message": "Connected to game server",
+	})
+	c.Send(welcomeMsg)
 
 	log.Debug().Str("id", c.ID()).Msg("client connected")
 }

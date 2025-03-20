@@ -1,9 +1,9 @@
 package room
 
 import (
-	"encoding/json"
 	"errors"
 	"gameserver/internal/interfaces"
+	"gameserver/internal/protocol"
 	"sync"
 
 	"github.com/google/uuid"
@@ -59,8 +59,7 @@ func (room *GameRoom) Join(client interfaces.Client) error {
 	room.clients[client.ID()] = client
 
 	// Notify other clients about the new joiner
-	joinMessage, _ := json.Marshal(map[string]interface{}{
-		"type":     "client_joined",
+	joinMessage := protocol.NewSuccessResponse("client_joined", map[string]interface{}{
 		"clientId": client.ID(),
 	})
 
@@ -78,8 +77,7 @@ func (room *GameRoom) Leave(client interfaces.Client) {
 		delete(room.clients, client.ID())
 
 		// Notify other clients about the departure
-		leaveMessage, _ := json.Marshal(map[string]interface{}{
-			"type":     "client_left",
+		leaveMessage := protocol.NewSuccessResponse("client_left", map[string]interface{}{
 			"clientId": client.ID(),
 		})
 
@@ -93,7 +91,7 @@ func (room *GameRoom) Leave(client interfaces.Client) {
 }
 
 // Broadcast sends a message to all clients in the room except excluded ones
-func (room *GameRoom) Broadcast(message []byte, exclude ...interfaces.Client) {
+func (room *GameRoom) Broadcast(message *protocol.Response, exclude ...interfaces.Client) {
 	excludeMap := make(map[string]bool)
 	for _, client := range exclude {
 		excludeMap[client.ID()] = true
@@ -107,7 +105,7 @@ func (room *GameRoom) Broadcast(message []byte, exclude ...interfaces.Client) {
 }
 
 // BroadcastTo sends a message to specific clients in the room
-func (room *GameRoom) BroadcastTo(message []byte, clients ...interfaces.Client) {
+func (room *GameRoom) BroadcastTo(message *protocol.Response, clients ...interfaces.Client) {
 	for _, client := range clients {
 		client.Send(message)
 	}
@@ -153,8 +151,7 @@ func (room *GameRoom) Close() {
 	room.closed = true
 
 	// Notify all clients
-	closeMessage, _ := json.Marshal(map[string]interface{}{
-		"type":   "room_closed",
+	closeMessage := protocol.NewSuccessResponse("room_closed", map[string]interface{}{
 		"roomId": room.id,
 	})
 

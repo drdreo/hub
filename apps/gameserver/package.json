@@ -34,6 +34,17 @@
                     ]
                 }
             },
+            "goformat": {
+                "executor": "nx:run-commands",
+                "options": {
+                    "cwd": "{projectRoot}",
+                    "commands": [
+                        {
+                            "command": "go fmt ./..."
+                        }
+                    ]
+                }
+            },
             "deploy": {
                 "executor": "@hub/plugin:deploy-docker",
                 "options": {

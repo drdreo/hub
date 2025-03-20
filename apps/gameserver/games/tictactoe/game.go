@@ -3,6 +3,7 @@ package tictactoe
 import (
 	"encoding/json"
 	"gameserver/internal/interfaces"
+	"gameserver/internal/protocol"
 	"github.com/rs/zerolog/log"
 	"math/rand"
 )
@@ -69,7 +70,7 @@ func (g *TicTacToe) OnClientJoin(client interfaces.Client, room interfaces.Room)
 
 	// Only allow 2 players
 	if len(state.Players) >= 2 {
-		client.Send(createErrorMessage("Game is full"))
+		client.Send(protocol.NewErrorResponse("error", "Game is full"))
 		return
 	}
 
@@ -104,7 +105,7 @@ func (g *TicTacToe) OnClientJoin(client interfaces.Client, room interfaces.Room)
 	broadcastGameState(room)
 
 	// Send welcome message
-	client.Send(createSuccessMessage("joined", map[string]interface{}{
+	client.Send(protocol.NewSuccessResponse("joined", interfaces.M{
 		"clientId": client.ID(),
 		"symbol":   state.Players[client.ID()].Symbol,
 		"roomId":   room.ID(),
@@ -137,7 +138,7 @@ func (g *TicTacToe) OnClientReconnect(client interfaces.Client, room interfaces.
 	// Check if the old client ID was a player in this game
 	playerInfo, exists := state.Players[oldClientID]
 	if !exists {
-		client.Send(createErrorMessage("No player found with the provided ID"))
+		client.Send(protocol.NewErrorResponse("error", "No player found with the provided ID"))
 		return
 	}
 
@@ -162,7 +163,7 @@ func (g *TicTacToe) OnClientReconnect(client interfaces.Client, room interfaces.
 	broadcastGameState(room)
 
 	// Send welcome back message to the reconnected client
-	client.Send(createSuccessMessage("reconnected", map[string]interface{}{
+	client.Send(protocol.NewSuccessResponse("reconnected", interfaces.M{
 		"clientId": client.ID(),
 		"symbol":   playerInfo.Symbol,
 		"roomId":   room.ID(),
@@ -177,7 +178,7 @@ func (g *TicTacToe) HandleMessage(client interfaces.Client, room interfaces.Room
 	case "restart_game":
 		g.handleRestartGame(client, room)
 	default:
-		client.Send(createErrorMessage("Unknown message type: " + msgType))
+		client.Send(protocol.NewErrorResponse("error", "Unknown message type: "+msgType))
 	}
 }
 
@@ -186,7 +187,7 @@ func (g *TicTacToe) handleMakeMove(client interfaces.Client, room interfaces.Roo
 	// Parse move payload
 	var move MovePayload
 	if err := json.Unmarshal(payload, &move); err != nil {
-		client.Send(createErrorMessage("Invalid move format"))
+		client.Send(protocol.NewErrorResponse("error", "Invalid move format"))
 		return
 	}
 
@@ -197,26 +198,26 @@ func (g *TicTacToe) handleMakeMove(client interfaces.Client, room interfaces.Roo
 
 	// Check if it's game over
 	if state.GameOver {
-		client.Send(createErrorMessage("Game is over"))
+		client.Send(protocol.NewErrorResponse("error", "Game is over"))
 		return
 	}
 
 	// Check if it's the player's turn
 	if state.CurrentTurn != client.ID() {
 		log.Warn().Str("current", state.CurrentTurn).Str("clientID", client.ID()).Msg("NOT YOUR TURN")
-		client.Send(createErrorMessage("Not your turn"))
+		client.Send(protocol.NewErrorResponse("error", "Not your turn"))
 		return
 	}
 
 	// Validate move
 	if move.Row < 0 || move.Row > 2 || move.Col < 0 || move.Col > 2 {
-		client.Send(createErrorMessage("Invalid move coordinates"))
+		client.Send(protocol.NewErrorResponse("error", "Invalid move coordinates"))
 		return
 	}
 
 	// Check if cell is empty
 	if state.Board[move.Row][move.Col] != "" {
-		client.Send(createErrorMessage("Cell already occupied"))
+		client.Send(protocol.NewErrorResponse("error", "Cell already occupied"))
 		return
 	}
 
@@ -257,7 +258,7 @@ func (g *TicTacToe) handleRestartGame(client interfaces.Client, room interfaces.
 
 	// Only allow restart if game is over
 	if !state.GameOver {
-		client.Send(createErrorMessage("Cannot restart a game in progress"))
+		client.Send(protocol.NewErrorResponse("error", "Cannot restart a game in progress"))
 		return
 	}
 
@@ -325,29 +326,7 @@ func broadcastGameState(room interfaces.Room) {
 	state := room.State()
 
 	// Create a public view of the game state that hides sensitive info
-	stateBytes, _ := json.Marshal(state)
 
-	msg := createSuccessMessage("game_state", json.RawMessage(stateBytes))
+	msg := protocol.NewSuccessResponse("game_state", state)
 	room.Broadcast(msg)
-}
-
-// Helper functions for creating messages
-func createSuccessMessage(msgType string, data interface{}) []byte {
-	msg := map[string]interface{}{
-		"type":    msgType,
-		"success": true,
-		"data":    data,
-	}
-	bytes, _ := json.Marshal(msg)
-	return bytes
-}
-
-func createErrorMessage(errMsg string) []byte {
-	msg := map[string]interface{}{
-		"type":    "error",
-		"success": false,
-		"error":   errMsg,
-	}
-	bytes, _ := json.Marshal(msg)
-	return bytes
 }

@@ -8,15 +8,9 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type RoomManager interface {
-	CreateRoom(gameType string, options json.RawMessage) (interfaces.Room, error)
-	GetRoom(roomID string) (interfaces.Room, error)
-	RemoveRoom(roomID string)
-}
-
 // Router handles WebSocket message routing
 type Router struct {
-	roomManager  RoomManager
+	roomManager  interfaces.RoomManager
 	gameRegistry interfaces.GameRegistry
 }
 
@@ -27,7 +21,7 @@ type ReconnectPayload struct {
 }
 
 // NewRouter creates a new message router
-func NewRouter(roomManager RoomManager, gameRegistry interfaces.GameRegistry) *Router {
+func NewRouter(roomManager interfaces.RoomManager, gameRegistry interfaces.GameRegistry) *Router {
 	log.Debug().Msg("creating new router")
 
 	return &Router{

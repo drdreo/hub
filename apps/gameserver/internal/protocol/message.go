@@ -20,26 +20,25 @@ type Response struct {
 	Data    interface{} `json:"data,omitempty"`
 }
 
+func (r *Response) ToBytes() []byte {
+	data, _ := json.Marshal(r)
+	return data
+}
+
 // NewSuccessResponse creates a new success response
-func NewSuccessResponse(responseType string, data interface{}) []byte {
-	resp := Response{
+func NewSuccessResponse(responseType string, data interface{}) *Response {
+	return &Response{
 		Type:    responseType,
 		Success: true,
 		Data:    data,
 	}
-
-	bytes, _ := json.Marshal(resp)
-	return bytes
 }
 
 // NewErrorResponse creates a new error response
-func NewErrorResponse(responseType string, errorMsg string) []byte {
-	resp := Response{
+func NewErrorResponse(responseType string, errorMsg string) *Response {
+	return &Response{
 		Type:    responseType,
 		Success: false,
 		Error:   errorMsg,
 	}
-
-	bytes, _ := json.Marshal(resp)
-	return bytes
 }

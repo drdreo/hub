@@ -1,10 +1,14 @@
 package interfaces
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"gameserver/internal/protocol"
+)
 
+// Client represents a connected websocket client
 type Client interface {
 	ID() string
-	Send(message []byte) error
+	Send(message *protocol.Response) error
 	Room() Room
 	SetRoom(room Room)
 	Close()
@@ -15,12 +19,18 @@ type Room interface {
 	GameType() string
 	Join(client Client) error
 	Leave(client Client)
-	Broadcast(message []byte, exclude ...Client)
-	BroadcastTo(message []byte, clients ...Client)
+	Broadcast(message *protocol.Response, exclude ...Client)
+	BroadcastTo(message *protocol.Response, clients ...Client)
 	Clients() map[string]Client
 	State() interface{}
 	SetState(state interface{})
 	Close()
+}
+
+type RoomManager interface {
+	CreateRoom(gameType string, options json.RawMessage) (Room, error)
+	GetRoom(roomID string) (Room, error)
+	RemoveRoom(roomID string)
 }
 
 // Game defines the interface for game implementations
@@ -43,3 +53,5 @@ type GameRegistry interface {
 	HandleClientLeave(client Client, room Room) error
 	HandleClientReconnect(client Client, room Room, oldClientId string) error
 }
+
+type M map[string]interface{}
