@@ -6,6 +6,7 @@ import (
     "gameserver/games/tictactoe"
     "gameserver/internal/client"
     "gameserver/internal/game"
+    "gameserver/internal/interfaces"
     "gameserver/internal/room"
     "gameserver/internal/router"
     "testing"
@@ -31,20 +32,16 @@ func TestGameFlowIntegration(t *testing.T) {
     }
 
     // Extract room ID from response
-    var createResponse map[string]interface{}
-    if err := json.Unmarshal(messages[len(messages)-1], &createResponse); err != nil {
-        t.Fatalf("Failed to parse room creation response: %v", err)
-    }
-
-    if createResponse["success"] != true {
+    createResponse := messages[len(messages)-1]
+    if createResponse.Success != true {
         t.Fatalf("createResponse was not successful")
     }
 
-    if createResponse["type"] != "create_room_result" {
-        t.Fatalf("Expected 'create_room_result' message, got: %v", createResponse["type"])
+    if createResponse.Type != "create_room_result" {
+        t.Fatalf("Expected 'create_room_result' message, got: %v", createResponse.Type)
     }
 
-    data, ok := createResponse["data"].(map[string]interface{})
+    data, ok := createResponse.Data.(map[string]interface{})
     if !ok {
         t.Fatalf("Invalid data in response")
     }
@@ -116,7 +113,7 @@ func TestGameFlowIntegration(t *testing.T) {
 
 // Helper to extract message properties
 func getMessageProperty(message []byte, prop string) (interface{}, error) {
-    var msg map[string]interface{}
+    var msg interfaces.M
     if err := json.Unmarshal(message, &msg); err != nil {
         return "", err
     }

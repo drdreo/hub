@@ -2,6 +2,7 @@ package client
 
 import (
     "gameserver/internal/interfaces"
+    "gameserver/internal/protocol"
     "github.com/rs/zerolog/log"
     "sync"
 )
@@ -10,20 +11,20 @@ type ClientMock struct {
     id       string
     room     interfaces.Room
     mu       sync.Mutex
-    messages [][]byte
+    messages []*protocol.Response
 }
 
 func (m *ClientMock) ID() string {
     return m.id
 }
 
-func (m *ClientMock) Send(message []byte) error {
+func (m *ClientMock) Send(message *protocol.Response) error {
     m.mu.Lock()
     defer m.mu.Unlock()
 
     m.messages = append(m.messages, message)
 
-    log.Info().Bytes("message", message).Str("clientId", m.id).Msg("Send()")
+    log.Info().Fields(message).Str("clientId", m.id).Msg("Send()")
     return nil
 }
 
@@ -43,7 +44,7 @@ func (m *ClientMock) Close() {
     log.Info().Str("clientId", m.id).Msg("Close()")
 }
 
-func (m *ClientMock) GetSentMessages() [][]byte {
+func (m *ClientMock) GetSentMessages() []*protocol.Response {
     m.mu.Lock()
     defer m.mu.Unlock()
     return m.messages
@@ -52,12 +53,12 @@ func (m *ClientMock) GetSentMessages() [][]byte {
 func (m *ClientMock) ClearMessages() {
     m.mu.Lock()
     defer m.mu.Unlock()
-    m.messages = make([][]byte, 0)
+    m.messages = make([]*protocol.Response, 0)
 }
 
 func NewClientMock(id string) *ClientMock {
     return &ClientMock{
         id:       id,
-        messages: make([][]byte, 0),
+        messages: make([]*protocol.Response, 0),
     }
 }

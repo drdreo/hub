@@ -54,3 +54,5 @@ type GameRegistry interface {
 	HandleClientLeave(client Client, room Room) error
 	HandleClientReconnect(client Client, room Room, oldClientId string) error
 }
+
+type M map[string]interface{}

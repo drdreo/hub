@@ -105,7 +105,7 @@ func (g *TicTacToe) OnClientJoin(client interfaces.Client, room interfaces.Room)
 	broadcastGameState(room)
 
 	// Send welcome message
-	client.Send(protocol.NewSuccessResponse("joined", map[string]interface{}{
+	client.Send(protocol.NewSuccessResponse("joined", interfaces.M{
 		"clientId": client.ID(),
 		"symbol":   state.Players[client.ID()].Symbol,
 		"roomId":   room.ID(),
@@ -163,7 +163,7 @@ func (g *TicTacToe) OnClientReconnect(client interfaces.Client, room interfaces.
 	broadcastGameState(room)
 
 	// Send welcome back message to the reconnected client
-	client.Send(protocol.NewSuccessResponse("reconnected", map[string]interface{}{
+	client.Send(protocol.NewSuccessResponse("reconnected", interfaces.M{
 		"clientId": client.ID(),
 		"symbol":   playerInfo.Symbol,
 		"roomId":   room.ID(),

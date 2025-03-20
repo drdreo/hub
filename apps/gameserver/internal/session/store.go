@@ -1,6 +1,7 @@
 package session
 
 import (
+    "gameserver/internal/interfaces"
     "github.com/rs/zerolog/log"
     "sync"
     "time"
@@ -11,7 +12,7 @@ type SessionData struct {
     RoomID     string
     GameType   string
     LastActive time.Time
-    ExtraData  map[string]interface{}
+    ExtraData  interfaces.M
 }
 
 type Store struct {

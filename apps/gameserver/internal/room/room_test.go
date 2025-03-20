@@ -1,9 +1,8 @@
 package room
 
 import (
-	"bytes"
-	"encoding/json"
 	"gameserver/internal/client"
+	"gameserver/internal/protocol"
 	"testing"
 )
 
@@ -40,20 +39,18 @@ func TestClientJoin(t *testing.T) {
 
 	// Verify the join message content
 	if len(client1Messages) > 0 {
-		var msg map[string]interface{}
-		if err := json.Unmarshal(client1Messages[0], &msg); err != nil {
-			t.Errorf("failed to parse join message: %v", err)
-		} else {
-			// Check message type
-			if msgType, ok := msg["type"].(string); !ok || msgType != "client_joined" {
-				t.Errorf("expected message type 'client_joined', got '%v'", msg["type"])
-			}
+		msg := client1Messages[0]
 
-			// Check client ID
-			if clientID, ok := msg["clientId"].(string); !ok || clientID != "client2" {
-				t.Errorf("expected clientId 'client2', got '%v'", msg["clientId"])
-			}
+		// Check message type
+		if msg.Type != "client_joined" {
+			t.Errorf("expected message type 'client_joined', got '%v'", msg.Type)
 		}
+
+		// Check client ID
+		if data, ok := msg.Data.(map[string]interface{}); !ok || data["clientId"] != "client2" {
+			t.Errorf("expected clientId 'client2', got '%v'", data["clientId"])
+		}
+
 	}
 }
 
@@ -74,7 +71,7 @@ func TestRoomBroadcast(t *testing.T) {
 	client3.ClearMessages()
 
 	// Test broadcasting
-	testMessage := []byte(`{"type":"test","data":"hello"}`)
+	testMessage := protocol.NewSuccessResponse("test", "hello")
 	room.Broadcast(testMessage, client1) // client1 is the sender
 
 	// Verify the message wasnt sent to the sender
@@ -96,12 +93,12 @@ func TestRoomBroadcast(t *testing.T) {
 	}
 
 	// Check message content for client2
-	if len(client2Messages) > 0 && !bytes.Equal(client2Messages[0], testMessage) {
-		t.Errorf("client2 got message %s, expected %s", client2Messages[0], testMessage)
+	if len(client2Messages) > 0 && client2Messages[0] != testMessage {
+		t.Errorf("client2 got message %s, expected %s", client2Messages[0].Data, testMessage.Data)
 	}
 
 	// Check message content for client3
-	if len(client3Messages) > 0 && !bytes.Equal(client3Messages[0], testMessage) {
-		t.Errorf("client3 got message %s, expected %s", client3Messages[0], testMessage)
+	if len(client3Messages) > 0 && client3Messages[0] != testMessage {
+		t.Errorf("client3 got message %s, expected %s", client3Messages[0].Data, testMessage.Data)
 	}
 }
