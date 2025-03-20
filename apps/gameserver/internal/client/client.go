@@ -2,6 +2,7 @@ package client
 
 import (
 	"gameserver/internal/interfaces"
+	"gameserver/internal/protocol"
 	"gameserver/internal/session"
 	"github.com/rs/zerolog/log"
 	"sync"
@@ -25,14 +26,6 @@ const (
 	maxMessageSize = 2048
 )
 
-// Client represents a connected websocket client
-type Client interface {
-	ID() string
-	Send(message []byte) error
-	Room() interfaces.Room
-	SetRoom(room interfaces.Room)
-	Close()
-}
 
 // WebSocketClient implements the Client interface
 type WebSocketClient struct {
@@ -62,7 +55,7 @@ func (c *WebSocketClient) ID() string {
 }
 
 // Send queues a message to be sent to the client
-func (c *WebSocketClient) Send(message []byte) error {
+func (c *WebSocketClient) Send(response protocol.Response) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -71,11 +64,10 @@ func (c *WebSocketClient) Send(message []byte) error {
 	}
 
 	select {
-	case c.send <- message:
-		log.Debug().Msg("Message queued successfully")
+	case c.send <- response.ToBytes():
 		return nil
 	default:
-		log.Warn().Msg("Dropping message due to full send channel")
+		log.Warn().Str("client", c.ID()).Msg("Dropping message due to full send channel")
 		return websocket.ErrCloseSent
 	}
 }
