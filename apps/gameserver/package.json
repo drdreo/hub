@@ -1,0 +1,50 @@
+{
+    "name": "gameserver",
+    "nx": {
+        "targets": {
+            "build": {
+                "executor": "nx:run-commands",
+                "options": {
+                    "command": "go build -o ./{projectRoot}/out ./{projectRoot}/cmd/server"
+                }
+            },
+            "serve": {
+                "executor": "nx:run-commands",
+                "options": {
+                    "command": "go run ./{projectRoot}/cmd/server/main.go"
+                },
+                "configurations": {
+                    "development": {
+                        "mode": "development"
+                    },
+                    "production": {
+                        "mode": "production"
+                    }
+                },
+                "defaultConfiguration": "development"
+            },
+            "test": {
+                "executor": "nx:run-commands",
+                "options": {
+                    "commands": [
+                        {
+                            "command": "go test ./{projectRoot}/...",
+                            "forwardAllArgs": false
+                        }
+                    ]
+                }
+            },
+            "deploy": {
+                "executor": "@hub/plugin:deploy-docker",
+                "options": {
+                    "projectId": "f7e20d1a-9a5c-439d-a48e-c69967cf9698",
+                    "redeploy": true
+                }
+            },
+            "docker-build": {
+                "command": "docker build -f apps/gameserver/Dockerfile . -t gameserver"
+            }
+        },
+        "tags": []
+    }
+}
