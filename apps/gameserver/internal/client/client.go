@@ -26,7 +26,6 @@ const (
 	maxMessageSize = 2048
 )
 
-
 // WebSocketClient implements the Client interface
 type WebSocketClient struct {
 	id        string

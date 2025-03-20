@@ -5,7 +5,6 @@ import (
 	"gameserver/internal/protocol"
 )
 
-
 // Client represents a connected websocket client
 type Client interface {
 	ID() string

@@ -113,7 +113,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request, router *router.Router) {
 	c.StartPumps()
 
 	// Send welcome message
-	welcomeMsg := protocol.NewSuccessResponse("welcome", map[string]interface{}{
+	welcomeMsg := protocol.NewSuccessResponse("welcome", interfaces.M{
 		"message": "Connected to game server",
 	})
 	c.Send(welcomeMsg)
