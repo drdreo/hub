@@ -9,13 +9,13 @@ steps:
       type: "generate"
       target: "src/app/csharp-api.csproj"
       template: |
-        <Project Sdk="Microsoft.NET.Sdk.Web">
-          <PropertyGroup>
-            <TargetFramework>net7.0</TargetFramework>
-            <Nullable>enable</Nullable>
-            <ImplicitUsings>enable</ImplicitUsings>
-          </PropertyGroup>
-        </Project>
+          <Project Sdk="Microsoft.NET.Sdk.Web">
+            <PropertyGroup>
+              <TargetFramework>net7.0</TargetFramework>
+              <Nullable>enable</Nullable>
+              <ImplicitUsings>enable</ImplicitUsings>
+            </PropertyGroup>
+          </Project>
 
     - name: "Generate program.cs file"
       type: "generate"
@@ -45,28 +45,28 @@ steps:
       match: "\n}"
       replace: |-
 
-                "nx": {
-                  "build": {
-                      "executor": "nx:run-commands",
-                      "options": {
-                          "command": "dotenet build ./{projectRoot}/csharp-api.csproj"
-                      }
-                  },
-                  "serve": {
-                      "executor": "nx:run-commands",
-                      "options": {
-                          "command": "dotnet run --project ./{projectRoot}/csharp-api.csproj"
-                      }
-                  },
-                  "deploy": {
-                      "executor": "@hub/plugin:deploy-docker",
-                      "options": {
-                          "projectId": "f7e20d1a-9a5c-439d-a48e-c69967cf9698",
-                          "redeploy": true
-                      }
-                    }
-                  }
+          "nx": {
+            "build": {
+                "executor": "nx:run-commands",
+                "options": {
+                    "command": "dotenet build ./{projectRoot}/csharp-api.csproj"
                 }
+            },
+            "serve": {
+                "executor": "nx:run-commands",
+                "options": {
+                    "command": "dotnet run --project ./{projectRoot}/csharp-api.csproj"
+                }
+            },
+            "deploy": {
+                "executor": "@hub/plugin:deploy-docker",
+                "options": {
+                    "projectId": "f7e20d1a-9a5c-439d-a48e-c69967cf9698",
+                    "redeploy": true
+                }
+              }
+            }
+          }
 
     - name: "Git commit and push changes"
       type: "execute"
