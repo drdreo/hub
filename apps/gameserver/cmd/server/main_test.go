@@ -1,12 +1,10 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"gameserver/games/tictactoe"
 	"gameserver/internal/client"
 	"gameserver/internal/game"
-	"gameserver/internal/interfaces"
 	"gameserver/internal/room"
 	"gameserver/internal/router"
 	"testing"
@@ -109,17 +107,4 @@ func TestGameFlowIntegration(t *testing.T) {
 	if board[0][0] != "X" {
 		t.Errorf("Expected 'X' at position 0, got %v", board[0])
 	}
-}
-
-// Helper to extract message properties
-func getMessageProperty(message []byte, prop string) (interface{}, error) {
-	var msg interfaces.M
-	if err := json.Unmarshal(message, &msg); err != nil {
-		return "", err
-	}
-	property, ok := msg[prop].(string)
-	if !ok {
-		return "", fmt.Errorf("no '%s' field in message", prop)
-	}
-	return property, nil
 }

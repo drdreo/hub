@@ -6,6 +6,7 @@ import (
 	"gameserver/games/tictactoe"
 	"gameserver/internal/client"
 	"gameserver/internal/game"
+	"gameserver/internal/interfaces"
 	"gameserver/internal/protocol"
 	"gameserver/internal/room"
 	"gameserver/internal/router"
