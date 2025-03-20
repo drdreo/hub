@@ -91,7 +91,7 @@ func (room *GameRoom) Leave(client interfaces.Client) {
 }
 
 // Broadcast sends a message to all clients in the room except excluded ones
-func (room *GameRoom) Broadcast(message protocol.Response, exclude ...interfaces.Client) {
+func (room *GameRoom) Broadcast(message *protocol.Response, exclude ...interfaces.Client) {
 	excludeMap := make(map[string]bool)
 	for _, client := range exclude {
 		excludeMap[client.ID()] = true
@@ -105,7 +105,7 @@ func (room *GameRoom) Broadcast(message protocol.Response, exclude ...interfaces
 }
 
 // BroadcastTo sends a message to specific clients in the room
-func (room *GameRoom) BroadcastTo(message protocol.Response, clients ...interfaces.Client) {
+func (room *GameRoom) BroadcastTo(message *protocol.Response, clients ...interfaces.Client) {
 	for _, client := range clients {
 		client.Send(message)
 	}

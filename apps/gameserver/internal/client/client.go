@@ -55,7 +55,7 @@ func (c *WebSocketClient) ID() string {
 }
 
 // Send queues a message to be sent to the client
-func (c *WebSocketClient) Send(response protocol.Response) error {
+func (c *WebSocketClient) Send(response *protocol.Response) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 

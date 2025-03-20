@@ -26,8 +26,8 @@ func (r *Response) ToBytes() []byte {
 }
 
 // NewSuccessResponse creates a new success response
-func NewSuccessResponse(responseType string, data interface{}) Response {
-	resp := Response{
+func NewSuccessResponse(responseType string, data interface{}) *Response {
+	resp := &Response{
 		Type:    responseType,
 		Success: true,
 		Data:    data,
@@ -37,12 +37,12 @@ func NewSuccessResponse(responseType string, data interface{}) Response {
 }
 
 // NewErrorResponse creates a new error response
-func NewErrorResponse(responseType string, errorMsg string) Response {
+func NewErrorResponse(responseType string, errorMsg string) *Response {
 	resp := Response{
 		Type:    responseType,
 		Success: false,
 		Error:   errorMsg,
 	}
 
-	return resp
+	return &resp
 }

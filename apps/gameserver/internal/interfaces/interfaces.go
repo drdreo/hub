@@ -5,16 +5,11 @@ import (
 	"gameserver/internal/protocol"
 )
 
-// Define a common interface for protocol responses
-type ProtocolMessage interface {
-	ToBytes() []byte
-}
-
 
 // Client represents a connected websocket client
 type Client interface {
 	ID() string
-	Send(message protocol.Response) error
+	Send(message *protocol.Response) error
 	Room() Room
 	SetRoom(room Room)
 	Close()
@@ -25,8 +20,8 @@ type Room interface {
 	GameType() string
 	Join(client Client) error
 	Leave(client Client)
-	Broadcast(message protocol.Response, exclude ...Client)
-	BroadcastTo(message protocol.Response, clients ...Client)
+	Broadcast(message *protocol.Response, exclude ...Client)
+	BroadcastTo(message *protocol.Response, clients ...Client)
 	Clients() map[string]Client
 	State() interface{}
 	SetState(state interface{})
