@@ -7,30 +7,39 @@ import (
 	"math/rand"
 )
 
-type Handler struct {
-	game *DiceGame
+func NewDiceGame() *DiceGame {
+	return &DiceGame{}
 }
 
-func NewHandler() *Handler {
-	return &Handler{
-		game: NewDiceGame(),
-	}
+func RegisterDiceGame(r interfaces.GameRegistry) {
+	g := NewDiceGame()
+	r.RegisterGame(g)
 }
 
-func (h *Handler) RegisterDiceGame(r interfaces.GameRegistry) {
-	r.RegisterGame(h)
-}
-
-func (h *Handler) InitializeRoom(room interfaces.Room, options json.RawMessage) error {
-	return nil
-}
-
-func (h *Handler) Type() string {
+// Type returns the game type
+func (g *DiceGame) Type() string {
 	return "dicegame"
 }
 
-func (h *Handler) OnClientJoin(client interfaces.Client, room interfaces.Room) {
-	state := room.State().(GameState)
+// InitializeRoom sets up a new room with the initial game state
+func (g *DiceGame) InitializeRoom(room interfaces.Room, options json.RawMessage) error {
+	// Create initial game state
+	state := GameState{
+		Players:     make(map[string]*Player),
+		Dice:        make([]int, 6),
+		SetAside:    make([]int, 0),
+		CurrentTurn: "",
+		Winner:      "",
+		TurnScore:   0,
+		RoundScore:  0,
+	}
+
+	room.SetState(&state)
+	return nil
+}
+
+func (g *DiceGame) OnClientJoin(client interfaces.Client, room interfaces.Room) {
+	state := room.State().(*GameState)
 
 	// Only allow 2 players
 	if len(state.Players) >= 2 {
@@ -38,7 +47,7 @@ func (h *Handler) OnClientJoin(client interfaces.Client, room interfaces.Room) {
 		return
 	}
 
-	h.game.AddPlayer(client.ID(), state)
+	g.AddPlayer(client.ID(), state)
 
 	// If we now have 2 players, start the game
 	if len(state.Players) == 2 {
@@ -61,17 +70,17 @@ func (h *Handler) OnClientJoin(client interfaces.Client, room interfaces.Room) {
 	}))
 }
 
-func (h *Handler) OnClientLeave(client interfaces.Client, room interfaces.Room) {
-	state := room.State().(GameState)
+func (g *DiceGame) OnClientLeave(client interfaces.Client, room interfaces.Room) {
+	state := room.State().(*GameState)
 	if state.CurrentTurn == client.ID() {
-		h.game.EndTurn(state)
+		g.EndTurn(state)
 	}
 	room.SetState(state)
 }
 
 // OnClientReconnect handles reconnecting a client to the game
-func (g *Handler) OnClientReconnect(client interfaces.Client, room interfaces.Room, oldClientID string) {
-	state := room.State().(GameState)
+func (g *DiceGame) OnClientReconnect(client interfaces.Client, room interfaces.Room, oldClientID string) {
+	state := room.State().(*GameState)
 
 	// Check if the old client ID was a player in this game
 	playerInfo, exists := state.Players[oldClientID]
@@ -107,14 +116,33 @@ func (g *Handler) OnClientReconnect(client interfaces.Client, room interfaces.Ro
 	}))
 }
 
-func (h *Handler) HandleMessage(client interfaces.Client, room interfaces.Room, msgType string, payload []byte) {
-	var action GameAction
+func (g *DiceGame) HandleMessage(client interfaces.Client, room interfaces.Room, msgType string, payload []byte) {
+	var action ActionPayload
 	if err := json.Unmarshal(payload, &action); err != nil {
 		client.Send(protocol.NewErrorResponse("error", "Invalid payload format"))
 		return
 	}
 
-	h.game.HandleMessage(client, room, msgType, action)
+	state := room.State().(*GameState)
+	// Validate it's the player's turn
+	if state.CurrentTurn != client.ID() {
+		client.Send(protocol.NewErrorResponse("error", "Not your turn"))
+		return
+	}
+
+	switch msgType {
+	case "roll":
+		g.handleRoll(room)
+	case "select":
+		g.handleSelect(room, action)
+	case "set_aside":
+		g.handleSetAside(room, action)
+	case "end_turn":
+		g.handleEndTurn(room)
+	default:
+		client.Send(protocol.NewErrorResponse("error", "Unknown message type: "+msgType))
+	}
+
 	broadcastGameState(room)
 }
 

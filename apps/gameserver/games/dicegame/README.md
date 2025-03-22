@@ -72,3 +72,52 @@ Players can perform the following actions:
 3. Achievement system
 4. Statistics tracking
 5. Tournament mode 
+6. Badges
+
+### Badges
+#### Tin Badges
+|           Tin Badges           |                                                                                              |
+|:------------------------------:|:--------------------------------------------------------------------------------------------:|
+|           Badge Name           |                                          Description                                         |
+| Doppelganger's Badge           | Doubles the points of your last throw. Can be used once per game                             |
+| Badge of Headstart             | You gain a small point headstart at the start of the game                                    |
+| Badge of Defence               | Cancels the effects of your opponent's tin badges                                            |
+| Badge of Fortune               | Allows you to roll one die again. Can be used once per game                                  |
+| Badge of Might                 | Allows you to add one extra die to your throw. Can be used once per game                     |
+| Badge of Transmutation         | After your throw, change a die of your choosing to a 3. Can be used once per game            |
+| Carpenter's Badge of Advantage | The combination of 3+5 now counts as a new formation, called the Cut. Can be used repeatedly |
+| Warlord's badge                | You gain 25% more points for this turn. Can be used once per game                            |
+| Badge of Resurrection          | After an unlucky throw, allows you to throw again. Can be used once per game                 |
+
+#### Silver Badges
+
+|           Silver Badges          |                                                                                                                      |
+|:--------------------------------:|:--------------------------------------------------------------------------------------------------------------------:|
+|            Badge Name            |                                                      Description                                                     |
+| Doppelganger's Badge             | Doubles the points of your last throw. Can be used twice per game                                                    |
+| Badge of Headstart               | You gain a moderate point headstart at the start of the game                                                         |
+| Badge of Defence                 | Cancels the effect of your opponent's silver badges                                                                  |
+| Swap-Out Badge                   | After your throw, you can roll a die of your choosing again. Can be used once per game                               |
+| Badge of Fortune                 | You can roll up to two dice again. Can be used once per game                                                         |
+| Badge of Might                   | Allows you to add an extra die to your throw. Can be used twice per game                                             |
+| Badge of Tranmutation            | After your throw, change a die of your choosing to a 5. Can be used once per game                                    |
+| Executioner's Badge of Advantage | The combination of 4+5+6 now counts as a new formation, called the Gallows. Can be used repeatedly                   |
+| Warlord's Badge                  | Gain 50% more points this turn. Can be used once per game                                                            |
+| Badge of Resurrection            | After an unlucky throw, allows you to throw again. Can be used twice per game                                        |
+| King's Badge                     | The badge of the rightful king of the birds allows you to add an extra die to your throw. Can be used twice per game |
+
+#### Gold Badge
+|          Badge Name         |                                                  Description                                                 |
+|:---------------------------:|:------------------------------------------------------------------------------------------------------------:|
+| Doppelganger Badge          | Doubles the points scored from your last throw. Can be used thrice per game                                  |
+| Badge of Headstart          | You gain a large point headstart at the start of the game                                                    |
+| Badge of Defence            | Cancels the effect of your opponent's gold badges                                                            |
+| Swap-Out Badge              | After your throw, you can throw two dice of the same value again. Can be used once per game                  |
+| Badge of Fortune            | You can roll up to three dice again. Can be used once per game                                               |
+| Badge of Might              | Allows you to add an extra die to your throw. Can be used once per game                                      |
+| Badge of Transmutation      | After your throw, change a die of your choosing to a 1. Can be used once per game                            |
+| Priest's Badge of Advantage | The combination of 1+3+5 now counts as a new formation, called the Eye. Can be used repeatedly               |
+| Warlord's Badge             | Gain double points for this turn. Can be used once per game                                                  |
+| Badge of Resurrection       | After an unlucky throw, allows you to throw again. Can be used thrice per game                               |
+| Gold Emperor's Badge        | Triples the points gained for the formation 1+1+1. Can be used repeatedly                                    |
+| Gold Wedding Badge          | A memento of Agnes and Olda's big day. Allows you to throw up to three dice again. Can be used once per game |

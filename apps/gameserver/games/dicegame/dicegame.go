@@ -1,7 +1,6 @@
 package dicegame
 
 import (
-	"encoding/json"
 	"gameserver/internal/interfaces"
 	"gameserver/internal/protocol"
 	"maps"
@@ -34,52 +33,25 @@ type GameState struct {
 	RoundScore  int
 }
 
-type GameAction struct {
-	Type      string `json:"type"`
+type ActionPayload struct {
 	PlayerID  string `json:"playerId"`
 	DiceIndex []int  `json:"diceIndex,omitempty"`
 }
 
-func NewDiceGame() *DiceGame {
-	return &DiceGame{}
-}
-
-// Type returns the game type
-func (g *DiceGame) Type() string {
-	return "dicegame"
-}
-
-// InitializeRoom sets up a new room with the initial game state
-func (g *DiceGame) InitializeRoom(room interfaces.Room, options json.RawMessage) error {
-	// Create initial game state
-	state := GameState{
-		Players:     make(map[string]*Player),
-		Dice:        make([]int, 6),
-		SetAside:    make([]int, 0),
-		CurrentTurn: "",
-		Winner:      "",
-		TurnScore:   0,
-		RoundScore:  0,
-	}
-
-	room.SetState(state)
-	return nil
-}
-
-func (g *DiceGame) AddPlayer(id string, state GameState) {
+func (g *DiceGame) AddPlayer(id string, state *GameState) {
 	state.Players[id] = &Player{
 		ID:    id,
 		Score: 0,
 	}
 }
 
-func (g *DiceGame) RollDice(state GameState) {
+func (g *DiceGame) RollDice(state *GameState) {
 	for i := range state.Dice {
 		state.Dice[i] = rand.Intn(6) + 1
 	}
 }
 
-func (g *DiceGame) SetAsideDice(indices []int, state GameState) bool {
+func (g *DiceGame) SetAsideDice(indices []int, state *GameState) bool {
 	// Validate indices
 	for _, idx := range indices {
 		if idx < 0 || idx >= len(state.Dice) {
@@ -199,7 +171,7 @@ func containsRun(dice []int, start, end int) bool {
 	return true
 }
 
-func (g *DiceGame) EndTurn(state GameState) {
+func (g *DiceGame) EndTurn(state *GameState) {
 	// Add turn score to player's total score
 	if player, exists := state.Players[state.CurrentTurn]; exists {
 		player.Score += state.TurnScore
@@ -225,24 +197,8 @@ func (g *DiceGame) EndTurn(state GameState) {
 
 }
 
-func (g *DiceGame) HandleMessage(client interfaces.Client, room interfaces.Room, msgType string, action GameAction) {
-
-	switch msgType {
-	case "roll":
-		g.handleRoll(room)
-	case "select":
-		g.handleSelect(room, action)
-	case "set_aside":
-		g.handleSetAside(room, action)
-	case "end_turn":
-		g.handleEndTurn(room)
-	default:
-		client.Send(protocol.NewErrorResponse("error", "Unknown message type: "+msgType))
-	}
-}
-
 func (g *DiceGame) handleRoll(room interfaces.Room) {
-	state := room.State().(GameState)
+	state := room.State().(*GameState)
 
 	if len(state.Dice) == 0 {
 		state.Dice = make([]int, 6)
@@ -257,10 +213,10 @@ func (g *DiceGame) handleRoll(room interfaces.Room) {
 	room.SetState(state)
 }
 
-func (g *DiceGame) handleSelect(room interfaces.Room, action GameAction) {
-	state := room.State().(GameState)
+func (g *DiceGame) handleSelect(room interfaces.Room, payload ActionPayload) {
+	state := room.State().(*GameState)
 	selectedDice := make([]int, 0)
-	for _, idx := range action.DiceIndex {
+	for _, idx := range payload.DiceIndex {
 		if idx >= 0 && idx < len(state.Dice) {
 			selectedDice = append(selectedDice, state.Dice[idx])
 		}
@@ -275,9 +231,9 @@ func (g *DiceGame) handleSelect(room interfaces.Room, action GameAction) {
 	room.SetState(state)
 }
 
-func (g *DiceGame) handleSetAside(room interfaces.Room, action GameAction) {
-	state := room.State().(GameState)
-	if g.SetAsideDice(action.DiceIndex, state) {
+func (g *DiceGame) handleSetAside(room interfaces.Room, payload ActionPayload) {
+	state := room.State().(*GameState)
+	if g.SetAsideDice(payload.DiceIndex, state) {
 		score, valid := g.CalculateScore(state.SetAside)
 		if valid {
 			state.TurnScore = score
@@ -287,7 +243,7 @@ func (g *DiceGame) handleSetAside(room interfaces.Room, action GameAction) {
 }
 
 func (g *DiceGame) handleEndTurn(room interfaces.Room) {
-	state := room.State().(GameState)
+	state := room.State().(*GameState)
 	g.EndTurn(state)
 	room.SetState(state)
 }
