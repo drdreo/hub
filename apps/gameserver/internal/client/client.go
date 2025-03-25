@@ -4,9 +4,10 @@ import (
 	"gameserver/internal/interfaces"
 	"gameserver/internal/protocol"
 	"gameserver/internal/session"
-	"github.com/rs/zerolog/log"
 	"sync"
 	"time"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
@@ -110,10 +111,10 @@ func (c *WebSocketClient) Close() {
 		}
 
 		sessionStore.StoreSession(c.id, session.SessionData{
-			ClientID:   c.id,
-			RoomID:     c.room.ID(),
-			GameType:   c.room.GameType(),
-			LastActive: time.Now(),
+			ClientID: c.id,
+			RoomID:   c.room.ID(),
+			GameType: c.room.GameType(),
+			LeftAt:   time.Now(),
 			// Add game-specific data if needed
 			ExtraData: map[string]interface{}{
 				"playerInfo": playerInfo,

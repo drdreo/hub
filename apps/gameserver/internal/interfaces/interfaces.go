@@ -27,8 +27,14 @@ type Room interface {
 	Close()
 }
 
+type CreateRoomOptions struct {
+	GameType string          `json:"gameType"`
+	RoomID   *string         `json:"roomId,omitempty"`
+	Options  json.RawMessage `json:"options,omitempty"`
+}
+
 type RoomManager interface {
-	CreateRoom(gameType string, options json.RawMessage) (Room, error)
+	CreateRoom(createOptions CreateRoomOptions) (Room, error)
 	GetRoom(roomID string) (Room, error)
 	RemoveRoom(roomID string)
 }

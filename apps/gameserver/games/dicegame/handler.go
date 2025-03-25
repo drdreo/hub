@@ -5,6 +5,8 @@ import (
 	"gameserver/internal/interfaces"
 	"gameserver/internal/protocol"
 	"math/rand"
+
+	"github.com/rs/zerolog/log"
 )
 
 func NewDiceGame() *DiceGame {
@@ -118,9 +120,13 @@ func (g *DiceGame) OnClientReconnect(client interfaces.Client, room interfaces.R
 
 func (g *DiceGame) HandleMessage(client interfaces.Client, room interfaces.Room, msgType string, payload []byte) {
 	var action ActionPayload
-	if err := json.Unmarshal(payload, &action); err != nil {
-		client.Send(protocol.NewErrorResponse("error", "Invalid payload format"))
-		return
+	// Handle empty or malformed payloads more gracefully
+	if len(payload) > 0 {
+		if err := json.Unmarshal(payload, &action); err != nil {
+			// Only log the error, but continue with default empty action
+			log.Error().Str("error", err.Error()).Msg("invalid action payload")
+			client.Send(protocol.NewErrorResponse("error", "Invalid action payload"))
+		}
 	}
 
 	state := room.State().(*GameState)

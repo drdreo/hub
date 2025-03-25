@@ -5,6 +5,7 @@ import (
 	"gameserver/internal/interfaces"
 	"gameserver/internal/protocol"
 	"gameserver/internal/session"
+
 	"github.com/rs/zerolog/log"
 )
 
@@ -66,19 +67,21 @@ func (r *Router) HandleMessage(client interfaces.Client, messageData []byte) {
 
 // handleCreateRoom creates a new game room
 func (r *Router) handleCreateRoom(client interfaces.Client, msg protocol.Message) {
-	var createOptions struct {
-		GameType string          `json:"gameType"`
-		Options  json.RawMessage `json:"options,omitempty"`
-	}
+	var createOptions interfaces.CreateRoomOptions
 
 	if err := json.Unmarshal(msg.Data, &createOptions); err != nil {
 		client.Send(protocol.NewErrorResponse("create_room_result", "Invalid options format"))
 		return
 	}
 
+	if createOptions.GameType == "" {
+		client.Send(protocol.NewErrorResponse("create_room_result", "Game type is required"))
+		return
+	}
+
 	log.Debug().Fields(createOptions).Msg("handleCreateRoom")
 
-	room, err := r.roomManager.CreateRoom(createOptions.GameType, createOptions.Options)
+	room, err := r.roomManager.CreateRoom(createOptions)
 	if err != nil {
 		client.Send(protocol.NewErrorResponse("create_room_result", err.Error()))
 		return

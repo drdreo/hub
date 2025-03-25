@@ -19,23 +19,22 @@ const (
 type DiceGame struct{}
 
 type Player struct {
-	ID    string
-	Score int
+	ID    string `json:"id"`
+	Score int    `json:"score"`
 }
 
 type GameState struct {
-	Players     map[string]*Player
-	CurrentTurn string
-	Winner      string
-	Dice        []int
-	SetAside    []int
-	TurnScore   int
-	RoundScore  int
+	Players     map[string]*Player `json:"players"`
+	CurrentTurn string             `json:"currentTurn"`
+	Winner      string             `json:"winner"`
+	Dice        []int              `json:"dice"`
+	SetAside    []int              `json:"setAside"`
+	TurnScore   int                `json:"turnScore"`
+	RoundScore  int                `json:"roundScore"`
 }
 
 type ActionPayload struct {
-	PlayerID  string `json:"playerId"`
-	DiceIndex []int  `json:"diceIndex,omitempty"`
+	DiceIndex []int `json:"diceIndex,omitempty"`
 }
 
 func (g *DiceGame) AddPlayer(id string, state *GameState) {
@@ -52,9 +51,16 @@ func (g *DiceGame) RollDice(state *GameState) {
 }
 
 func (g *DiceGame) SetAsideDice(indices []int, state *GameState) bool {
+	// Handle empty indices
+	if len(indices) == 0 {
+		log.Error().Msg("SetAsideDice called with empty indices, no action taken")
+		return false
+	}
+
 	// Validate indices
 	for _, idx := range indices {
 		if idx < 0 || idx >= len(state.Dice) {
+			log.Error().Int("index", idx).Int("dice_length", len(state.Dice)).Msg("Invalid dice index")
 			return false
 		}
 	}
@@ -215,12 +221,26 @@ func (g *DiceGame) handleRoll(room interfaces.Room) {
 
 func (g *DiceGame) handleSelect(room interfaces.Room, payload ActionPayload) {
 	state := room.State().(*GameState)
+
+	// Handle case where DiceIndex is empty
+	if len(payload.DiceIndex) == 0 {
+		log.Error().Msg("handleSelect called with empty DiceIndex, ignoring selection")
+		return
+	}
+
 	selectedDice := make([]int, 0)
 	for _, idx := range payload.DiceIndex {
 		if idx >= 0 && idx < len(state.Dice) {
 			selectedDice = append(selectedDice, state.Dice[idx])
 		}
 	}
+
+	// Only proceed if there are valid selections
+	if len(selectedDice) == 0 {
+		log.Error().Msg("No valid dice indices to select")
+		return
+	}
+
 	score, valid := g.CalculateScore(append(state.SetAside, selectedDice...))
 	if valid {
 		room.Broadcast(protocol.NewSuccessResponse("temp_score", interfaces.M{
@@ -232,6 +252,12 @@ func (g *DiceGame) handleSelect(room interfaces.Room, payload ActionPayload) {
 }
 
 func (g *DiceGame) handleSetAside(room interfaces.Room, payload ActionPayload) {
+	// Handle case where DiceIndex is empty
+	if len(payload.DiceIndex) == 0 {
+		log.Error().Msg("handleSelect called with empty DiceIndex, ignoring selection")
+		return
+	}
+
 	state := room.State().(*GameState)
 	if g.SetAsideDice(payload.DiceIndex, state) {
 		score, valid := g.CalculateScore(state.SetAside)

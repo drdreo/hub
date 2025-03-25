@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dice Game (Farkle-inspired)</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .game-container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+        
+        .dice-container {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 20px 0;
+            min-height: 100px;
+        }
+        
+        .dice {
+            width: 60px;
+            height: 60px;
+            margin: 8px;
+            background-color: white;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+        
+        .dice.selected {
+            background-color: #3498db;
+            color: white;
+            transform: translateY(-5px);
+        }
+        
+        .dice.set-aside {
+            background-color: #2ecc71;
+            color: white;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #2980b9;
+        }
+        
+        button:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+        
+        .connection-form {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            margin-right: 8px;
+        }
+        
+        .scoreboard {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+        }
+        
+        .score-card {
+            text-align: center;
+            padding: 10px;
+            border-radius: 5px;
+            transition: all 0.3s;
+            position: relative;
+        }
+        
+        .score-card.active {
+            background-color: #e8f4fc;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .score-card.active::before {
+            content: "➤ Current Turn";
+            position: absolute;
+            top: -20px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            color: #3498db;
+            font-weight: bold;
+            animation: pulse 1.5s infinite;
+        }
+        
+        .score-card.active.your-turn::before {
+            content: "➤ Your Turn";
+            color: #2ecc71;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+        
+        .status {
+            text-align: center;
+            color: #7f8c8d;
+            font-style: italic;
+            margin: 20px 0;
+        }
+        
+        .help-section {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #f0f8ff;
+            border-radius: 8px;
+        }
+        
+        .help-section h3 {
+            margin-top: 0;
+            color: #3498db;
+        }
+        
+        .dice-value {
+            position: absolute;
+        }
+        
+        .player-indicator {
+            font-size: 0.8em;
+            font-weight: normal;
+            color: #7f8c8d;
+        }
+        
+        .your-player {
+            color: #2ecc71;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Dice Game (Farkle-inspired)</h1>
+    
+    <div class="game-container">
+        <div class="connection-form">
+            <p id="status">Connecting to server...</p>
+            <input type="text" id="roomId" placeholder="Room ID">
+            <button id="createRoom">Create Room</button>
+            <button id="joinRoom">Join Room</button>
+        </div>
+        
+        <div class="scoreboard">
+            <div class="score-card" id="player1Card">
+                <h3>Player 1 <span class="player-indicator" id="player1Indicator"></span></h3>
+                <p>Score: <span id="player1Score">0</span></p>
+            </div>
+            <div class="score-card" id="player2Card">
+                <h3>Player 2 <span class="player-indicator" id="player2Indicator"></span></h3>
+                <p>Score: <span id="player2Score">0</span></p>
+            </div>
+        </div>
+        
+        <div id="gameArea" style="display: none;">
+            <div class="status">
+                <p id="gameStatus">Waiting for your turn...</p>
+                <p>Current turn score: <span id="turnScore">0</span></p>
+            </div>
+            
+            <div class="dice-container" id="diceContainer">
+                <!-- Dice will be dynamically created here -->
+            </div>
+            
+            <div class="dice-container" id="setAsideContainer">
+                <h3>Set Aside Dice:</h3>
+                <!-- Set aside dice will be dynamically created here -->
+            </div>
+            
+            <div class="controls">
+                <button id="rollBtn" disabled>Roll Dice</button>
+                <button id="setAsideBtn" disabled>Set Aside Selected</button>
+                <button id="endTurnBtn" disabled>End Turn</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="help-section">
+        <h3>Scoring Combinations</h3>
+        <ul>
+            <li>One "1" - 100 points</li>
+            <li>One "5" - 50 points</li>
+            <li>Three of a kind:
+                <ul>
+                    <li>Three "1s" - 1,000 points</li>
+                    <li>Three "2s" - 200 points</li>
+                    <li>Three "3s" - 300 points</li>
+                    <li>Three "4s" - 400 points</li>
+                    <li>Three "5s" - 500 points</li>
+                    <li>Three "6s" - 600 points</li>
+                </ul>
+            </li>
+            <li>Runs:
+                <ul>
+                    <li>Run of "1-5" - 500 points</li>
+                    <li>Run of "2-6" - 750 points</li>
+                    <li>Run of "1-6" - 1,500 points</li>
+                </ul>
+            </li>
+        </ul>
+    </div>
+    
+    <script>
+        // Game state
+        let lastKnownState;
+        const gameState = {
+            clientId: null,
+            roomId: null,
+            isMyTurn: false,
+            dice: [],
+            setAside: [],
+            turnScore: 0,
+            selectedDice: [],
+            socket: null,
+            players: {},
+            currentTurn: null,
+            gameStarted: false
+        };
+        
+        // DOM elements
+        const statusElement = document.getElementById("status");
+        const roomIdInput = document.getElementById("roomId");
+        const createRoomButton = document.getElementById("createRoom");
+        const joinRoomButton = document.getElementById("joinRoom");
+        const gameAreaElement = document.getElementById("gameArea");
+        const diceContainer = document.getElementById("diceContainer");
+        const setAsideContainer = document.getElementById("setAsideContainer");
+        const rollButton = document.getElementById("rollBtn");
+        const setAsideButton = document.getElementById("setAsideBtn");
+        const endTurnButton = document.getElementById("endTurnBtn");
+        const turnScoreElement = document.getElementById("turnScore");
+        const gameStatusElement = document.getElementById("gameStatus");
+        const player1ScoreElement = document.getElementById("player1Score");
+        const player2ScoreElement = document.getElementById("player2Score");
+        const player1Card = document.getElementById("player1Card");
+        const player2Card = document.getElementById("player2Card");
+        const player1Indicator = document.getElementById("player1Indicator");
+        const player2Indicator = document.getElementById("player2Indicator");
+        
+        // Connect to WebSocket server
+        function connectWebSocket() {
+            // Use secure WebSocket if site is served over HTTPS
+            const serverUrl = "localhost:6969";
+            const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+            const wsUrl = `${protocol}//${serverUrl}/ws`;
+            
+            console.log("Connecting to WebSocket server at:", wsUrl);
+            gameState.socket = new WebSocket(wsUrl);
+            
+            gameState.socket.onopen = () => {
+                console.log("WebSocket connection established");
+                statusElement.textContent = "Connected to server";
+                checkReconnect();
+            };
+            
+            gameState.socket.onclose = () => {
+                console.log("WebSocket connection closed");
+                statusElement.textContent = "Disconnected from server";
+                setTimeout(connectWebSocket, 3000); // Try to reconnect after 3 seconds
+            };
+            
+            gameState.socket.onerror = error => {
+                console.error("WebSocket error:", error);
+                statusElement.textContent = "Connection error";
+            };
+            
+            gameState.socket.onmessage = function(event) {
+                console.log("Raw message received:", event.data);
+                const messages = JSON.parse(event.data);
+                for (const msg of messages) {
+                    handleMessage(msg);
+                }
+            };
+        }
+        
+        // Handle incoming WebSocket messages
+        function handleMessage(message) {
+            console.log("Received message:", message);
+            
+            // Handle error format
+            if (message.type === "error") {
+                if (message.error) {
+                    statusElement.textContent = `Error: ${message.error}`;
+                    console.error("Server error:", message.error);
+                } else if (message.data) {
+                    statusElement.textContent = `Error: ${message.data}`;
+                    console.error("Server error:", message.data);
+                } else {
+                    statusElement.textContent = "Unknown error occurred";
+                    console.error("Unknown error format:", message);
+                }
+                return;
+            }
+            
+            // Skip message if not successful
+            if (message.success === false) {
+                console.error("Unsuccessful message:", message);
+                return;
+            }
+            
+            // Safely access data property which may be optional
+            const data = message.data || {};
+            
+            switch (message.type) {
+                case "create_room_result":
+                    // Just log the room creation, we'll wait for the joined event
+                    console.log("Room creation successful, waiting for join event with client ID");
+                    if (data.roomId) {
+                        statusElement.textContent = `Room created: ${data.roomId}`;
+                        roomIdInput.value = data.roomId;
+                        roomIdInput.readOnly = true;
+                    }
+                    break;
+                case "joined":
+                    handleJoined(data);
+                    break;
+                case "reconnected":
+                    handleReconnected(data);
+                    break;
+                case "game_state":
+                    handleGameState(data);
+                    break;
+                case "temp_score":
+                    handleTempScore(data);
+                    break;
+                default:
+                    console.log("Unknown message type:", message.type);
+            }
+        }
+        
+        function handleJoined(data) {
+            if (!data) {
+                console.warn("Received joined message with no data");
+                return;
+            }
+            
+            console.log("Joined room with client ID:", data.clientId);
+            
+            if (!data.clientId) {
+                console.warn("Joined message missing clientId:", data);
+                return;
+            }
+            
+            gameState.clientId = data.clientId;
+            gameState.roomId = data.roomId || "";
+            
+            statusElement.textContent = `Joined room: ${data.roomId || "unknown"}`;
+            if (data.roomId) {
+                roomIdInput.value = data.roomId;
+                roomIdInput.readOnly = true;
+            }
+            
+            // Store session info for reconnection
+            sessionStorage.setItem("clientId", data.clientId);
+            if (data.roomId) {
+                sessionStorage.setItem("roomId", data.roomId);
+            }
+            
+            // Show waiting or game area
+            gameStatusElement.textContent = "Waiting for another player to join...";
+            gameAreaElement.style.display = "block";
+        }
+        
+        // Handle successful reconnection
+        function handleReconnected(data) {
+            if (!data) {
+                console.warn("Received reconnected message with no data");
+                return;
+            }
+            
+            console.log("Reconnected with client ID:", data.clientId);
+            
+            if (!data.clientId) {
+                console.warn("Reconnected message missing clientId:", data);
+                return;
+            }
+            
+            gameState.clientId = data.clientId;
+            gameState.roomId = data.roomId || "";
+            
+            statusElement.textContent = `Reconnected to room: ${data.roomId || "unknown"}`;
+            if (data.roomId) {
+                roomIdInput.value = data.roomId;
+                roomIdInput.readOnly = true;
+            }
+            
+            // Store session info for reconnection
+            sessionStorage.setItem("clientId", data.clientId);
+            if (data.roomId) {
+                sessionStorage.setItem("roomId", data.roomId);
+            }
+            
+            gameAreaElement.style.display = "block";
+            
+            // Apply last known state if available
+            if (lastKnownState) {
+                handleGameState(lastKnownState);
+            }
+        }
+        
+        function handleGameState(data) {
+            if (!data) {
+                console.warn("Received game_state message with no data");
+                return;
+            }
+            
+            // Save the current state for potential reconnects
+            lastKnownState = data;
+            
+            // Debug logging
+            console.log("Game state received:", data);
+            console.log("Current player ID (before):", gameState.clientId);
+            console.log("Current turn:", data.currentTurn);
+            
+            // Store current clientId to preserve it
+            const currentClientId = gameState.clientId;
+            
+            // Update game state with server data - use defensive programming
+            gameState.dice = Array.isArray(data.dice) ? data.dice : [];
+            gameState.setAside = Array.isArray(data.setAside) ? data.setAside : [];
+            gameState.turnScore = typeof data.turnScore === 'number' ? data.turnScore : 0;
+            gameState.players = data.players || {};
+            gameState.currentTurn = data.currentTurn || null;
+            gameState.gameStarted = Object.keys(gameState.players).length >= 2;
+            
+            // Restore clientId if it was defined before
+            if (currentClientId) {
+                gameState.clientId = currentClientId;
+            }
+            
+            // Now check turn status - convert to strings to ensure proper comparison
+            const myClientId = String(gameState.clientId || "");
+            const currentTurn = String(gameState.currentTurn || "");
+            gameState.isMyTurn = myClientId && currentTurn && myClientId === currentTurn;
+            
+            console.log("Current player ID (after):", gameState.clientId);
+            console.log("Is my turn?", gameState.isMyTurn);
+
+            // Update UI
+            updateGameUI();
+        }
+        
+        function handleTempScore(data) {
+            if (data && typeof data.score !== 'undefined') {
+                turnScoreElement.textContent = data.score;
+                gameStatusElement.textContent = `Possible score: ${data.score} points`;
+            } else {
+                console.warn("Received temp_score message with missing score data:", data);
+            }
+        }
+        
+        function checkReconnect() {
+            const clientId = sessionStorage.getItem("clientId");
+            const roomId = sessionStorage.getItem("roomId");
+            
+            if (clientId && roomId) {
+                const message = {
+                    type: "reconnect",
+                    data: {
+                        roomId,
+                        clientId
+                    }
+                };
+                
+                gameState.socket.send(JSON.stringify(message));
+            }
+        }
+        
+        // Update game UI based on current state
+        function updateGameUI() {
+            // Ensure client ID is set
+            ensureClientId();
+            
+            // Add debugging
+            console.log("Updating game UI, is my turn:", gameState.isMyTurn);
+            console.log("Game started:", gameState.gameStarted);
+            console.log("Current turn:", gameState.currentTurn);
+            console.log("My client ID:", gameState.clientId);
+            
+            // Update scores display
+            updateScoreboard();
+            
+            // Update turn score
+            turnScoreElement.textContent = gameState.turnScore;
+            
+            // Reset button states first
+            rollButton.disabled = true;
+            setAsideButton.disabled = true;
+            endTurnButton.disabled = true;
+            
+            // Update status message
+            if (gameState.gameStarted) {
+                if (gameState.isMyTurn) {
+                    gameStatusElement.textContent = "Your turn! Roll the dice or end your turn.";
+                    // Enable buttons for current player
+                    rollButton.disabled = false;
+                    endTurnButton.disabled = false;
+                    setAsideButton.disabled = gameState.selectedDice.length === 0;
+                } else {
+                    gameStatusElement.textContent = "Waiting for opponent's move...";
+                }
+            } else {
+                gameStatusElement.textContent = "Waiting for another player to join...";
+            }
+            
+            // Update dice display
+            updateDiceDisplay();
+            
+            // Show game area
+            gameAreaElement.style.display = "block";
+        }
+        
+        function updateScoreboard() {
+            const playerIds = Object.keys(gameState.players);
+            console.log("Player IDs:", playerIds);
+            console.log("My client ID:", gameState.clientId);
+            
+            if (playerIds.length >= 1) {
+                const player1 = gameState.players[playerIds[0]];
+                player1ScoreElement.textContent = player1.score;
+                
+                // Fix: Use string comparison for IDs
+                const isPlayer1Turn = String(playerIds[0]) === String(gameState.currentTurn);
+                const isPlayer1Me = String(playerIds[0]) === String(gameState.clientId);
+                
+                player1Card.classList.toggle("active", isPlayer1Turn);
+                player1Card.classList.toggle("your-turn", isPlayer1Turn && isPlayer1Me);
+                
+                // Set "You" indicator for player 1
+                if (isPlayer1Me) {
+                    player1Indicator.textContent = "(You)";
+                    player1Indicator.classList.add("your-player");
+                } else {
+                    player1Indicator.textContent = "";
+                    player1Indicator.classList.remove("your-player");
+                }
+            }
+            
+            if (playerIds.length >= 2) {
+                const player2 = gameState.players[playerIds[1]];
+                player2ScoreElement.textContent = player2.score;
+                
+                // Fix: Use string comparison for IDs
+                const isPlayer2Turn = String(playerIds[1]) === String(gameState.currentTurn);
+                const isPlayer2Me = String(playerIds[1]) === String(gameState.clientId);
+                
+                player2Card.classList.toggle("active", isPlayer2Turn);
+                player2Card.classList.toggle("your-turn", isPlayer2Turn && isPlayer2Me);
+                
+                // Set "You" indicator for player 2
+                if (isPlayer2Me) {
+                    player2Indicator.textContent = "(You)";
+                    player2Indicator.classList.add("your-player");
+                } else {
+                    player2Indicator.textContent = "";
+                    player2Indicator.classList.remove("your-player");
+                }
+            }
+        }
+        
+        function updateDiceDisplay() {
+            // Clear dice containers
+            diceContainer.innerHTML = "";
+            setAsideContainer.innerHTML = "<h3>Set Aside Dice:</h3>";
+            
+            // Add active dice
+            gameState.dice.forEach((value, index) => {
+                const diceElement = createDiceElement(value, index);
+                diceContainer.appendChild(diceElement);
+            });
+            
+            // Add set aside dice
+            gameState.setAside.forEach((value, index) => {
+                const diceElement = createDiceElement(value, index);
+                diceElement.classList.add("set-aside");
+                diceElement.classList.remove("selected");
+                setAsideContainer.appendChild(diceElement);
+            });
+            
+            // Update set aside button state based on selection
+            if (gameState.isMyTurn) {
+                setAsideButton.disabled = gameState.selectedDice.length === 0;
+            } else {
+                setAsideButton.disabled = true;
+            }
+            
+            // Debug info
+            console.log("Dice display updated. Selected dice:", gameState.selectedDice);
+            console.log("Set aside button disabled:", setAsideButton.disabled);
+        }
+        
+        function createDiceElement(value, index) {
+            const diceElement = document.createElement("div");
+            diceElement.className = "dice";
+            diceElement.dataset.index = index;
+            
+            const valueElement = document.createElement("span");
+            valueElement.className = "dice-value";
+            valueElement.textContent = value;
+            diceElement.appendChild(valueElement);
+            
+            // Make dice selectable if it's the player's turn
+            if (gameState.isMyTurn) {
+                diceElement.addEventListener("click", () => toggleDiceSelection(index));
+            }
+            
+            // Apply selected state if appropriate
+            if (gameState.selectedDice.includes(index)) {
+                diceElement.classList.add("selected");
+            }
+            
+            return diceElement;
+        }
+        
+        function toggleDiceSelection(index) {
+            const selectedIndex = gameState.selectedDice.indexOf(index);
+            
+            if (selectedIndex === -1) {
+                // Add to selection
+                gameState.selectedDice.push(index);
+            } else {
+                // Remove from selection
+                gameState.selectedDice.splice(selectedIndex, 1);
+            }
+            
+            // Enable set aside button if dice are selected
+            setAsideButton.disabled = gameState.selectedDice.length === 0;
+            
+            // Update UI to reflect selection
+            updateDiceDisplay();
+            
+            // Send selection to server for score preview
+            if (gameState.selectedDice.length > 0) {
+                selectDice(gameState.selectedDice);
+            }
+        }
+        
+        // Ensures client ID is properly set before taking actions
+        function ensureClientId() {
+            if (!gameState.clientId) {
+                const storedClientId = sessionStorage.getItem("clientId");
+                if (storedClientId) {
+                    console.log("Restoring lost client ID from session storage:", storedClientId);
+                    gameState.clientId = storedClientId;
+                    return true;
+                }
+                console.warn("No client ID available, cannot perform action");
+                return false;
+            }
+            return true;
+        }
+        
+        // Game actions
+        function createRoom() {
+            if (!gameState.socket) {
+                statusElement.textContent = "Not connected to server";
+                return;
+            }
+            
+            const message = {
+                type: "create_room",
+                data: {
+                    gameType: "dicegame"
+                }
+            };
+            
+            gameState.socket.send(JSON.stringify(message));
+        }
+        
+        function joinRoom() {
+            if (!gameState.socket) {
+                statusElement.textContent = "Not connected to server";
+                return;
+            }
+            
+            const roomId = roomIdInput.value.trim();
+            if (!roomId) {
+                statusElement.textContent = "Please enter a room ID";
+                return;
+            }
+            
+            const message = {
+                type: "join_room",
+                data: {
+                    roomId: roomId
+                }
+            };
+            
+            gameState.socket.send(JSON.stringify(message));
+        }
+        
+        function rollDice() {
+            if (!ensureClientId() || !gameState.isMyTurn) return;
+            
+            // Reset selected dice
+            gameState.selectedDice = [];
+            
+            // Simple action with no data payload
+            const message = {
+                type: "roll"
+                // No data needed
+            };
+            
+            console.log("Sending roll action");
+            gameState.socket.send(JSON.stringify(message));
+        }
+        
+        function selectDice(indices) {
+            if (!ensureClientId() || !gameState.isMyTurn) return;
+            
+            // Action with data payload
+            const message = {
+                type: "select",
+                data: {
+                    diceIndex: indices
+                }
+            };
+            
+            console.log("Sending select action for indices:", indices);
+            gameState.socket.send(JSON.stringify(message));
+        }
+        
+        function setAsideDice() {
+            if (!ensureClientId() || !gameState.isMyTurn || gameState.selectedDice.length === 0) return;
+            
+            // Action with data payload
+            const message = {
+                type: "set_aside",
+                data: {
+                    diceIndex: gameState.selectedDice
+                }
+            };
+            
+            console.log("Sending set_aside action for indices:", gameState.selectedDice);
+            
+            // Clear selection after sending
+            gameState.selectedDice = [];
+            
+            gameState.socket.send(JSON.stringify(message));
+        }
+        
+        function endTurn() {
+            if (!ensureClientId() || !gameState.isMyTurn) return;
+            
+            // Simple action with no data payload
+            const message = {
+                type: "end_turn"
+                // No data needed
+            };
+            
+            console.log("Sending end_turn action");
+            gameState.socket.send(JSON.stringify(message));
+        }
+        
+        // Event listeners
+        createRoomButton.addEventListener("click", createRoom);
+        joinRoomButton.addEventListener("click", joinRoom);
+        rollButton.addEventListener("click", rollDice);
+        setAsideButton.addEventListener("click", setAsideDice);
+        endTurnButton.addEventListener("click", endTurn);
+        
+        // Connect to WebSocket when page loads
+        window.addEventListener("load", connectWebSocket);
+    </script>
+</body>
+</html> 

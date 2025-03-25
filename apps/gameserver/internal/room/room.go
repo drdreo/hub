@@ -20,9 +20,16 @@ type GameRoom struct {
 }
 
 // NewRoom creates a new game room
-func NewRoom(gameType string) *GameRoom {
+func NewRoom(gameType string, roomId *string) *GameRoom {
+	var id string
+	if roomId == nil || len(*roomId) == 0 {
+		id = uuid.New().String()
+	} else {
+		id = *roomId
+	}
+
 	return &GameRoom{
-		id:       uuid.New().String(),
+		id:       id,
 		gameType: gameType,
 		clients:  make(map[string]interfaces.Client),
 		closed:   false,
