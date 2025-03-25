@@ -1,13 +1,13 @@
 package room
 
 import (
-	"encoding/json"
 	"errors"
 	"gameserver/internal/interfaces"
-	"github.com/rs/zerolog/log"
 	"maps"
 	"slices"
 	"sync"
+
+	"github.com/rs/zerolog/log"
 )
 
 // RoomManager handles the creation and tracking of game rooms
@@ -26,17 +26,17 @@ func NewRoomManager(registry interfaces.GameRegistry) *RoomManager {
 }
 
 // CreateRoom creates a new game room
-func (m *RoomManager) CreateRoom(gameType string, options json.RawMessage) (interfaces.Room, error) {
+func (m *RoomManager) CreateRoom(createOptions interfaces.CreateRoomOptions) (interfaces.Room, error) {
 	// Verify game type exists
-	if !m.gameRegistry.HasGame(gameType) {
+	if !m.gameRegistry.HasGame(createOptions.GameType) {
 		return nil, errors.New("unknown game type")
 	}
 
-	room := NewRoom(gameType)
+	room := NewRoom(createOptions.GameType, createOptions.RoomID)
 	log.Info().Str("id", room.ID()).Str("type", room.GameType()).Msg("room created")
 
 	// Initialize with game-specific settings
-	if err := m.gameRegistry.InitializeRoom(room, options); err != nil {
+	if err := m.gameRegistry.InitializeRoom(room, createOptions.Options); err != nil {
 		return nil, err
 	}
 

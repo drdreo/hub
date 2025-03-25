@@ -2,17 +2,18 @@ package session
 
 import (
 	"gameserver/internal/interfaces"
-	"github.com/rs/zerolog/log"
 	"sync"
 	"time"
+
+	"github.com/rs/zerolog/log"
 )
 
 type SessionData struct {
-	ClientID   string
-	RoomID     string
-	GameType   string
-	LastActive time.Time
-	ExtraData  interfaces.M
+	ClientID  string
+	RoomID    string
+	GameType  string
+	LeftAt    time.Time
+	ExtraData interfaces.M
 }
 
 type Store struct {
@@ -51,10 +52,10 @@ func NewStore(expirySeconds int64) *Store {
 func (s *Store) StoreSession(clientID string, data SessionData) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	data.LastActive = time.Now()
+	data.LeftAt = time.Now()
 
 	s.sessions[clientID] = data
-	log.Debug().Str("clientId", clientID).Time("lastActive", data.LastActive).Msg("session stored")
+	log.Debug().Str("clientId", clientID).Time("leftAt", data.LeftAt).Msg("session stored")
 }
 
 func (s *Store) GetSession(clientID string) (SessionData, bool) {
@@ -65,7 +66,7 @@ func (s *Store) GetSession(clientID string) (SessionData, bool) {
 		return SessionData{}, false
 	}
 
-	if time.Since(data.LastActive).Seconds() > float64(s.expirySeconds) {
+	if time.Since(data.LeftAt).Seconds() > float64(s.expirySeconds) {
 		return SessionData{}, false
 	}
 	return data, true
@@ -95,7 +96,7 @@ func (s *Store) cleanup() {
 	defer s.mu.Unlock()
 	now := time.Now()
 	for id, session := range s.sessions {
-		if now.Sub(session.LastActive).Seconds() > float64(s.expirySeconds) {
+		if now.Sub(session.LeftAt).Seconds() > float64(s.expirySeconds) {
 			delete(s.sessions, id)
 		}
 	}

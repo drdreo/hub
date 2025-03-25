@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"gameserver/games/dicegame"
 	"gameserver/games/tictactoe"
 	"gameserver/internal/client"
 	"gameserver/internal/game"
@@ -11,13 +12,14 @@ import (
 	"gameserver/internal/room"
 	"gameserver/internal/router"
 	"gameserver/internal/session"
-	"github.com/gorilla/websocket"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
+
+	"github.com/gorilla/websocket"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
 var upgrader = websocket.Upgrader{
@@ -50,6 +52,7 @@ func main() {
 
 	// Register example game (to be replaced with real game implementations)
 	tictactoe.RegisterTicTacToeGame(gameRegistry)
+	dicegame.RegisterDiceGame(gameRegistry)
 
 	http.HandleFunc("/", homeHandler)
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
