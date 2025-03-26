@@ -49,7 +49,7 @@ func TestRouter(t *testing.T) {
 		if response.Success != false {
 			t.Errorf("expected success to be false, got %t", response.Success)
 		}
-		if response.Type != "create_room_result" {
+		if response.Type != "error" {
 			t.Errorf("expected error message type, got %s", messages[0].Type)
 		}
 	})
@@ -57,7 +57,7 @@ func TestRouter(t *testing.T) {
 	t.Run("create room with missing game type", func(t *testing.T) {
 		client := client.NewClientMock("test1")
 		msg := protocol.Message{
-			Type: "create_room",
+			Type: "join_room",
 			Data: json.RawMessage(`{}`),
 		}
 		msgData, _ := json.Marshal(msg)
@@ -71,7 +71,7 @@ func TestRouter(t *testing.T) {
 		if response.Success != false {
 			t.Errorf("expected success to be false, got %t", response.Success)
 		}
-		if response.Type != "create_room_result" {
+		if response.Type != "join_room_result" {
 			t.Errorf("expected error message type, got %s", messages[0].Type)
 		}
 	})
@@ -79,8 +79,8 @@ func TestRouter(t *testing.T) {
 	t.Run("create and join room flow", func(t *testing.T) {
 		client1 := client.NewClientMock("client1")
 		msg := protocol.Message{
-			Type: "create_room",
-			Data: json.RawMessage(`{"gameType": "testGame"}`),
+			Type: "join_room",
+			Data: json.RawMessage(`{"gameType": "testGame", "playerName": "tester-1"}`),
 		}
 		msgData, _ := json.Marshal(msg)
 		router.HandleMessage(client1, msgData)
@@ -90,8 +90,8 @@ func TestRouter(t *testing.T) {
 		if len(messages) != 1 {
 			t.Errorf("expected 1 message, got %d", len(messages))
 		}
-		if messages[0].Type != "create_room_result" {
-			t.Errorf("expected create_room_result, got %s", messages[0].Type)
+		if messages[0].Type != "join_room_result" {
+			t.Errorf("expected join_room_result, got %s", messages[0].Type)
 		}
 
 		// Get room ID from response
@@ -102,7 +102,7 @@ func TestRouter(t *testing.T) {
 		client2 := client.NewClientMock("client2")
 		msg = protocol.Message{
 			Type: "join_room",
-			Data: json.RawMessage(`{"roomId": "` + roomID + `"}`),
+			Data: json.RawMessage(`{"roomId": "` + roomID + `", "playerName": "tester-2"}`),
 		}
 		msgData, _ = json.Marshal(msg)
 		router.HandleMessage(client2, msgData)
@@ -144,11 +144,13 @@ func TestRouter(t *testing.T) {
 		}
 	})
 
-	t.Run("reconnect flow", func(t *testing.T) {
+	// TODO: add success reconnect flow
+	
+	t.Run("reconnect flow of foreign client should fail", func(t *testing.T) {
 		client1 := client.NewClientMock("client4")
 		msg := protocol.Message{
-			Type: "create_room",
-			Data: json.RawMessage(`{"gameType": "testGame"}`),
+			Type: "join_room",
+			Data: json.RawMessage(`{"gameType": "testGame", "playerName": "tester-1"}`),
 		}
 		msgData, _ := json.Marshal(msg)
 		router.HandleMessage(client1, msgData)
@@ -170,6 +172,9 @@ func TestRouter(t *testing.T) {
 		messages := client2.GetSentMessages()
 		if len(messages) != 1 {
 			t.Errorf("expected 1 message, got %d", len(messages))
+		}
+		if messages[0].Success != false {
+			t.Errorf("expected reconnect_result sucess to be false, got %s", messages[0].Type)
 		}
 		if messages[0].Type != "reconnect_result" {
 			t.Errorf("expected reconnect_result, got %s", messages[0].Type)

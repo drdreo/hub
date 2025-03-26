@@ -22,11 +22,15 @@ func TestGameFlowIntegration(t *testing.T) {
 	client2 := client.NewClientMock("player2")
 
 	// Client1 creating a room
-	testRouter.HandleMessage(client1, []byte(`{"type":"create_room","data":{"gameType":"tictactoe"}}`))
+	testRouter.HandleMessage(client1, []byte(`{"type":"join_room","data":{"gameType":"tictactoe", "playerName": "tester-1"}}`))
 
 	messages := client1.GetSentMessages()
 	if len(messages) == 0 {
 		t.Fatalf("No messages received after room creation")
+	}
+
+	if messages[0].Success == false {
+		t.Errorf("Expected join_room of tester-1 to be sucessfull")
 	}
 
 	// Extract room ID from response
@@ -35,8 +39,8 @@ func TestGameFlowIntegration(t *testing.T) {
 		t.Fatalf("createResponse was not successful")
 	}
 
-	if createResponse.Type != "create_room_result" {
-		t.Fatalf("Expected 'create_room_result' message, got: %v", createResponse.Type)
+	if createResponse.Type != "join_room_result" {
+		t.Fatalf("Expected 'join_room_result' message, got: %v", createResponse.Type)
 	}
 
 	data, ok := createResponse.Data.(map[string]interface{})
@@ -59,7 +63,7 @@ func TestGameFlowIntegration(t *testing.T) {
 	client2.ClearMessages()
 
 	// Second player joins the room
-	joinMessage := fmt.Sprintf(`{"type":"join_room","data":{"roomId":"%s"}}`, roomID)
+	joinMessage := fmt.Sprintf(`{"type":"join_room","data":{"roomId":"%s", "playerName": "tester-2"}}`, roomID)
 	testRouter.HandleMessage(client2, []byte(joinMessage))
 
 	// Verify both clients received appropriate messages
@@ -71,6 +75,10 @@ func TestGameFlowIntegration(t *testing.T) {
 	client2Messages := client2.GetSentMessages()
 	if len(client2Messages) == 0 {
 		t.Errorf("Player 2 didn't receive join confirmation")
+	}
+
+	if client2Messages[0].Success == false {
+		t.Errorf("Expected join_room of player2 to be sucessfull")
 	}
 
 	// Clear messages before game moves

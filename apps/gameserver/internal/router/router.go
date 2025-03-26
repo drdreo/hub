@@ -2,6 +2,7 @@ package router
 
 import (
 	"encoding/json"
+	"errors"
 	"gameserver/internal/interfaces"
 	"gameserver/internal/protocol"
 	"gameserver/internal/session"
@@ -42,16 +43,14 @@ func (r *Router) HandleMessage(client interfaces.Client, messageData []byte) {
 	}
 
 	switch message.Type {
-	case "create_room":
-		r.handleCreateRoom(client, message)
 	case "join_room":
-		r.handleJoinRoom(client, message)
+		r.handleJoinRoom(client, message.Data)
 	case "leave_room":
 		r.handleLeaveRoom(client)
 	case "game_action":
-		r.handleGameAction(client, message)
+		r.handleGameAction(client, message.Data)
 	case "reconnect":
-		r.handleReconnect(client, message)
+		r.handleReconnect(client, message.Data)
 	default:
 		// Forward to game-specific handler
 		if client.Room() != nil {
@@ -66,61 +65,70 @@ func (r *Router) HandleMessage(client interfaces.Client, messageData []byte) {
 }
 
 // handleCreateRoom creates a new game room
-func (r *Router) handleCreateRoom(client interfaces.Client, msg protocol.Message) {
-	var createOptions interfaces.CreateRoomOptions
-
-	if err := json.Unmarshal(msg.Data, &createOptions); err != nil {
-		client.Send(protocol.NewErrorResponse("create_room_result", "Invalid options format"))
-		return
-	}
-
+func (r *Router) handleCreateRoom(createOptions interfaces.CreateRoomOptions) (interfaces.Room, error) {
 	if createOptions.GameType == "" {
-		client.Send(protocol.NewErrorResponse("create_room_result", "Game type is required"))
-		return
+		return nil, errors.New("game type is required")
 	}
 
 	log.Debug().Fields(createOptions).Msg("handleCreateRoom")
 
 	room, err := r.roomManager.CreateRoom(createOptions)
 	if err != nil {
-		client.Send(protocol.NewErrorResponse("create_room_result", err.Error()))
-		return
+		return nil, err
 	}
 
-	// Join the room
-	if err := room.Join(client); err != nil {
-		client.Send(protocol.NewErrorResponse("create_room_result", err.Error()))
-		return
-	}
-
-	// Notify game about client join
-	r.gameRegistry.HandleClientJoin(client, room)
-
-	response := map[string]interface{}{
-		"roomId":   room.ID(),
-		"gameType": room.GameType(),
-	}
-	client.Send(protocol.NewSuccessResponse("create_room_result", response))
+	return room, nil
 }
 
 // handleJoinRoom joins an existing room
-func (r *Router) handleJoinRoom(client interfaces.Client, msg protocol.Message) {
-	var joinOptions struct {
-		RoomID string `json:"roomId"`
+func (r *Router) handleJoinRoom(client interfaces.Client, data json.RawMessage) {
+	// prevent multi-room joining
+	if client.Room() != nil {
+		client.Send(protocol.NewErrorResponse("join_room_result", "already in room "+client.Room().ID()))
+		return
 	}
 
-	if err := json.Unmarshal(msg.Data, &joinOptions); err != nil {
+	var joinOptions interfaces.CreateRoomOptions
+
+	if err := json.Unmarshal(data, &joinOptions); err != nil {
 		client.Send(protocol.NewErrorResponse("join_room_result", "Invalid options format"))
+		return
+	}
+
+	if len(joinOptions.PlayerName) == 0 {
+		client.Send(protocol.NewErrorResponse("join_room_result", "player name is required"))
 		return
 	}
 
 	log.Debug().Fields(joinOptions).Msg("handleJoinRoom")
 
-	room, err := r.roomManager.GetRoom(joinOptions.RoomID)
-	if err != nil {
-		log.Error().Err(err).Str("id", joinOptions.RoomID).Msg("failed to get room")
-		client.Send(protocol.NewErrorResponse("join_room_result", err.Error()))
-		return
+	var room interfaces.Room
+	if joinOptions.RoomID == nil {
+		log.Info().Msg("Room id not provided, creating new room")
+		cr, err := r.handleCreateRoom(joinOptions)
+		room = cr
+		if err != nil {
+			log.Error().Err(err).Msg("failed to create room")
+			client.Send(protocol.NewErrorResponse("join_room_result", err.Error()))
+			return
+		}
+	}
+
+	if room == nil {
+		log.Info().Str("id", *joinOptions.RoomID).Msg("Room id provided, getting room")
+		tr, err := r.roomManager.GetRoom(*joinOptions.RoomID)
+		room = tr
+		if err != nil {
+			log.Info().Str("id", *joinOptions.RoomID).Msg("Room not found, creating new room with provided id")
+			log.Info().Msg("Room id not provided, creating new room")
+			tr, err := r.handleCreateRoom(joinOptions)
+			room = tr
+			if err != nil {
+				log.Error().Err(err).Str("id", *joinOptions.RoomID).Msg("failed to create new room with provided id")
+				client.Send(protocol.NewErrorResponse("join_room_result", err.Error()))
+				return
+			}
+		}
 	}
 
 	// Join the room
@@ -174,27 +182,27 @@ func (r *Router) handleLeaveRoom(client interfaces.Client) {
 }
 
 // handleGameAction forwards a game-specific action to the game handler
-func (r *Router) handleGameAction(client interfaces.Client, msg protocol.Message) {
+func (r *Router) handleGameAction(client interfaces.Client, data json.RawMessage) {
 	if client.Room() == nil {
 		client.Send(protocol.NewErrorResponse("game_action_result", "Client not in a room"))
 		return
 	}
 
-	if err := r.gameRegistry.HandleMessage(client, "game_action", msg.Data); err != nil {
+	if err := r.gameRegistry.HandleMessage(client, "game_action", data); err != nil {
 		client.Send(protocol.NewErrorResponse("game_action_result", err.Error()))
 		return
 	}
 }
 
 // handleReconnect tries to reconnect the new socket to an existing room
-func (r *Router) handleReconnect(client interfaces.Client, msg protocol.Message) {
+func (r *Router) handleReconnect(client interfaces.Client, data json.RawMessage) {
 	if client.Room() != nil {
 		client.Send(protocol.NewErrorResponse("reconnect_result", "Client is already in a room"))
 		return
 	}
 
 	var recon ReconnectPayload
-	if err := json.Unmarshal(msg.Data, &recon); err != nil {
+	if err := json.Unmarshal(data, &recon); err != nil {
 		client.Send(protocol.NewErrorResponse("reconnect_result", err.Error()))
 		return
 	}

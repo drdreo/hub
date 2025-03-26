@@ -31,7 +31,7 @@ func TestDiceGameIntegration(t *testing.T) {
 	client2 := client.NewClientMock("player2")
 
 	// Client1 creating a room
-	testRouter.HandleMessage(client1, []byte(`{"type":"create_room","data":{"gameType":"dicegame"}}`))
+	testRouter.HandleMessage(client1, []byte(`{"type":"join_room","data":{"gameType":"dicegame","playerName":"tester-1"}}`))
 
 	messages := client1.GetSentMessages()
 	if len(messages) == 0 {
@@ -44,8 +44,8 @@ func TestDiceGameIntegration(t *testing.T) {
 		t.Fatalf("createResponse was not successful")
 	}
 
-	if createResponse.Type != "create_room_result" {
-		t.Fatalf("Expected 'create_room_result' message, got: %v", createResponse.Type)
+	if createResponse.Type != "join_room_result" {
+		t.Fatalf("Expected 'join_room_result' message, got: %v", createResponse.Type)
 	}
 
 	data, ok := createResponse.Data.(map[string]interface{})
@@ -68,7 +68,7 @@ func TestDiceGameIntegration(t *testing.T) {
 	client2.ClearMessages()
 
 	// Second player joins the room
-	joinMessage := fmt.Sprintf(`{"type":"join_room","data":{"roomId":"%s"}}`, roomID)
+	joinMessage := fmt.Sprintf(`{"type":"join_room","data":{"roomId":"%s", "playerName":"tester-2"}}`, roomID)
 	testRouter.HandleMessage(client2, []byte(joinMessage))
 
 	// Verify both clients received appropriate messages

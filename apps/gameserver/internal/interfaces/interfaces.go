@@ -28,9 +28,10 @@ type Room interface {
 }
 
 type CreateRoomOptions struct {
-	GameType string          `json:"gameType"`
-	RoomID   *string         `json:"roomId,omitempty"`
-	Options  json.RawMessage `json:"options,omitempty"`
+	GameType   string          `json:"gameType"`
+	PlayerName string          `json:"playerName"`
+	RoomID     *string         `json:"roomId,omitempty"`
+	Options    json.RawMessage `json:"options,omitempty"`
 }
 
 type RoomManager interface {
