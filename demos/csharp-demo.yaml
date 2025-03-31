@@ -39,36 +39,43 @@ steps:
             "name": "csharp-api",
           }
 
+    - name: "Generate gitignore file"
+      type: "generate"
+      target: "apps/csharp/.gitignore"
+      template: |
+        bin
+        obj
+
     - name: "Add nx targets"
       type: "modify"
       target: "apps/csharp/package.json"
       match: "\n}"
       replace: |-
 
-          "nx": {
-            "targets": {
-              "build": {
-                "executor": "nx:run-commands",
-                "options": {
-                  "command": "dotenet build ./{projectRoot}/csharp-api.csproj"
-                }
-              },
-              "serve": {
-                "executor": "nx:run-commands",
-                "options": {
-                  "command": "dotnet run --project ./{projectRoot}/csharp-api.csproj"
-                }
-              },
-              "deploy": {
-                "executor": "@hub/plugin:deploy-docker",
-                "options": {
-                  "projectId": "8d1b3304-498b-42d7-8884-d2700d9b5649",
-                  "redeploy": true
-                }
+                  "nx": {
+                    "targets": {
+                      "build": {
+                        "executor": "nx:run-commands",
+                        "options": {
+                          "command": "dotenet build ./{projectRoot}/csharp-api.csproj"
+                        }
+                      },
+                      "serve": {
+                        "executor": "nx:run-commands",
+                        "options": {
+                          "command": "dotnet run --project ./{projectRoot}/csharp-api.csproj"
+                        }
+                      },
+                      "deploy": {
+                        "executor": "@hub/plugin:deploy-docker",
+                        "options": {
+                          "projectId": "8d1b3304-498b-42d7-8884-d2700d9b5649",
+                          "redeploy": true
+                        }
+                      }
+                    }
+                  }
               }
-            }
-          }
-        }
 
     - name: "Generate Dockerfile"
       type: "generate"
@@ -77,7 +84,7 @@ steps:
         FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
         WORKDIR /app
         
-        COPY . ./
+        COPY apps/csharp/ ./
         RUN dotnet restore
         RUN dotnet publish -o out
         
@@ -89,4 +96,4 @@ steps:
 
     - name: "Git commit and push changes"
       type: "execute"
-      command: "git checkout -b csharp-demo && git commit -m 'csharp-demo' && git push origin csharp-demo"
+      command: "git commit --no-verify -m 'nx-demo' && git push origin nx-demo"
