@@ -1,0 +1,29 @@
+{
+    "name": "csharp-api",
+    "nx": {
+        "targets": {
+            "build": {
+                "executor": "nx:run-commands",
+                "options": {
+                    "command": "dotenet build ./{projectRoot}/csharp-api.csproj"
+                }
+            },
+            "serve": {
+                "executor": "nx:run-commands",
+                "options": {
+                    "command": "dotnet run --project ./{projectRoot}/csharp-api.csproj"
+                }
+            },
+            "deploy": {
+                "executor": "@hub/plugin:deploy-docker",
+                "options": {
+                    "projectId": "8d1b3304-498b-42d7-8884-d2700d9b5649",
+                    "redeploy": true
+                }
+            },
+            "docker-build": {
+                "command": "docker build -f apps/csharp/Dockerfile . -t csharp-demo"
+            }
+        }
+    }
+}
