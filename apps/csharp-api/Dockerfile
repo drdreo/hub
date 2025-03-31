@@ -1,7 +1,7 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /app
 
-COPY apps/csharp/ ./
+COPY apps/csharp-api/ ./
 RUN dotnet restore
 RUN dotnet publish -o out
 
