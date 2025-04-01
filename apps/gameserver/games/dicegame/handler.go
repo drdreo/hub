@@ -4,9 +4,8 @@ import (
 	"encoding/json"
 	"gameserver/internal/interfaces"
 	"gameserver/internal/protocol"
-	"math/rand"
-
 	"github.com/rs/zerolog/log"
+	"math/rand"
 )
 
 func NewDiceGame() *DiceGame {
@@ -110,12 +109,6 @@ func (g *DiceGame) OnClientReconnect(client interfaces.Client, room interfaces.R
 
 	// Broadcast updated state to all clients
 	broadcastGameState(room)
-
-	// Send welcome back message to the reconnected client
-	client.Send(protocol.NewSuccessResponse("reconnected", interfaces.M{
-		"clientId": client.ID(),
-		"roomId":   room.ID(),
-	}))
 }
 
 func (g *DiceGame) HandleMessage(client interfaces.Client, room interfaces.Room, msgType string, payload []byte) {
