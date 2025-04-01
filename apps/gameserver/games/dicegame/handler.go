@@ -64,11 +64,6 @@ func (g *DiceGame) OnClientJoin(client interfaces.Client, room interfaces.Room) 
 
 	// Broadcast updated state to all clients
 	broadcastGameState(room)
-
-	client.Send(protocol.NewSuccessResponse("joined", interfaces.M{
-		"clientId": client.ID(),
-		"roomId":   room.ID(),
-	}))
 }
 
 func (g *DiceGame) OnClientLeave(client interfaces.Client, room interfaces.Room) {

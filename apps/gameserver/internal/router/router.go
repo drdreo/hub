@@ -145,8 +145,6 @@ func (r *Router) handleJoinRoom(client interfaces.Client, data json.RawMessage) 
 	response := map[string]interface{}{
 		"clientId": client.ID(),
 		"roomId":   room.ID(),
-		"gameType": room.GameType(),
-		"clients":  len(room.Clients()),
 	}
 
 	log.Info().Str("roomID", room.ID()).Msg("client joined room")
