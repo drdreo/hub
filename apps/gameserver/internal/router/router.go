@@ -169,6 +169,9 @@ func (r *Router) handleLeaveRoom(client interfaces.Client) {
 	// Leave the room
 	roomID := room.ID()
 	room.Leave(client)
+	if room.IsClosed() {
+		r.roomManager.RemoveRoom(roomID)
+	}
 	client.SetRoom(nil)
 
 	response := map[string]string{
@@ -212,6 +215,7 @@ func (r *Router) handleReconnect(client interfaces.Client, data json.RawMessage)
 	sessionStore := session.GetSessionStore()
 	sessionData, exists := sessionStore.GetSession(recon.ClientID)
 	if !exists {
+		log.Warn().Str("clientId", recon.ClientID).Msg("client does not have a session")
 		client.Send(protocol.NewErrorResponse("reconnect_result", "Session expired or not found"))
 		return
 	}
@@ -219,24 +223,30 @@ func (r *Router) handleReconnect(client interfaces.Client, data json.RawMessage)
 	// Find room (either from session or from request)
 	roomID := sessionData.RoomID
 	if recon.RoomID != "" {
-		roomID = recon.RoomID // Optional: override with provided roomID
+		roomID = recon.RoomID
 	}
 
 	// Get the room
 	targetRoom, err := r.roomManager.GetRoom(roomID)
 	if err != nil {
+		log.Error().Str("room", roomID).Msg("room not found")
 		client.Send(protocol.NewErrorResponse("reconnect_result", "Room not found"))
 		return
 	}
 
 	// Join room and reconnect
 	if err := targetRoom.Join(client); err != nil {
+		log.Error().Str("room", roomID).Err(err).Msg("client failed to join during reconnect")
 		client.Send(protocol.NewErrorResponse("reconnect_result", err.Error()))
 		return
 	}
 
 	// Handle reconnection at game level
-	r.gameRegistry.HandleClientReconnect(client, targetRoom, recon.ClientID)
+	if err = r.gameRegistry.HandleClientReconnect(client, targetRoom, recon.ClientID); err != nil {
+		log.Error().Str("room", roomID).Err(err).Msg("game failed to reconnect client")
+		client.Send(protocol.NewErrorResponse("reconnect_result", err.Error()))
+		return
+	}
 
 	// Remove the old session
 	sessionStore.RemoveSession(recon.ClientID)

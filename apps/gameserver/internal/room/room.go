@@ -46,6 +46,11 @@ func (room *GameRoom) GameType() string {
 	return room.gameType
 }
 
+// IsClosed returns the room's closed status
+func (room *GameRoom) IsClosed() bool {
+	return room.closed
+}
+
 // Join adds a client to the room
 func (room *GameRoom) Join(client interfaces.Client) error {
 	room.mu.Lock()
@@ -93,7 +98,7 @@ func (room *GameRoom) Leave(client interfaces.Client) {
 
 	// Close room if empty
 	if len(room.clients) == 0 && !room.closed {
-		room.closed = true
+		room.Close()
 	}
 }
 

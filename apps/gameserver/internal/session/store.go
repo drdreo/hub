@@ -59,8 +59,9 @@ func (s *Store) StoreSession(clientID string, data SessionData) {
 }
 
 func (s *Store) GetSession(clientID string) (SessionData, bool) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	// TODO: put locks back
+	// s.mu.RLock()
+	// defer s.mu.RUnlock()
 	data, exists := s.sessions[clientID]
 	if !exists {
 		return SessionData{}, false

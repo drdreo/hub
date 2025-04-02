@@ -17,6 +17,7 @@ type Client interface {
 type Room interface {
 	ID() string
 	GameType() string
+	IsClosed() bool
 	Join(client Client) error
 	Leave(client Client)
 	Broadcast(message *protocol.Response, exclude ...Client)

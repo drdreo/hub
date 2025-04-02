@@ -2,7 +2,6 @@ package dicegame
 
 import (
 	"gameserver/internal/interfaces"
-	"gameserver/internal/protocol"
 	"maps"
 	"math/rand"
 	"slices"
@@ -24,16 +23,21 @@ type Player struct {
 }
 
 type GameState struct {
-	Players     map[string]*Player `json:"players"`
-	CurrentTurn string             `json:"currentTurn"`
-	Winner      string             `json:"winner"`
-	Dice        []int              `json:"dice"`
-	SetAside    []int              `json:"setAside"`
-	TurnScore   int                `json:"turnScore"`
-	RoundScore  int                `json:"roundScore"`
+	Players      map[string]*Player `json:"players"`
+	CurrentTurn  string             `json:"currentTurn"`
+	Winner       string             `json:"winner"`
+	Dice         []int              `json:"dice"`
+	SelectedDice []int              `json:"selectedDice"`
+	SetAside     []int              `json:"setAside"`
+	TurnScore    int                `json:"turnScore"`
+	RoundScore   int                `json:"roundScore"`
 }
 
-type ActionPayload struct {
+type SelectActionPayload struct {
+	DiceIndex int `json:"diceIndex,omitempty"`
+}
+
+type SetAsideActionPayload struct {
 	DiceIndex []int `json:"diceIndex,omitempty"`
 }
 
@@ -96,36 +100,22 @@ func (g *DiceGame) CalculateScore(dice []int) (int, bool) {
 
 	// Sort dice for easier combination checking
 	sort.Ints(dice)
+	log.Debug().Ints("dice", dice).Msg("Calculating score for dice")
 
 	score := 0
 	valid := false
 
-	// Check for runs
-	if len(dice) >= 5 {
-		// Check for 1-5 run
-		if containsRun(dice, 1, 5) {
-			score += 500
-			valid = true
-		}
-		// Check for 2-6 run
-		if containsRun(dice, 2, 6) {
-			score += 750
-			valid = true
-		}
-		// Check for 1-6 run
-		if containsRun(dice, 1, 6) {
-			score += 1500
-			valid = true
-		}
-	}
+	// Track which dice have been used in combinations
+	usedDice := make(map[int]bool)
 
 	// Count occurrences of each number
 	counts := make(map[int]int)
 	for _, die := range dice {
 		counts[die]++
 	}
+	log.Debug().Interface("counts", counts).Msg("Dice counts")
 
-	// Check for three of a kind and beyond
+	// First check for three of a kind and beyond
 	for num, count := range counts {
 		if count >= 3 {
 			baseScore := num * 100
@@ -138,20 +128,64 @@ func (g *DiceGame) CalculateScore(dice []int) (int, bool) {
 			}
 			score += baseScore
 			valid = true
+			// Mark all dice in the three of a kind as used
+			for i := 0; i < count; i++ {
+				usedDice[num] = true
+			}
+			log.Debug().Int("num", num).Int("count", count).Int("baseScore", baseScore).Msg("Found three or more of a kind")
 		}
 	}
 
-	// Check for individual 1s and 5s
+	// Then check for runs (only if we haven't used the dice in three of a kind)
+	if len(dice) >= 5 {
+		// Check for 1-5 run
+		if containsRun(dice, 1, 5) {
+			score += 500
+			valid = true
+			// Mark all dice in the run as used
+			for i := 1; i <= 5; i++ {
+				usedDice[i] = true
+			}
+			log.Debug().Msg("Found 1-5 run: +500")
+		}
+		// Check for 2-6 run
+		if containsRun(dice, 2, 6) {
+			score += 750
+			valid = true
+			// Mark all dice in the run as used
+			for i := 2; i <= 6; i++ {
+				usedDice[i] = true
+			}
+			log.Debug().Msg("Found 2-6 run: +750")
+		}
+		// Check for 1-6 run
+		if containsRun(dice, 1, 6) {
+			score += 1500
+			valid = true
+			// Mark all dice in the run as used
+			for i := 1; i <= 6; i++ {
+				usedDice[i] = true
+			}
+			log.Debug().Msg("Found 1-6 run: +1500")
+		}
+	}
+
+	// Finally check for individual 1s and 5s (only if not used in combinations)
 	for num, count := range counts {
-		if num == 1 {
-			score += count * 100
-			valid = true
-		} else if num == 5 {
-			score += count * 50
-			valid = true
+		if !usedDice[num] {
+			if num == 1 {
+				score += count * 100
+				valid = true
+				log.Debug().Int("count", count).Msg("Found ones: +100 each")
+			} else if num == 5 {
+				score += count * 50
+				valid = true
+				log.Debug().Int("count", count).Msg("Found fives: +50 each")
+			}
 		}
 	}
 
+	log.Debug().Int("final_score", score).Bool("valid", valid).Msg("Final score calculation")
 	return score, valid
 }
 
@@ -204,6 +238,8 @@ func (g *DiceGame) EndTurn(state *GameState) {
 }
 
 func (g *DiceGame) handleRoll(room interfaces.Room) {
+	log.Debug().Str("room", room.ID()).Msg("rolling dice")
+
 	state := room.State().(*GameState)
 
 	if len(state.Dice) == 0 {
@@ -219,20 +255,38 @@ func (g *DiceGame) handleRoll(room interfaces.Room) {
 	room.SetState(state)
 }
 
-func (g *DiceGame) handleSelect(room interfaces.Room, payload ActionPayload) {
+func (g *DiceGame) handleSelect(room interfaces.Room, payload SelectActionPayload) {
+	log.Debug().Str("room", room.ID()).Any("diceIndex", payload.DiceIndex).Msg("selecting dice")
+
 	state := room.State().(*GameState)
 
-	// Handle case where DiceIndex is empty
-	if len(payload.DiceIndex) == 0 {
-		log.Error().Msg("handleSelect called with empty DiceIndex, ignoring selection")
-		return
+	// Create a temporary selection to test if it's valid
+	tempSelected := make([]int, len(state.SelectedDice))
+	copy(tempSelected, state.SelectedDice)
+
+	// if we already have that dice selected, remove it
+	if slices.Contains(tempSelected, payload.DiceIndex) {
+		newSelected := make([]int, 0, len(tempSelected)-1)
+		for _, idx := range tempSelected {
+			if idx != payload.DiceIndex {
+				newSelected = append(newSelected, idx)
+			}
+		}
+		tempSelected = newSelected
+	} else {
+		tempSelected = append(tempSelected, payload.DiceIndex)
 	}
 
+	/**
+	** dice: [1,2,2,5,6,6]
+	** selectedIdx: [1,4] --> 2,6
+	** selected dice: [2,6]
+	**/
+
 	selectedDice := make([]int, 0)
-	for _, idx := range payload.DiceIndex {
-		if idx >= 0 && idx < len(state.Dice) {
-			selectedDice = append(selectedDice, state.Dice[idx])
-		}
+	// populate dice from temporary selection
+	for _, idx := range tempSelected {
+		selectedDice = append(selectedDice, state.Dice[idx])
 	}
 
 	// Only proceed if there are valid selections
@@ -241,17 +295,20 @@ func (g *DiceGame) handleSelect(room interfaces.Room, payload ActionPayload) {
 		return
 	}
 
-	score, valid := g.CalculateScore(append(state.SetAside, selectedDice...))
-	if valid {
-		room.Broadcast(protocol.NewSuccessResponse("temp_score", interfaces.M{
-			"score": score,
-		}))
-	}
+	log.Debug().Str("room", room.ID()).Any("dice", selectedDice).Msg("selected dice")
+
+	score, _ := g.CalculateScore(selectedDice)
+
+	// we update the state's selected dice even if invalid, maybe stupid
+	state.SelectedDice = tempSelected
+	state.TurnScore = score
 
 	room.SetState(state)
 }
 
-func (g *DiceGame) handleSetAside(room interfaces.Room, payload ActionPayload) {
+func (g *DiceGame) handleSetAside(room interfaces.Room, payload SetAsideActionPayload) {
+	log.Debug().Str("room", room.ID()).Msg("setting dice aside")
+
 	// Handle case where DiceIndex is empty
 	if len(payload.DiceIndex) == 0 {
 		log.Error().Msg("handleSelect called with empty DiceIndex, ignoring selection")
@@ -269,6 +326,8 @@ func (g *DiceGame) handleSetAside(room interfaces.Room, payload ActionPayload) {
 }
 
 func (g *DiceGame) handleEndTurn(room interfaces.Room) {
+	log.Debug().Str("room", room.ID()).Msg("ending turn")
+
 	state := room.State().(*GameState)
 	g.EndTurn(state)
 	room.SetState(state)

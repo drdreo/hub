@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"gameserver/internal/interfaces"
 	"gameserver/internal/protocol"
-	"github.com/rs/zerolog/log"
 	"math/rand"
+
+	"github.com/rs/zerolog/log"
 )
 
 func NewDiceGame() *DiceGame {
@@ -26,13 +27,14 @@ func (g *DiceGame) Type() string {
 func (g *DiceGame) InitializeRoom(room interfaces.Room, options json.RawMessage) error {
 	// Create initial game state
 	state := GameState{
-		Players:     make(map[string]*Player),
-		Dice:        make([]int, 6),
-		SetAside:    make([]int, 0),
-		CurrentTurn: "",
-		Winner:      "",
-		TurnScore:   0,
-		RoundScore:  0,
+		Players:      make(map[string]*Player),
+		Dice:         make([]int, 6),
+		SelectedDice: make([]int, 0),
+		SetAside:     make([]int, 0),
+		CurrentTurn:  "",
+		Winner:       "",
+		TurnScore:    0,
+		RoundScore:   0,
 	}
 
 	room.SetState(&state)
@@ -51,7 +53,8 @@ func (g *DiceGame) OnClientJoin(client interfaces.Client, room interfaces.Room) 
 	g.AddPlayer(client.ID(), state)
 
 	// If we now have 2 players, start the game
-	if len(state.Players) == 2 {
+	// TODO: revert to 2 players limit
+	if len(state.Players) == 1 {
 		// Randomly select first player
 		playerIDs := make([]string, 0, len(state.Players))
 		for id := range state.Players {
@@ -107,16 +110,6 @@ func (g *DiceGame) OnClientReconnect(client interfaces.Client, room interfaces.R
 }
 
 func (g *DiceGame) HandleMessage(client interfaces.Client, room interfaces.Room, msgType string, payload []byte) {
-	var action ActionPayload
-	// Handle empty or malformed payloads more gracefully
-	if len(payload) > 0 {
-		if err := json.Unmarshal(payload, &action); err != nil {
-			// Only log the error, but continue with default empty action
-			log.Error().Str("error", err.Error()).Msg("invalid action payload")
-			client.Send(protocol.NewErrorResponse("error", "Invalid action payload"))
-		}
-	}
-
 	state := room.State().(*GameState)
 	// Validate it's the player's turn
 	if state.CurrentTurn != client.ID() {
@@ -128,8 +121,26 @@ func (g *DiceGame) HandleMessage(client interfaces.Client, room interfaces.Room,
 	case "roll":
 		g.handleRoll(room)
 	case "select":
+		var action SelectActionPayload
+		if len(payload) > 0 {
+			if err := json.Unmarshal(payload, &action); err != nil {
+				// Only log the error, but continue with default empty action
+				log.Error().Str("error", err.Error()).Msg("invalid select payload")
+				client.Send(protocol.NewErrorResponse("error", "Invalid select payload"))
+				return
+			}
+		}
 		g.handleSelect(room, action)
 	case "set_aside":
+		var action SetAsideActionPayload
+		if len(payload) > 0 {
+			if err := json.Unmarshal(payload, &action); err != nil {
+				// Only log the error, but continue with default empty action
+				log.Error().Str("error", err.Error()).Msg("invalid set aside payload")
+				client.Send(protocol.NewErrorResponse("error", "Invalid set aside payload"))
+				return
+			}
+		}
 		g.handleSetAside(room, action)
 	case "end_turn":
 		g.handleEndTurn(room)
