@@ -52,6 +52,7 @@ func (g *DiceGame) OnClientJoin(client interfaces.Client, room interfaces.Room, 
 	}
 
 	g.AddPlayer(client.ID(), options.PlayerName, state)
+	// TODO: revert
 	// add fake player
 	g.AddPlayer("bot-id", "botter", state)
 
