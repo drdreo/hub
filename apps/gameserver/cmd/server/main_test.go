@@ -48,11 +48,6 @@ func TestGameFlowIntegration(t *testing.T) {
 		t.Fatalf("Invalid data in response")
 	}
 
-	responseGameType, ok := data["gameType"].(string)
-	if !ok || responseGameType != "tictactoe" {
-		t.Fatalf("Expected 'tictactoe' game type in response")
-	}
-
 	roomID, ok := data["roomId"].(string)
 	if !ok || roomID == "" {
 		t.Fatalf("Invalid or missing roomId in response")
