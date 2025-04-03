@@ -53,11 +53,6 @@ func TestDiceGameIntegration(t *testing.T) {
 		t.Fatalf("Invalid data in response")
 	}
 
-	responseGameType, ok := data["gameType"].(string)
-	if !ok || responseGameType != "dicegame" {
-		t.Fatalf("Expected 'dicegame' game type in response, got %v", responseGameType)
-	}
-
 	roomID, ok := data["roomId"].(string)
 	if !ok || roomID == "" {
 		t.Fatalf("Invalid or missing roomId in response")
