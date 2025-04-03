@@ -52,10 +52,11 @@ func (g *DiceGame) OnClientJoin(client interfaces.Client, room interfaces.Room, 
 	}
 
 	g.AddPlayer(client.ID(), options.PlayerName, state)
+	// add fake player
+	g.AddPlayer("bot-id", "botter", state)
 
 	// If we now have 2 players, start the game
-	// TODO: revert to 2 players limit
-	if len(state.Players) == 1 {
+	if len(state.Players) == 2 {
 		// Randomly select first player
 		playerIDs := make([]string, 0, len(state.Players))
 		for id := range state.Players {
