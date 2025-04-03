@@ -144,6 +144,8 @@ func (c *WebSocketClient) readPump() {
 		return nil
 	})
 
+	log.Debug().Str("id", c.ID()).Msg("client connected")
+
 	for {
 		_, message, err := c.conn.ReadMessage()
 		if err != nil {
@@ -156,6 +158,8 @@ func (c *WebSocketClient) readPump() {
 		// Call the message handler
 		c.OnMessage(message)
 	}
+
+	log.Debug().Str("id", c.ID()).Msg("client disconnected")
 }
 
 // writePump pumps messages from the hub to the websocket connection

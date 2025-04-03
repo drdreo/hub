@@ -83,14 +83,14 @@ func (r *Registry) InitializeRoom(room interfaces.Room, options json.RawMessage)
 }
 
 // HandleClientJoin notifies the game when a client joins
-func (r *Registry) HandleClientJoin(client interfaces.Client, room interfaces.Room) error {
+func (r *Registry) HandleClientJoin(client interfaces.Client, room interfaces.Room, options interfaces.CreateRoomOptions) error {
 	gameType := room.GameType()
 	game, err := r.GetGame(gameType)
 	if err != nil {
 		return err
 	}
 
-	game.OnClientJoin(client, room)
+	game.OnClientJoin(client, room, options)
 	return nil
 }
 

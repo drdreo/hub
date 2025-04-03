@@ -10,15 +10,12 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-const (
-	TargetScore = 3000
-)
-
 // DiceGame implements the game interface
 type DiceGame struct{}
 
 type Player struct {
 	ID    string `json:"id"`
+	Name  string `json:"name"`
 	Score int    `json:"score"`
 }
 
@@ -29,6 +26,7 @@ type GameState struct {
 	Dice         []int              `json:"dice"`
 	SelectedDice []int              `json:"selectedDice"`
 	SetAside     []int              `json:"setAside"`
+	TargetScore  int                `json:"targetScore"`
 	TurnScore    int                `json:"turnScore"`
 	RoundScore   int                `json:"roundScore"`
 }
@@ -41,9 +39,10 @@ type SetAsideActionPayload struct {
 	DiceIndex []int `json:"diceIndex,omitempty"`
 }
 
-func (g *DiceGame) AddPlayer(id string, state *GameState) {
+func (g *DiceGame) AddPlayer(id string, name string, state *GameState) {
 	state.Players[id] = &Player{
 		ID:    id,
+		Name:  name,
 		Score: 0,
 	}
 }

@@ -76,6 +76,9 @@ func main() {
 	})
 
 	port, _ := strconv.Atoi(os.Getenv("PORT"))
+	if port == 0 {
+		port = 6969
+	}
 	addr := fmt.Sprintf(":%d", port)
 
 	log.Info().Fields(map[string]interface{}{"port": port, "address": addr}).Msg("🎮 Server starting")
@@ -121,6 +124,4 @@ func wsHandler(w http.ResponseWriter, r *http.Request, router *router.Router) {
 		"message": "Connected to game server",
 	})
 	c.Send(welcomeMsg)
-
-	log.Debug().Str("id", c.ID()).Msg("client connected")
 }

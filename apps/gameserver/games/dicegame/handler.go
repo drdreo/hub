@@ -33,6 +33,7 @@ func (g *DiceGame) InitializeRoom(room interfaces.Room, options json.RawMessage)
 		SetAside:     make([]int, 0),
 		CurrentTurn:  "",
 		Winner:       "",
+		TargetScore:  3000,
 		TurnScore:    0,
 		RoundScore:   0,
 	}
@@ -41,7 +42,7 @@ func (g *DiceGame) InitializeRoom(room interfaces.Room, options json.RawMessage)
 	return nil
 }
 
-func (g *DiceGame) OnClientJoin(client interfaces.Client, room interfaces.Room) {
+func (g *DiceGame) OnClientJoin(client interfaces.Client, room interfaces.Room, options interfaces.CreateRoomOptions) {
 	state := room.State().(*GameState)
 
 	// Only allow 2 players
@@ -50,7 +51,7 @@ func (g *DiceGame) OnClientJoin(client interfaces.Client, room interfaces.Room) 
 		return
 	}
 
-	g.AddPlayer(client.ID(), state)
+	g.AddPlayer(client.ID(), options.PlayerName, state)
 
 	// If we now have 2 players, start the game
 	// TODO: revert to 2 players limit

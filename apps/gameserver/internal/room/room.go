@@ -6,6 +6,8 @@ import (
 	"gameserver/internal/protocol"
 	"sync"
 
+	"github.com/rs/zerolog/log"
+
 	"github.com/google/uuid"
 )
 
@@ -55,7 +57,9 @@ func (room *GameRoom) IsClosed() bool {
 func (room *GameRoom) Join(client interfaces.Client) error {
 	room.mu.Lock()
 	defer room.mu.Unlock()
+	log.Debug().Str("room", room.ID()).Str("client", client.ID()).Msg("client joining")
 
+	// First, check if room is closed (only taking room lock briefly)
 	if room.closed {
 		return ErrRoomClosed
 	}
@@ -82,9 +86,6 @@ func (room *GameRoom) Join(client interfaces.Client) error {
 
 // Leave removes a client from the room
 func (room *GameRoom) Leave(client interfaces.Client) {
-	room.mu.Lock()
-	defer room.mu.Unlock()
-
 	if _, exists := room.clients[client.ID()]; exists {
 		delete(room.clients, client.ID())
 
@@ -153,9 +154,6 @@ func (room *GameRoom) SetState(state interface{}) {
 
 // Close terminates the room and disconnects all clients
 func (room *GameRoom) Close() {
-	room.mu.Lock()
-	defer room.mu.Unlock()
-
 	if room.closed {
 		return
 	}

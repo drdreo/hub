@@ -46,7 +46,7 @@ type Game interface {
 	Type() string
 	HandleMessage(client Client, room Room, msgType string, data []byte)
 	InitializeRoom(room Room, options json.RawMessage) error
-	OnClientJoin(client Client, room Room)
+	OnClientJoin(client Client, room Room, options CreateRoomOptions)
 	OnClientLeave(client Client, room Room)
 	OnClientReconnect(client Client, room Room, oldClientId string)
 }
@@ -57,7 +57,7 @@ type GameRegistry interface {
 	HasGame(gameType string) bool
 	InitializeRoom(room Room, options json.RawMessage) error
 	HandleMessage(client Client, msgType string, data []byte) error
-	HandleClientJoin(client Client, room Room) error
+	HandleClientJoin(client Client, room Room, options CreateRoomOptions) error
 	HandleClientLeave(client Client, room Room) error
 	HandleClientReconnect(client Client, room Room, oldClientId string) error
 }

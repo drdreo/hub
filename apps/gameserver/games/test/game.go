@@ -32,7 +32,7 @@ func (g *TestGame) InitializeRoom(room interfaces.Room, options json.RawMessage)
 	return nil
 }
 
-func (g *TestGame) OnClientJoin(client interfaces.Client, room interfaces.Room) {
+func (g *TestGame) OnClientJoin(client interfaces.Client, room interfaces.Room, _ interfaces.CreateRoomOptions) {
 }
 
 func (g *TestGame) OnClientLeave(client interfaces.Client, room interfaces.Room) {

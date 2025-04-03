@@ -70,7 +70,7 @@ func (r *Router) handleCreateRoom(createOptions interfaces.CreateRoomOptions) (i
 		return nil, errors.New("game type is required")
 	}
 
-	log.Debug().Fields(createOptions).Msg("handleCreateRoom")
+	log.Debug().Fields(createOptions).Msg("client creating room")
 
 	room, err := r.roomManager.CreateRoom(createOptions)
 	if err != nil {
@@ -100,7 +100,7 @@ func (r *Router) handleJoinRoom(client interfaces.Client, data json.RawMessage) 
 		return
 	}
 
-	log.Debug().Fields(joinOptions).Msg("handleJoinRoom")
+	log.Debug().Fields(joinOptions).Msg("client joining room")
 
 	var room interfaces.Room
 	if joinOptions.RoomID == nil {
@@ -138,8 +138,7 @@ func (r *Router) handleJoinRoom(client interfaces.Client, data json.RawMessage) 
 		return
 	}
 
-	// Notify game about client join
-	r.gameRegistry.HandleClientJoin(client, room)
+	r.gameRegistry.HandleClientJoin(client, room, joinOptions)
 
 	// Send success response
 	response := map[string]interface{}{
@@ -161,7 +160,7 @@ func (r *Router) handleLeaveRoom(client interfaces.Client) {
 		return
 	}
 
-	log.Debug().Str("clientID", client.ID()).Msg("handleJoinRoom")
+	log.Debug().Str("clientID", client.ID()).Msg("client leaving room")
 
 	// Notify game about client leave
 	r.gameRegistry.HandleClientLeave(client, room)
@@ -199,7 +198,7 @@ func (r *Router) handleGameAction(client interfaces.Client, data json.RawMessage
 // handleReconnect tries to reconnect the new socket to an existing room
 func (r *Router) handleReconnect(client interfaces.Client, data json.RawMessage) {
 	if client.Room() != nil {
-		client.Send(protocol.NewErrorResponse("reconnect_result", "Client is already in a room"))
+		client.Send(protocol.NewErrorResponse("reconnect_result", "client is already in a room"))
 		return
 	}
 
@@ -209,7 +208,7 @@ func (r *Router) handleReconnect(client interfaces.Client, data json.RawMessage)
 		return
 	}
 
-	log.Debug().Str("oldClientID", recon.ClientID).Str("newClientID", client.ID()).Msg("handleReconnect")
+	log.Debug().Str("oldClientID", recon.ClientID).Str("newClientID", client.ID()).Msg("client reconnecting to room")
 
 	// Get session store
 	sessionStore := session.GetSessionStore()
