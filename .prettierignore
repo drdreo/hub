@@ -11,3 +11,4 @@ node_modules
 
 # for demos
 *.yaml
+.demo-state.json
