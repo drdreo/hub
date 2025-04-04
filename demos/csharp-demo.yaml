@@ -95,4 +95,4 @@ steps:
 
     - name: "Git commit and push changes"
       type: "execute"
-      command: "git commit --no-verify -m 'nx-demo' && git push origin nx-demo"
+      command: "git add . && git commit --no-verify -m 'nx-demo' && git push origin nx-demo"
