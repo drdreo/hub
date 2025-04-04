@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"runtime"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -76,13 +77,22 @@ func executeCommand(step config.Step) error {
 	}
 
 	// Split the command string
-	parts := strings.Fields(step.Command)
-	if len(parts) == 0 {
-		return errors.New("invalid command")
+// 	parts := strings.Fields(step.Command)
+// 	if len(parts) == 0 {
+// 		return errors.New("invalid command")
+// 	}
+
+	// Use shell to properly handle command operators like &&, |, etc.
+	var cmd *exec.Cmd
+	if runtime.GOOS == "windows" {
+		cmd = exec.Command("cmd", "/C", step.Command)
+	} else {
+		cmd = exec.Command("sh", "-c", step.Command)
 	}
 
+
 	// Get the command and arguments
-	cmd := exec.Command(parts[0], parts[1:]...)
+// 	cmd := exec.Command(parts[0], parts[1:]...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
