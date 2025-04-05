@@ -14,9 +14,11 @@ import (
 type DiceGame struct{}
 
 type Player struct {
-	ID    string `json:"id"`
-	Name  string `json:"name"`
-	Score int    `json:"score"`
+	ID         string `json:"id"`
+	Name       string `json:"name"`
+	Score      int    `json:"score"`
+	TurnScore  int    `json:"turnScore"`
+	RoundScore int    `json:"roundScore"`
 }
 
 type GameState struct {
@@ -27,8 +29,6 @@ type GameState struct {
 	SelectedDice []int              `json:"selectedDice"`
 	SetAside     []int              `json:"setAside"`
 	TargetScore  int                `json:"targetScore"`
-	TurnScore    int                `json:"turnScore"`
-	RoundScore   int                `json:"roundScore"`
 }
 
 type SelectActionPayload struct {
@@ -213,13 +213,15 @@ func containsRun(dice []int, start, end int) bool {
 func (g *DiceGame) EndTurn(state *GameState) {
 	// Add turn score to player's total score
 	if player, exists := state.Players[state.CurrentTurn]; exists {
-		player.Score += state.TurnScore
+		player.Score += player.RoundScore
+		player.TurnScore = 0
+		player.RoundScore = 0
 	}
 
 	// Reset turn-specific variables
-	state.TurnScore = 0
 	state.SetAside = make([]int, 0)
 	state.Dice = make([]int, 6)
+	state.SelectedDice = make([]int, 0)
 
 	// Switch to next player
 	players := slices.Collect(maps.Values(state.Players))
@@ -240,6 +242,8 @@ func (g *DiceGame) handleRoll(room interfaces.Room) {
 	log.Debug().Str("room", room.ID()).Msg("rolling dice")
 
 	state := room.State().(*GameState)
+	// reset state
+	state.SelectedDice = make([]int, 0)
 
 	if len(state.Dice) == 0 {
 		state.Dice = make([]int, 6)
@@ -247,7 +251,6 @@ func (g *DiceGame) handleRoll(room interfaces.Room) {
 	g.RollDice(state)
 	_, valid := g.CalculateScore(state.Dice)
 	if !valid {
-		state.TurnScore = 0
 		g.EndTurn(state)
 	}
 
@@ -300,7 +303,9 @@ func (g *DiceGame) handleSelect(room interfaces.Room, payload SelectActionPayloa
 
 	// we update the state's selected dice even if invalid, maybe stupid
 	state.SelectedDice = tempSelected
-	state.TurnScore = score
+	if player, exists := state.Players[state.CurrentTurn]; exists {
+		player.TurnScore = score
+	}
 
 	room.SetState(state)
 }
@@ -315,10 +320,18 @@ func (g *DiceGame) handleSetAside(room interfaces.Room, payload SetAsideActionPa
 	}
 
 	state := room.State().(*GameState)
+	// TODO: reorder, check score first and if valid allow setting aside
 	if g.SetAsideDice(payload.DiceIndex, state) {
 		score, valid := g.CalculateScore(state.SetAside)
 		if valid {
-			state.TurnScore = score
+			if player, exists := state.Players[state.CurrentTurn]; exists {
+				player.RoundScore = score
+			}
+		}
+
+		// auto-reroll when all dice were successfully removed
+		if len(state.Dice) == 0 {
+			g.RollDice(state)
 		}
 	}
 	room.SetState(state)

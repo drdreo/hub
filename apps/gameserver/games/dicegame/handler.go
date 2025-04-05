@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"gameserver/internal/interfaces"
 	"gameserver/internal/protocol"
-	"math/rand"
+// 	"math/rand"
 
 	"github.com/rs/zerolog/log"
 )
@@ -63,7 +63,9 @@ func (g *DiceGame) OnClientJoin(client interfaces.Client, room interfaces.Room, 
 		for id := range state.Players {
 			playerIDs = append(playerIDs, id)
 		}
-		state.CurrentTurn = playerIDs[rand.Intn(len(playerIDs))]
+    // TODO: put back
+// 		state.CurrentTurn = playerIDs[rand.Intn(len(playerIDs))]
+        state.CurrentTurn = client.ID()
 	}
 
 	room.SetState(state)
