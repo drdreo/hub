@@ -43,7 +43,6 @@ A push-your-luck dice game inspired by Kingdom Come: Deliverance 2's dice game a
 ### Special Features
 
 -   The Devil's Head (special die) functions as a joker
--   Any invalid combination counts as 0 e.g.: "1, 3"
 -   Future implementation will include special dice with unique properties
 
 ## Technical Implementation
