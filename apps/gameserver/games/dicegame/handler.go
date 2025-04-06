@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"gameserver/internal/interfaces"
 	"gameserver/internal/protocol"
-// 	"math/rand"
+	// 	"math/rand"
 
 	"github.com/rs/zerolog/log"
 )
@@ -34,8 +34,6 @@ func (g *DiceGame) InitializeRoom(room interfaces.Room, options json.RawMessage)
 		CurrentTurn:  "",
 		Winner:       "",
 		TargetScore:  3000,
-		TurnScore:    0,
-		RoundScore:   0,
 	}
 
 	room.SetState(&state)
@@ -54,7 +52,7 @@ func (g *DiceGame) OnClientJoin(client interfaces.Client, room interfaces.Room, 
 	g.AddPlayer(client.ID(), options.PlayerName, state)
 	// TODO: revert
 	// add fake player
-	g.AddPlayer("bot-id", "botter", state)
+	//	g.AddPlayer("bot-id", "botter", state)
 
 	// If we now have 2 players, start the game
 	if len(state.Players) == 2 {
@@ -63,9 +61,9 @@ func (g *DiceGame) OnClientJoin(client interfaces.Client, room interfaces.Room, 
 		for id := range state.Players {
 			playerIDs = append(playerIDs, id)
 		}
-    // TODO: put back
-// 		state.CurrentTurn = playerIDs[rand.Intn(len(playerIDs))]
-        state.CurrentTurn = client.ID()
+		// TODO: put back
+		// 		state.CurrentTurn = playerIDs[rand.Intn(len(playerIDs))]
+		state.CurrentTurn = client.ID()
 	}
 
 	room.SetState(state)
@@ -95,6 +93,7 @@ func (g *DiceGame) OnClientReconnect(client interfaces.Client, room interfaces.R
 
 	// Replace the old client ID with the new one, maintaining the same player info
 	delete(state.Players, oldClientID)
+	playerInfo.ID = client.ID()
 	state.Players[client.ID()] = playerInfo
 
 	// If it was this player's turn, update the current turn
@@ -107,10 +106,8 @@ func (g *DiceGame) OnClientReconnect(client interfaces.Client, room interfaces.R
 		state.Winner = client.ID()
 	}
 
-	// Update state
 	room.SetState(state)
 
-	// Broadcast updated state to all clients
 	broadcastGameState(room)
 }
 

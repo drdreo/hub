@@ -102,19 +102,38 @@ func (g *DiceGame) CalculateScore(dice []int) (int, bool) {
 	log.Debug().Ints("dice", dice).Msg("Calculating score for dice")
 
 	score := 0
-	valid := false
+	usedDiceCount := 0
 
-	// Track which dice have been used in combinations
-	usedDice := make(map[int]bool)
+	// Make a copy of dice that we can modify
+	remainingDice := make([]int, len(dice))
+	copy(remainingDice, dice)
 
-	// Count occurrences of each number
+	// Check for runs first
+	if len(remainingDice) >= 6 && containsRun(remainingDice, 1, 6) {
+		score = 1500
+		usedDiceCount += 6
+		remainingDice = removeRun(remainingDice, 1, 6)
+		log.Debug().Msg("Found 1-6 run: +1500")
+	} else if len(remainingDice) >= 5 && containsRun(remainingDice, 1, 5) {
+		score += 500
+		usedDiceCount += 5
+		remainingDice = removeRun(remainingDice, 1, 5)
+		log.Debug().Msg("Found 1-5 run: +500")
+	} else if len(remainingDice) >= 5 && containsRun(remainingDice, 2, 6) {
+		score += 750
+		usedDiceCount += 5
+		remainingDice = removeRun(remainingDice, 2, 6)
+		log.Debug().Msg("Found 2-6 run: +750")
+	}
+
+	// Count occurrences for remaining dice
 	counts := make(map[int]int)
-	for _, die := range dice {
+	for _, die := range remainingDice {
 		counts[die]++
 	}
 	log.Debug().Interface("counts", counts).Msg("Dice counts")
 
-	// First check for three of a kind and beyond
+	// Check for three of a kind and beyond
 	for num, count := range counts {
 		if count >= 3 {
 			baseScore := num * 100
@@ -126,63 +145,28 @@ func (g *DiceGame) CalculateScore(dice []int) (int, bool) {
 				baseScore *= 2
 			}
 			score += baseScore
-			valid = true
-			// Mark all dice in the three of a kind as used
-			for i := 0; i < count; i++ {
-				usedDice[num] = true
-			}
+			usedDiceCount += count
+			// Remove these dice from further consideration
+			counts[num] = 0
 			log.Debug().Int("num", num).Int("count", count).Int("baseScore", baseScore).Msg("Found three or more of a kind")
 		}
 	}
 
-	// Then check for runs (only if we haven't used the dice in three of a kind)
-	if len(dice) >= 5 {
-		// Check for 1-5 run
-		if containsRun(dice, 1, 5) {
-			score += 500
-			valid = true
-			// Mark all dice in the run as used
-			for i := 1; i <= 5; i++ {
-				usedDice[i] = true
-			}
-			log.Debug().Msg("Found 1-5 run: +500")
-		}
-		// Check for 2-6 run
-		if containsRun(dice, 2, 6) {
-			score += 750
-			valid = true
-			// Mark all dice in the run as used
-			for i := 2; i <= 6; i++ {
-				usedDice[i] = true
-			}
-			log.Debug().Msg("Found 2-6 run: +750")
-		}
-		// Check for 1-6 run
-		if containsRun(dice, 1, 6) {
-			score += 1500
-			valid = true
-			// Mark all dice in the run as used
-			for i := 1; i <= 6; i++ {
-				usedDice[i] = true
-			}
-			log.Debug().Msg("Found 1-6 run: +1500")
-		}
+	// Check for individual 1s and 5s from remaining dice
+	if counts[1] > 0 {
+		score += counts[1] * 100
+		usedDiceCount += counts[1]
+		log.Debug().Int("count", counts[1]).Msg("Found ones: +100 each")
 	}
 
-	// Finally check for individual 1s and 5s (only if not used in combinations)
-	for num, count := range counts {
-		if !usedDice[num] {
-			if num == 1 {
-				score += count * 100
-				valid = true
-				log.Debug().Int("count", count).Msg("Found ones: +100 each")
-			} else if num == 5 {
-				score += count * 50
-				valid = true
-				log.Debug().Int("count", count).Msg("Found fives: +50 each")
-			}
-		}
+	if counts[5] > 0 {
+		score += counts[5] * 50
+		usedDiceCount += counts[5]
+		log.Debug().Int("count", counts[5]).Msg("Found fives: +50 each")
 	}
+
+	// Check if all dice are used in valid combinations
+	valid := usedDiceCount == len(dice)
 
 	log.Debug().Int("final_score", score).Bool("valid", valid).Msg("Final score calculation")
 	return score, valid
@@ -208,6 +192,29 @@ func containsRun(dice []int, start, end int) bool {
 		}
 	}
 	return true
+}
+
+// Helper function to remove run dice from the slice
+func removeRun(dice []int, start, end int) []int {
+	result := make([]int, 0)
+	runDice := make(map[int]bool)
+
+	for i := start; i <= end; i++ {
+		runDice[i] = true
+	}
+
+	// Add one occurrence of each number in the run
+	usedRun := make(map[int]bool)
+
+	for _, die := range dice {
+		if runDice[die] && !usedRun[die] {
+			usedRun[die] = true
+			continue
+		}
+		result = append(result, die)
+	}
+
+	return result
 }
 
 func (g *DiceGame) EndTurn(state *GameState) {

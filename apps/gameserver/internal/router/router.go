@@ -252,6 +252,7 @@ func (r *Router) handleReconnect(client interfaces.Client, data json.RawMessage)
 
 	response := map[string]interface{}{
 		"roomId":   targetRoom.ID(),
+		"clientId": client.ID(),
 		"gameType": targetRoom.GameType(),
 	}
 
