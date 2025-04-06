@@ -6,44 +6,44 @@ A push-your-luck dice game inspired by Kingdom Come: Deliverance 2's dice game a
 
 ### Basic Rules
 
-- Players start with six dice
-- Each turn, players can:
+-   Players start with six dice
+-   Each turn, players can:
     1. Roll all available dice
     2. Set aside any scoring combinations
     3. Continue rolling remaining dice
     4. End their turn to bank points
-- If a roll contains no scoring combinations, the player loses all points accumulated in that turn
-- First player to reach the target score (10,000 points) wins
+-   If a roll contains no scoring combinations, the player loses all points accumulated in that turn
+-   First player to reach the target score (10,000 points) wins
 
 ### Scoring Combinations
 
 #### Basic Combinations
 
-- One "1" - 100 points
-- One "5" - 50 points
-- Three of a kind:
-    - Three "1s" - 1,000 points
-    - Three "2s" - 200 points
-    - Three "3s" - 300 points
-    - Three "4s" - 400 points
-    - Three "5s" - 500 points
-    - Three "6s" - 600 points
+-   One "1" - 100 points
+-   One "5" - 50 points
+-   Three of a kind:
+    -   Three "1s" - 1,000 points
+    -   Three "2s" - 200 points
+    -   Three "3s" - 300 points
+    -   Three "4s" - 400 points
+    -   Three "5s" - 500 points
+    -   Three "6s" - 600 points
 
 #### Runs
 
-- Run of "1-5" - 500 points
-- Run of "2-6" - 750 points
-- Run of "1-6" - 1,500 points
+-   Run of "1-5" - 500 points
+-   Run of "2-6" - 750 points
+-   Run of "1-6" - 1,500 points
 
 #### Bonus Scoring
 
-- Each additional die beyond three of a kind doubles the score
-    - Example: Four "2s" = 400 points, Five "2s" = 800 points
+-   Each additional die beyond three of a kind doubles the score
+    -   Example: Four "2s" = 400 points, Five "2s" = 800 points
 
 ### Special Features
 
-- The Devil's Head (special die) functions as a joker
-- Future implementation will include special dice with unique properties
+-   The Devil's Head (special die) functions as a joker
+-   Future implementation will include special dice with unique properties
 
 ## Technical Implementation
 
@@ -51,11 +51,11 @@ A push-your-luck dice game inspired by Kingdom Come: Deliverance 2's dice game a
 
 The game maintains the following state:
 
-- Player scores and turn order
-- Current dice roll
-- Set aside dice
-- Current turn score
-- Round score
+-   Player scores and turn order
+-   Current dice roll
+-   Set aside dice
+-   Current turn score
+-   Round score
 
 ### Actions
 
@@ -72,11 +72,7 @@ Players can perform the following actions:
 {
     "type": "action_type",
     "playerId": "player_id",
-    "diceIndex": [
-        0,
-        1,
-        2
-    ]
+    "diceIndex": [0, 1, 2]
     // Optional, used for select and set_aside action
 }
 ```
@@ -96,7 +92,7 @@ Extracted data
 from [reddit](https://www.reddit.com/r/kingdomcome/comments/1iv8b27/kcd2_anybody_else_get_way_too_into_farkle_and/)
 
 | Name           | Side 1 | Side 2 | Side 3 | Side 4 | Side 5 | Side 6 |
-|----------------|--------|--------|--------|--------|--------|--------|
+| -------------- | ------ | ------ | ------ | ------ | ------ | ------ |
 | Misfortune     | 4.5    | 27.7   | 27.7   | 27.7   | 27.7   | 4.5    |
 | Even           | 13.4   | 53.4   | 13.4   | 26.7   | 6.7    | 26.7   |
 | Odd            | 26.7   | 6.7    | 26.7   | 6.7    | 26.7   | 6.7    |
@@ -117,7 +113,7 @@ from [reddit](https://www.reddit.com/r/kingdomcome/comments/1iv8b27/kcd2_anybody
 #### Tin Badges
 
 |           Badge Name           | Description                                                                                  |
-|:------------------------------:|:---------------------------------------------------------------------------------------------|
+| :----------------------------: | :------------------------------------------------------------------------------------------- |
 |      Doppelganger's Badge      | Doubles the points of your last throw. Can be used once per game                             |
 |       Badge of Headstart       | You gain a small point headstart at the start of the game                                    |
 |        Badge of Defence        | Cancels the effects of your opponent's tin badges                                            |
@@ -131,7 +127,7 @@ from [reddit](https://www.reddit.com/r/kingdomcome/comments/1iv8b27/kcd2_anybody
 #### Silver Badges
 
 |            Badge Name            | Description                                                                                                          |
-|:--------------------------------:|:---------------------------------------------------------------------------------------------------------------------|
+| :------------------------------: | :------------------------------------------------------------------------------------------------------------------- |
 |       Doppelganger's Badge       | Doubles the points of your last throw. Can be used twice per game                                                    |
 |        Badge of Headstart        | You gain a moderate point headstart at the start of the game                                                         |
 |         Badge of Defence         | Cancels the effect of your opponent's silver badges                                                                  |
@@ -147,7 +143,7 @@ from [reddit](https://www.reddit.com/r/kingdomcome/comments/1iv8b27/kcd2_anybody
 #### Gold Badge
 
 |         Badge Name          | Description                                                                                                  |
-|:---------------------------:|:-------------------------------------------------------------------------------------------------------------|
+| :-------------------------: | :----------------------------------------------------------------------------------------------------------- |
 |     Doppelganger Badge      | Doubles the points scored from your last throw. Can be used thrice per game                                  |
 |     Badge of Headstart      | You gain a large point headstart at the start of the game                                                    |
 |      Badge of Defence       | Cancels the effect of your opponent's gold badges                                                            |
