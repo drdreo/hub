@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"gameserver/internal/interfaces"
+	"gameserver/internal/protocol"
 	"github.com/rs/zerolog/log"
 	"maps"
 	"slices"
@@ -90,8 +91,32 @@ func (r *Registry) HandleClientJoin(client interfaces.Client, room interfaces.Ro
 		return err
 	}
 
+	// Join the room
+	if err := room.Join(client); err != nil {
+		log.Error().Err(err).Str("id", room.ID()).Msg("failed to join room")
+		client.Send(protocol.NewErrorResponse("join_room_result", err.Error()))
+		return err
+	}
+
 	game.OnClientJoin(client, room, options)
 	return nil
+}
+
+func (r *Registry) HandleAddBot(client interfaces.Client, room interfaces.Room) error {
+	gameType := room.GameType()
+	game, err := r.GetGame(gameType)
+	if err != nil {
+		return err
+	}
+
+	botClient, err := game.OnBotAdd(client, client.Room())
+	if err != nil {
+		return err
+	}
+
+	return r.HandleClientJoin(botClient, client.Room(), interfaces.CreateRoomOptions{
+		PlayerName: "Bot-1",
+	})
 }
 
 // HandleClientLeave notifies the game when a client leaves

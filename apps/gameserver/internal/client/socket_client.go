@@ -38,8 +38,8 @@ type WebSocketClient struct {
 	OnMessage func(message []byte)
 }
 
-// NewClient creates a new WebSocketClient
-func NewClient(conn *websocket.Conn) *WebSocketClient {
+// NewWebsocketClient creates a new WebSocketClient
+func NewWebsocketClient(conn *websocket.Conn) *WebSocketClient {
 	return &WebSocketClient{
 		id:        uuid.New().String(),
 		conn:      conn,

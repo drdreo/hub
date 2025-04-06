@@ -49,6 +49,7 @@ type Game interface {
 	OnClientJoin(client Client, room Room, options CreateRoomOptions)
 	OnClientLeave(client Client, room Room)
 	OnClientReconnect(client Client, room Room, oldClientId string)
+	OnBotAdd(client Client, room Room) (Client, error)
 }
 
 type GameRegistry interface {
@@ -60,6 +61,7 @@ type GameRegistry interface {
 	HandleClientJoin(client Client, room Room, options CreateRoomOptions) error
 	HandleClientLeave(client Client, room Room) error
 	HandleClientReconnect(client Client, room Room, oldClientId string) error
+    HandleAddBot(client Client, room Room) error
 }
 
 type M map[string]interface{}

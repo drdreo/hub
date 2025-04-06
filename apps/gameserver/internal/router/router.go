@@ -47,10 +47,12 @@ func (r *Router) HandleMessage(client interfaces.Client, messageData []byte) {
 		r.handleJoinRoom(client, message.Data)
 	case "leave_room":
 		r.handleLeaveRoom(client)
-	case "game_action":
-		r.handleGameAction(client, message.Data)
 	case "reconnect":
 		r.handleReconnect(client, message.Data)
+	case "game_action":
+		r.handleGameAction(client, message.Data)
+	case "add_bot":
+		r.handleAddBot(client)
 	default:
 		// Forward to game-specific handler
 		if client.Room() != nil {
@@ -120,7 +122,6 @@ func (r *Router) handleJoinRoom(client interfaces.Client, data json.RawMessage) 
 		room = tr
 		if err != nil {
 			log.Info().Str("id", *joinOptions.RoomID).Msg("Room not found, creating new room with provided id")
-			log.Info().Msg("Room id not provided, creating new room")
 			tr, err := r.handleCreateRoom(joinOptions)
 			room = tr
 			if err != nil {
@@ -129,13 +130,6 @@ func (r *Router) handleJoinRoom(client interfaces.Client, data json.RawMessage) 
 				return
 			}
 		}
-	}
-
-	// Join the room
-	if err := room.Join(client); err != nil {
-		log.Error().Err(err).Str("id", room.ID()).Msg("failed to join room")
-		client.Send(protocol.NewErrorResponse("join_room_result", err.Error()))
-		return
 	}
 
 	r.gameRegistry.HandleClientJoin(client, room, joinOptions)
@@ -180,19 +174,6 @@ func (r *Router) handleLeaveRoom(client interfaces.Client) {
 	log.Info().Str("roomID", roomID).Msg("client left room")
 
 	client.Send(protocol.NewSuccessResponse("leave_room_result", response))
-}
-
-// handleGameAction forwards a game-specific action to the game handler
-func (r *Router) handleGameAction(client interfaces.Client, data json.RawMessage) {
-	if client.Room() == nil {
-		client.Send(protocol.NewErrorResponse("game_action_result", "Client not in a room"))
-		return
-	}
-
-	if err := r.gameRegistry.HandleMessage(client, "game_action", data); err != nil {
-		client.Send(protocol.NewErrorResponse("game_action_result", err.Error()))
-		return
-	}
 }
 
 // handleReconnect tries to reconnect the new socket to an existing room
@@ -259,4 +240,33 @@ func (r *Router) handleReconnect(client interfaces.Client, data json.RawMessage)
 	log.Info().Str("roomId", targetRoom.ID()).Str("gameType", targetRoom.GameType()).Msg("client reconnected")
 
 	client.Send(protocol.NewSuccessResponse("reconnect_result", response))
+}
+
+// handleGameAction forwards a game-specific action to the game handler
+func (r *Router) handleGameAction(client interfaces.Client, data json.RawMessage) {
+	if client.Room() == nil {
+		client.Send(protocol.NewErrorResponse("game_action_result", "Client not in a room"))
+		return
+	}
+
+	if err := r.gameRegistry.HandleMessage(client, "game_action", data); err != nil {
+		client.Send(protocol.NewErrorResponse("game_action_result", err.Error()))
+		return
+	}
+}
+
+
+// handleAddBot adds a bot to the current room
+func (r *Router) handleAddBot(client interfaces.Client) {
+	if client.Room() == nil {
+		client.Send(protocol.NewErrorResponse("add_bot_result", "Client not in a room"))
+		return
+	}
+
+
+	r.gameRegistry.HandleAddBot(client, client.Room())
+
+	log.Info().Str("roomID", client.Room().ID()).Msg("bot added to room")
+
+	client.Send(protocol.NewSuccessResponse("add_bot_result", nil))
 }

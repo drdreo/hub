@@ -106,7 +106,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request, router *router.Router) {
 	}
 
 	// Create new client
-	c := client.NewClient(conn)
+	c := client.NewWebsocketClient(conn)
 
 	// Set message handler
 	c.OnMessage = func(message []byte) {

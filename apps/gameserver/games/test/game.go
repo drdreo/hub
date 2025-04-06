@@ -2,6 +2,7 @@ package testgame
 
 import (
 	"encoding/json"
+	"errors"
 	"gameserver/internal/interfaces"
 )
 
@@ -33,6 +34,10 @@ func (g *TestGame) InitializeRoom(room interfaces.Room, options json.RawMessage)
 }
 
 func (g *TestGame) OnClientJoin(client interfaces.Client, room interfaces.Room, _ interfaces.CreateRoomOptions) {
+}
+
+func (g *TestGame) OnBotAdd(client interfaces.Client, room interfaces.Room) (interfaces.Client, error) {
+	return nil, errors.New("game does not support bots")
 }
 
 func (g *TestGame) OnClientLeave(client interfaces.Client, room interfaces.Room) {

@@ -23,6 +23,7 @@ type Player struct {
 
 type GameState struct {
 	Players      map[string]*Player `json:"players"`
+	Started      bool            `json:"started"`
 	CurrentTurn  string             `json:"currentTurn"`
 	Winner       string             `json:"winner"`
 	Dice         []int              `json:"dice"`
@@ -218,6 +219,7 @@ func removeRun(dice []int, start, end int) []int {
 }
 
 func (g *DiceGame) EndTurn(state *GameState) {
+	log.Info().Msg("Ending turn")
 	// Add turn score to player's total score
 	if player, exists := state.Players[state.CurrentTurn]; exists {
 		player.Score += player.RoundScore
@@ -256,8 +258,9 @@ func (g *DiceGame) handleRoll(room interfaces.Room) {
 		state.Dice = make([]int, 6)
 	}
 	g.RollDice(state)
-	_, valid := g.CalculateScore(state.Dice)
-	if !valid {
+	score, valid := g.CalculateScore(state.Dice)
+	// the first roll can be invalid but still be scoreable
+	if score == 0 && !valid {
 		g.EndTurn(state)
 	}
 

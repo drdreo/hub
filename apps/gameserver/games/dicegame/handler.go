@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"gameserver/internal/interfaces"
 	"gameserver/internal/protocol"
+	"strings"
+
 	// 	"math/rand"
 
 	"github.com/rs/zerolog/log"
@@ -31,6 +33,7 @@ func (g *DiceGame) InitializeRoom(room interfaces.Room, options json.RawMessage)
 		Dice:         make([]int, 6),
 		SelectedDice: make([]int, 0),
 		SetAside:     make([]int, 0),
+		Started:      false,
 		CurrentTurn:  "",
 		Winner:       "",
 		TargetScore:  3000,
@@ -50,12 +53,11 @@ func (g *DiceGame) OnClientJoin(client interfaces.Client, room interfaces.Room, 
 	}
 
 	g.AddPlayer(client.ID(), options.PlayerName, state)
-	// TODO: revert
-	// add fake player
-	//	g.AddPlayer("bot-id", "botter", state)
 
 	// If we now have 2 players, start the game
 	if len(state.Players) == 2 {
+		state.Started = true
+
 		// Randomly select first player
 		playerIDs := make([]string, 0, len(state.Players))
 		for id := range state.Players {
@@ -63,13 +65,24 @@ func (g *DiceGame) OnClientJoin(client interfaces.Client, room interfaces.Room, 
 		}
 		// TODO: put back
 		// 		state.CurrentTurn = playerIDs[rand.Intn(len(playerIDs))]
-		state.CurrentTurn = client.ID()
+		for _, player := range state.Players {
+			log.Debug().Str("name", player.Name).Msg("SEE ME")
+			if !strings.Contains(player.Name, "Bot") {
+				state.CurrentTurn = player.ID
+			}
+		}
 	}
 
 	room.SetState(state)
 
 	// Broadcast updated state to all clients
 	broadcastGameState(room)
+}
+
+func (g *DiceGame) OnBotAdd(client interfaces.Client, room interfaces.Room) (interfaces.Client, error) {
+	bot := NewDiceGameBot("bot-1", g)
+
+	return bot.BotClient, nil
 }
 
 func (g *DiceGame) OnClientLeave(client interfaces.Client, room interfaces.Room) {
