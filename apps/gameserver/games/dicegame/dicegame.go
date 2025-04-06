@@ -1,6 +1,7 @@
 package dicegame
 
 import (
+	"errors"
 	"gameserver/internal/interfaces"
 	"maps"
 	"math/rand"
@@ -23,7 +24,7 @@ type Player struct {
 
 type GameState struct {
 	Players      map[string]*Player `json:"players"`
-	Started      bool            `json:"started"`
+	Started      bool               `json:"started"`
 	CurrentTurn  string             `json:"currentTurn"`
 	Winner       string             `json:"winner"`
 	Dice         []int              `json:"dice"`
@@ -267,11 +268,17 @@ func (g *DiceGame) handleRoll(room interfaces.Room) {
 	room.SetState(state)
 }
 
-func (g *DiceGame) handleSelect(room interfaces.Room, payload SelectActionPayload) {
+func (g *DiceGame) handleSelect(room interfaces.Room, payload SelectActionPayload) error {
 	log.Debug().Str("room", room.ID()).Any("diceIndex", payload.DiceIndex).Msg("selecting dice")
 
 	state := room.State().(*GameState)
 
+	// validate that the payload is in bounds
+	for sD := range payload.DiceIndex {
+		if sD >= len(state.Dice) {
+			return errors.New("Invalid dice selection")
+		}
+	}
 	// Create a temporary selection to test if it's valid
 	tempSelected := make([]int, len(state.SelectedDice))
 	copy(tempSelected, state.SelectedDice)
@@ -303,8 +310,7 @@ func (g *DiceGame) handleSelect(room interfaces.Room, payload SelectActionPayloa
 
 	// Only proceed if there are valid selections
 	if len(selectedDice) == 0 {
-		log.Error().Msg("No valid dice indices to select")
-		return
+		return errors.New("No valid dice indices to select")
 	}
 
 	log.Debug().Str("room", room.ID()).Any("dice", selectedDice).Msg("selected dice")
@@ -318,24 +324,22 @@ func (g *DiceGame) handleSelect(room interfaces.Room, payload SelectActionPayloa
 	}
 
 	room.SetState(state)
+	return nil
 }
 
-func (g *DiceGame) handleSetAside(room interfaces.Room, payload SetAsideActionPayload) {
+func (g *DiceGame) handleSetAside(room interfaces.Room) {
 	log.Debug().Str("room", room.ID()).Msg("setting dice aside")
 
-	// Handle case where DiceIndex is empty
-	if len(payload.DiceIndex) == 0 {
-		log.Error().Msg("handleSelect called with empty DiceIndex, ignoring selection")
-		return
-	}
-
 	state := room.State().(*GameState)
+	selectedDice := state.SelectedDice
 	// TODO: reorder, check score first and if valid allow setting aside
-	if g.SetAsideDice(payload.DiceIndex, state) {
+	if g.SetAsideDice(selectedDice, state) {
 		score, valid := g.CalculateScore(state.SetAside)
 		if valid {
 			if player, exists := state.Players[state.CurrentTurn]; exists {
+				player.TurnScore = 0
 				player.RoundScore = score
+				state.SelectedDice = make([]int, 0)
 			}
 		}
 

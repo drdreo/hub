@@ -145,18 +145,24 @@ func (g *DiceGame) HandleMessage(client interfaces.Client, room interfaces.Room,
 				return
 			}
 		}
-		g.handleSelect(room, action)
-	case "set_aside":
-		var action SetAsideActionPayload
-		if len(payload) > 0 {
-			if err := json.Unmarshal(payload, &action); err != nil {
-				// Only log the error, but continue with default empty action
-				log.Error().Str("error", err.Error()).Msg("invalid set aside payload")
-				client.Send(protocol.NewErrorResponse("error", "Invalid set aside payload"))
-				return
-			}
+
+		log.Info().Fields(action.DiceIndex).Int("length", len(state.Dice)).Msg( "select coming in")
+
+		if err := g.handleSelect(room, action); err != nil {
+			log.Error().Fields(action.DiceIndex).Int("length", len(state.Dice)).Msg(err.Error())
+			client.Send(protocol.NewErrorResponse("error", "Invalid select payload"))
 		}
-		g.handleSetAside(room, action)
+	case "set_aside":
+		//		var action SetAsideActionPayload
+		//		if len(payload) > 0 {
+		//			if err := json.Unmarshal(payload, &action); err != nil {
+		//				// Only log the error, but continue with default empty action
+		//				log.Error().Str("error", err.Error()).Msg("invalid set aside payload")
+		//				client.Send(protocol.NewErrorResponse("error", "Invalid set aside payload"))
+		//				return
+		//			}
+		//		}
+		g.handleSetAside(room)
 	case "end_turn":
 		g.handleEndTurn(room)
 	default:
