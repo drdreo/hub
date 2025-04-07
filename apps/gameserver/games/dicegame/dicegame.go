@@ -2,6 +2,7 @@ package dicegame
 
 import (
 	"errors"
+	"fmt"
 	"gameserver/internal/interfaces"
 	"maps"
 	"math/rand"
@@ -34,11 +35,11 @@ type GameState struct {
 }
 
 type SelectActionPayload struct {
-	DiceIndex int `json:"diceIndex,omitempty"`
+	DiceIndex int `json:"diceIndex"`
 }
 
 type SetAsideActionPayload struct {
-	DiceIndex []int `json:"diceIndex,omitempty"`
+	EndTurn bool `json:"endTurn"`
 }
 
 func (g *DiceGame) AddPlayer(id string, name string, state *GameState) {
@@ -53,45 +54,6 @@ func (g *DiceGame) RollDice(state *GameState) {
 	for i := range state.Dice {
 		state.Dice[i] = rand.Intn(6) + 1
 	}
-}
-
-func (g *DiceGame) SetAsideDice(indices []int, state *GameState) bool {
-	// Handle empty indices
-	if len(indices) == 0 {
-		log.Error().Msg("SetAsideDice called with empty indices, no action taken")
-		return false
-	}
-
-	// Validate indices
-	for _, idx := range indices {
-		if idx < 0 || idx >= len(state.Dice) {
-			log.Error().Int("index", idx).Int("dice_length", len(state.Dice)).Msg("Invalid dice index")
-			return false
-		}
-	}
-
-	// Move selected dice to setAside
-	for _, idx := range indices {
-		state.SetAside = append(state.SetAside, state.Dice[idx])
-	}
-
-	// Remove selected dice from main dice pool
-	newDice := make([]int, 0)
-	for i, die := range state.Dice {
-		selected := false
-		for _, idx := range indices {
-			if i == idx {
-				selected = true
-				break
-			}
-		}
-		if !selected {
-			newDice = append(newDice, die)
-		}
-	}
-	state.Dice = newDice
-
-	return true
 }
 
 func (g *DiceGame) CalculateScore(dice []int) (int, bool) {
@@ -245,12 +207,12 @@ func (g *DiceGame) EndTurn(state *GameState) {
 			break
 		}
 	}
-
 }
 
-func (g *DiceGame) handleRoll(room interfaces.Room) {
+func (g *DiceGame) handleRoll(room interfaces.Room) bool {
 	log.Debug().Str("room", room.ID()).Msg("rolling dice")
 
+	busted := false
 	state := room.State().(*GameState)
 	// reset state
 	state.SelectedDice = make([]int, 0)
@@ -262,23 +224,50 @@ func (g *DiceGame) handleRoll(room interfaces.Room) {
 	score, valid := g.CalculateScore(state.Dice)
 	// the first roll can be invalid but still be scoreable
 	if score == 0 && !valid {
+		busted = true
 		g.EndTurn(state)
 	}
 
 	room.SetState(state)
+	return busted
+}
+
+func (g *DiceGame) getSelectedDiceFromIndexs(indexes []int, dice []int) ([]int, error) {
+	/**
+	** dice: 			[1,2,2,5,6,6]
+	** indexes: 		[1,4]
+	** selected dice: 	[2,6]
+	**/
+	selectedDice := make([]int, len(indexes))
+
+	for idx, selectedIdx := range indexes {
+		// validate that the indexes are in bounds
+		if selectedIdx < 0 || selectedIdx >= len(dice) {
+			return nil, fmt.Errorf("invalid dice selection index: %d", selectedIdx)
+		}
+
+		selectedDice[idx] = dice[selectedIdx]
+	}
+
+	//	// populate dice from temporary selection
+	//	for _, idx := range indexes {
+	//		selectedDice = append(selectedDice, dice[idx])
+	//	}
+
+	// Only proceed if there are valid selections
+	if len(selectedDice) == 0 {
+		return nil, errors.New("no valid dice indices to select")
+	}
+
+	log.Debug().Ints("dice", dice).Ints("indexes", indexes).Ints("selectedDice", selectedDice).Msg("converted indexes to selected dice ")
+
+	return selectedDice, nil
 }
 
 func (g *DiceGame) handleSelect(room interfaces.Room, payload SelectActionPayload) error {
-	log.Debug().Str("room", room.ID()).Any("diceIndex", payload.DiceIndex).Msg("selecting dice")
-
 	state := room.State().(*GameState)
+	log.Debug().Str("room", room.ID()).Any("diceIndex", payload.DiceIndex).Ints("dice", state.Dice).Msg("selecting dice")
 
-	// validate that the payload is in bounds
-	for sD := range payload.DiceIndex {
-		if sD >= len(state.Dice) {
-			return errors.New("Invalid dice selection")
-		}
-	}
 	// Create a temporary selection to test if it's valid
 	tempSelected := make([]int, len(state.SelectedDice))
 	copy(tempSelected, state.SelectedDice)
@@ -296,21 +285,9 @@ func (g *DiceGame) handleSelect(room interfaces.Room, payload SelectActionPayloa
 		tempSelected = append(tempSelected, payload.DiceIndex)
 	}
 
-	/**
-	** dice: [1,2,2,5,6,6]
-	** selectedIdx: [1,4] --> 2,6
-	** selected dice: [2,6]
-	**/
-
-	selectedDice := make([]int, 0)
-	// populate dice from temporary selection
-	for _, idx := range tempSelected {
-		selectedDice = append(selectedDice, state.Dice[idx])
-	}
-
-	// Only proceed if there are valid selections
-	if len(selectedDice) == 0 {
-		return errors.New("No valid dice indices to select")
+	selectedDice, err := g.getSelectedDiceFromIndexs(tempSelected, state.Dice)
+	if err != nil {
+		return err
 	}
 
 	log.Debug().Str("room", room.ID()).Any("dice", selectedDice).Msg("selected dice")
@@ -327,28 +304,53 @@ func (g *DiceGame) handleSelect(room interfaces.Room, payload SelectActionPayloa
 	return nil
 }
 
-func (g *DiceGame) handleSetAside(room interfaces.Room) {
+func (g *DiceGame) handleSetAside(room interfaces.Room, payload SetAsideActionPayload) error {
 	log.Debug().Str("room", room.ID()).Msg("setting dice aside")
 
 	state := room.State().(*GameState)
-	selectedDice := state.SelectedDice
-	// TODO: reorder, check score first and if valid allow setting aside
-	if g.SetAsideDice(selectedDice, state) {
-		score, valid := g.CalculateScore(state.SetAside)
-		if valid {
-			if player, exists := state.Players[state.CurrentTurn]; exists {
-				player.TurnScore = 0
-				player.RoundScore = score
-				state.SelectedDice = make([]int, 0)
-			}
+
+	selectedDice, err := g.getSelectedDiceFromIndexs(state.SelectedDice, state.Dice)
+	if err != nil {
+		return err
+	}
+
+	selectedScore, valid := g.CalculateScore(selectedDice)
+	if !valid {
+		return errors.New("invalid dice score")
+	}
+
+	currentPlayer, exists := state.Players[state.CurrentTurn]
+	if !exists {
+		return fmt.Errorf("failed to get current player: %s", state.CurrentTurn)
+	}
+
+	if !payload.EndTurn {
+		// Move selected dice to setAside
+		for _, dice := range selectedDice {
+			state.SetAside = append(state.SetAside, dice)
 		}
 
-		// auto-reroll when all dice were successfully removed
-		if len(state.Dice) == 0 {
+		// auto-reroll when all dice were successfully played
+		if len(state.Dice) == len(selectedDice) {
+			// reset set aside list
+			state.SetAside = make([]int, 0)
 			g.RollDice(state)
+		} else {
+			// otherwise remove amount of selected dice from available dice
+			state.Dice = make([]int, len(state.Dice)-len(state.SelectedDice))
 		}
 	}
+
+	currentPlayer.TurnScore = 0
+	currentPlayer.RoundScore += selectedScore
+	state.SelectedDice = make([]int, 0)
+
+	if payload.EndTurn {
+		g.EndTurn(state)
+	}
+
 	room.SetState(state)
+	return nil
 }
 
 func (g *DiceGame) handleEndTurn(room interfaces.Room) {
@@ -357,4 +359,22 @@ func (g *DiceGame) handleEndTurn(room interfaces.Room) {
 	state := room.State().(*GameState)
 	g.EndTurn(state)
 	room.SetState(state)
+}
+
+func (g *DiceGame) RemoveDice(dice []int, diceIndxes []int) []int {
+	// Remove selected dice from main dice pool
+	newDice := make([]int, 0)
+	for i, die := range dice {
+		selected := false
+		for _, idx := range diceIndxes {
+			if i == idx {
+				selected = true
+				break
+			}
+		}
+		if !selected {
+			newDice = append(newDice, die)
+		}
+	}
+	return newDice
 }

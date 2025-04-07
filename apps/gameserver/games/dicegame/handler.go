@@ -121,7 +121,9 @@ func (g *DiceGame) OnClientReconnect(client interfaces.Client, room interfaces.R
 
 	room.SetState(state)
 
-	broadcastGameState(room)
+	// tell the new client the game state
+	msg := protocol.NewSuccessResponse("game_state", state)
+	client.Send(msg)
 }
 
 func (g *DiceGame) HandleMessage(client interfaces.Client, room interfaces.Room, msgType string, payload []byte) {
@@ -134,35 +136,42 @@ func (g *DiceGame) HandleMessage(client interfaces.Client, room interfaces.Room,
 
 	switch msgType {
 	case "roll":
-		g.handleRoll(room)
+		if busted := g.handleRoll(room); busted {
+			log.Info().Msg("Player busted on roll")
+			client.Send(protocol.NewErrorResponse("error", "Busted"))
+		}
 	case "select":
 		var action SelectActionPayload
 		if len(payload) > 0 {
 			if err := json.Unmarshal(payload, &action); err != nil {
-				// Only log the error, but continue with default empty action
 				log.Error().Str("error", err.Error()).Msg("invalid select payload")
 				client.Send(protocol.NewErrorResponse("error", "Invalid select payload"))
 				return
 			}
 		}
 
-		log.Info().Fields(action.DiceIndex).Int("length", len(state.Dice)).Msg( "select coming in")
+		log.Info().Int("diceIndex", action.DiceIndex).Int("length", len(state.Dice)).Msg("select coming in")
 
 		if err := g.handleSelect(room, action); err != nil {
-			log.Error().Fields(action.DiceIndex).Int("length", len(state.Dice)).Msg(err.Error())
-			client.Send(protocol.NewErrorResponse("error", "Invalid select payload"))
+			log.Error().Int("diceIndex", action.DiceIndex).Int("length", len(state.Dice)).Msg(err.Error())
+			client.Send(protocol.NewErrorResponse("error", "Select failed; "+err.Error()))
 		}
 	case "set_aside":
-		//		var action SetAsideActionPayload
-		//		if len(payload) > 0 {
-		//			if err := json.Unmarshal(payload, &action); err != nil {
-		//				// Only log the error, but continue with default empty action
-		//				log.Error().Str("error", err.Error()).Msg("invalid set aside payload")
-		//				client.Send(protocol.NewErrorResponse("error", "Invalid set aside payload"))
-		//				return
-		//			}
-		//		}
-		g.handleSetAside(room)
+		var action SetAsideActionPayload
+		if len(payload) > 0 {
+			if err := json.Unmarshal(payload, &action); err != nil {
+				log.Error().Err(err).Msg("invalid set aside payload")
+				client.Send(protocol.NewErrorResponse("error", "Invalid set aside payload"))
+				return
+			}
+		}
+
+		log.Info().Bool("endTurn", action.EndTurn).Ints("selectedDice", state.SelectedDice).Ints("dice", state.Dice).Msg("setting dice aside")
+
+		if err := g.handleSetAside(room, action); err != nil {
+			log.Error().Err(err).Msg("set aside failed; " + err.Error())
+			client.Send(protocol.NewErrorResponse("error", "set aside failed; "+err.Error()))
+		}
 	case "end_turn":
 		g.handleEndTurn(room)
 	default:
