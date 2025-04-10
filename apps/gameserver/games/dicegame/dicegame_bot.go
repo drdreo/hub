@@ -3,6 +3,7 @@ package dicegame
 import (
 	"gameserver/internal/client"
 	"gameserver/internal/protocol"
+	"slices"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -53,18 +54,51 @@ func (b *DiceGameBot) isBotTurn(state *GameState) bool {
 }
 
 func (b *DiceGameBot) decideTurn(state *GameState) {
-	// TODO bot logic
-	//	b.sendAction("bank", nil)
+	if !state.Started {
+		return
+	}
+
+	// Roll the dice
+	b.sendAction("roll", nil)
+	time.Sleep(1 * time.Second) // Simulate thinking time
+
+	// Select and set aside dice until no scoring dice are left
+	for {
+		scoringIndexes := b.findScoringDie(state)
+		if len(scoringIndexes) == 0 {
+			// No scoring dice left, end turn
+			b.sendAction("end_turn", nil)
+			break
+		}
+
+		// Select the scoring die
+		for _, scoringIndex := range scoringIndexes {
+			selectPayload := map[string]int{"diceIndex": scoringIndex}
+			b.sendAction("select", selectPayload)
+		}
+
+		// Simulate thinking time
+		time.Sleep(1 * time.Second)
+
+		b.sendAction("set_aside", map[string]bool{"endTurn": true})
+		// Simulate thinking time
+		time.Sleep(1 * time.Second)
+	}
 }
 
-//func (b *DiceGameBot) sendAction(action string, data interface{}) {
-//	// Construct action message
-//	actionMsg := &protocol.Request{
-//		Type: action,
-//		Data: data,
-//	}
-//
-//	// Send through game's HandleAction method (assuming it exists)
-//	actionJSON, _ := json.Marshal(actionMsg)
-//	b.game.HandleAction(b.ID(), actionJSON)
-//}
+func (b *DiceGameBot) findScoringDie(state *GameState) []int {
+	// Collect indices of dice that are either 1 or 5
+	return slices.Collect(func(yield func(int) bool) {
+		for _, die := range state.Dice {
+			if die == 1 || die == 5 {
+				if !yield(die) {
+					return
+				}
+			}
+		}
+	})
+}
+
+func (b *DiceGameBot) sendAction(action string, data interface{}) {
+	b.BotClient.Send(protocol.NewSuccessResponse(action, data))
+}
