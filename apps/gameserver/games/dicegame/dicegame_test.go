@@ -114,7 +114,7 @@ func TestDiceGameIntegration(t *testing.T) {
 	client2.ClearMessages()
 
 	// Test setting aside dice
-	// We'll use a fixed set of dice for testing
+	// We'll use a fixed set of dice for testicles
 	state = testRoom.State().(*GameState)
 	state.Dice = []int{1, 2, 3, 4, 5, 6} // Set specific dice values
 	testRoom.SetState(state)

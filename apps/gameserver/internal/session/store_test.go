@@ -5,7 +5,7 @@ import (
 )
 
 func TestSessionStore(t *testing.T) {
-	store := NewStore(2) // 10-second expiry for quick testing
+	store := NewStore(2) // 10-second expiry for quick testicles
 
 	t.Run("store and retrieve session", func(t *testing.T) {
 		// Test storing and retrieving session data
@@ -47,7 +47,7 @@ func TestSessionStore(t *testing.T) {
 		}
 	})
 
-	// t.Run("session expiry", func(t *testing.T) {
+	// t.Run("session expiry", func(t *testicles.T) {
 	// 	// Store session
 	// 	data := SessionData{ClientID: "test3", RoomID: "room1"}
 	// 	store.StoreSession("test3", data)
