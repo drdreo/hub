@@ -61,18 +61,12 @@ func main() {
 
 	// Add a simple endpoint to list available games
 	http.HandleFunc("/games", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
+		gamesHandler(w, gameRegistry)
+	})
 
-		games := gameRegistry.ListGames()
-		response := map[string][]string{"games": games}
-
-		jsonData, err := json.Marshal(response)
-		if err != nil {
-			http.Error(w, `{"error": "failed to encode response"}`, http.StatusInternalServerError)
-			return
-		}
-
-		w.Write(jsonData)
+	// Add a new endpoint to list all rooms
+	http.HandleFunc("/rooms", func(w http.ResponseWriter, r *http.Request) {
+		roomHandler(w, roomManager)
 	})
 
 	port, _ := strconv.Atoi(os.Getenv("PORT"))
@@ -121,4 +115,43 @@ func wsHandler(w http.ResponseWriter, r *http.Request, router *router.Router) {
 		"message": "Connected to game server",
 	})
 	c.Send(welcomeMsg)
+}
+
+func gamesHandler(w http.ResponseWriter, gameRegistry *game.Registry) {
+	w.Header().Set("Content-Type", "application/json")
+
+	games := gameRegistry.ListGames()
+	response := map[string][]string{"games": games}
+
+	jsonData, err := json.Marshal(response)
+	if err != nil {
+		http.Error(w, `{"error": "failed to encode response"}`, http.StatusInternalServerError)
+		return
+	}
+
+	w.Write(jsonData)
+}
+
+func roomHandler(w http.ResponseWriter, roomManager *room.RoomManager) {
+	w.Header().Set("Content-Type", "application/json")
+
+	rooms := roomManager.ListRooms()
+	response := make([]map[string]interface{}, 0, len(rooms))
+
+	for _, r := range rooms {
+		roomInfo := map[string]interface{}{
+			"id":          r.ID(),
+			"type":        r.GameType(),
+			"clientCount": len(r.Clients()),
+		}
+		response = append(response, roomInfo)
+	}
+
+	jsonData, err := json.Marshal(response)
+	if err != nil {
+		http.Error(w, `{"error": "failed to encode response"}`, http.StatusInternalServerError)
+		return
+	}
+
+	w.Write(jsonData)
 }
