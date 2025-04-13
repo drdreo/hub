@@ -67,8 +67,9 @@ func (b *DiceGameBot) makeNextMove(state *GameState) {
 
 	// If we still have all dice and havent selected any dice yet, roll the dice
 	if !b.hasRolled {
-		b.sendAction("roll", nil)
-		b.hasRolled = true
+		if err := b.sendAction("roll", nil); err == nil{
+			b.hasRolled = true
+		}
 		return
 	}
 
