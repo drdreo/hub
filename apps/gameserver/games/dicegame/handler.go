@@ -30,7 +30,7 @@ func (g *DiceGame) InitializeRoom(room interfaces.Room, options json.RawMessage)
 	// Create initial game state
 	state := GameState{
 		Players:      make(map[string]*Player),
-		Dice:         make([]int, 6),
+		Dice:         make([]int, 0, 6),
 		SelectedDice: make([]int, 0),
 		SetAside:     make([]int, 0),
 		Started:      false,
@@ -79,8 +79,8 @@ func (g *DiceGame) OnClientJoin(client interfaces.Client, room interfaces.Room, 
 	broadcastGameState(room)
 }
 
-func (g *DiceGame) OnBotAdd(client interfaces.Client, room interfaces.Room) (interfaces.Client, error) {
-	bot := NewDiceGameBot("bot-1", g)
+func (g *DiceGame) OnBotAdd(client interfaces.Client, room interfaces.Room, reg interfaces.GameRegistry) (interfaces.Client, error) {
+	bot := NewDiceGameBot("bot-1", g, reg)
 
 	return bot.BotClient, nil
 }
@@ -134,6 +134,8 @@ func (g *DiceGame) HandleMessage(client interfaces.Client, room interfaces.Room,
 		return
 	}
 
+	log.Debug().Str("type", msgType).Str("payload", string(payload)).Msg("handling message")
+
 	switch msgType {
 	case "roll":
 		if busted := g.handleRoll(room); busted {
@@ -150,7 +152,7 @@ func (g *DiceGame) HandleMessage(client interfaces.Client, room interfaces.Room,
 			}
 		}
 
-		log.Info().Int("diceIndex", action.DiceIndex).Int("length", len(state.Dice)).Msg("select coming in")
+		log.Debug().Int("diceIndex", action.DiceIndex).Int("length", len(state.Dice)).Msg("select coming in")
 
 		if err := g.handleSelect(room, action); err != nil {
 			log.Error().Int("diceIndex", action.DiceIndex).Int("length", len(state.Dice)).Msg(err.Error())

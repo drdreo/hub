@@ -132,7 +132,7 @@ func (g *DiceGame) CalculateScore(dice []int) (int, bool) {
 	// Check if all dice are used in valid combinations
 	valid := usedDiceCount == len(dice)
 
-	log.Debug().Int("final_score", score).Bool("valid", valid).Msg("Final score calculation")
+	log.Info().Int("final_score", score).Bool("valid", valid).Msg("Final score calculation")
 	return score, valid
 }
 
@@ -192,7 +192,7 @@ func (g *DiceGame) EndTurn(state *GameState) {
 
 	// Reset turn-specific variables
 	state.SetAside = make([]int, 0)
-	state.Dice = make([]int, 6)
+	state.Dice = make([]int, 6) // we count the amount of dice, this initializes the dice to 6 x 0
 	state.SelectedDice = make([]int, 0)
 
 	// Switch to next player

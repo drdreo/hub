@@ -61,7 +61,7 @@ func (r *Router) HandleMessage(client interfaces.Client, messageData []byte) {
 				client.Send(protocol.NewErrorResponse("error", err.Error()))
 			}
 		} else {
-			client.Send(protocol.NewErrorResponse("error", "Unknown message type"))
+			client.Send(protocol.NewErrorResponse("error", "Unknown message type: "+message.Type))
 		}
 	}
 }
@@ -255,14 +255,12 @@ func (r *Router) handleGameAction(client interfaces.Client, data json.RawMessage
 	}
 }
 
-
 // handleAddBot adds a bot to the current room
 func (r *Router) handleAddBot(client interfaces.Client) {
 	if client.Room() == nil {
 		client.Send(protocol.NewErrorResponse("add_bot_result", "Client not in a room"))
 		return
 	}
-
 
 	r.gameRegistry.HandleAddBot(client, client.Room())
 

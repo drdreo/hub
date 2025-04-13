@@ -1,7 +1,9 @@
 package dicegame
 
 import (
+	"encoding/json"
 	"gameserver/internal/client"
+	"gameserver/internal/interfaces"
 	"gameserver/internal/protocol"
 	"slices"
 	"time"
@@ -11,13 +13,15 @@ import (
 
 type DiceGameBot struct {
 	*client.BotClient
-	game *DiceGame
+	game      *DiceGame
+	hasRolled bool
 }
 
-func NewDiceGameBot(id string, game *DiceGame) *DiceGameBot {
+func NewDiceGameBot(id string, game *DiceGame, reg interfaces.GameRegistry) *DiceGameBot {
 	bot := &DiceGameBot{
-		BotClient: client.NewBotClient(id),
+		BotClient: client.NewBotClient(id, reg),
 		game:      game,
+		hasRolled: false,
 	}
 	bot.BotClient.SetMessageHandler(bot.handleMessage)
 	return bot
@@ -28,12 +32,14 @@ func (b *DiceGameBot) handleMessage(message *protocol.Response) {
 
 	switch message.Type {
 	case "game_state":
-		gameState, _ := b.getGameState(message)
-		if !b.isBotTurn(gameState) {
+		gameState, ok := b.getGameState(message)
+		if !ok || !gameState.Started || !b.isBotTurn(gameState) {
 			return
 		}
-		log.Error().Str("botId", b.ID()).Msg("I HAVE NO CLUE WHAT IM SUPPOSED TO DO YET")
-		b.decideTurn(gameState)
+		b.makeNextMove(gameState)
+
+	default:
+		log.Warn().Str("type", message.Type).Str("botId", b.ID()).Msg("bot could not handle data")
 	}
 }
 
@@ -53,45 +59,54 @@ func (b *DiceGameBot) isBotTurn(state *GameState) bool {
 	return false
 }
 
-func (b *DiceGameBot) decideTurn(state *GameState) {
-	if !state.Started {
+func (b *DiceGameBot) makeNextMove(state *GameState) {
+	// Add a small delay to simulate thinking
+	time.Sleep(500 * time.Millisecond)
+
+	log.Debug().Ints("dice", state.Dice).Msg("current dice")
+
+	// If we still have all dice and havent selected any dice yet, roll the dice
+	if !b.hasRolled {
+		b.sendAction("roll", nil)
+		b.hasRolled = true
 		return
 	}
 
-	// Roll the dice
-	b.sendAction("roll", nil)
-	time.Sleep(1 * time.Second) // Simulate thinking time
-
-	// Select and set aside dice until no scoring dice are left
-	for {
-		scoringIndexes := b.findScoringDie(state)
-		if len(scoringIndexes) == 0 {
-			// No scoring dice left, end turn
-			b.sendAction("end_turn", nil)
-			break
+	// If we have selected dice, set them aside
+	if len(state.SelectedDice) > 0 {
+		// Decide whether to end turn based on risk assessment
+		endTurn := b.shouldEndTurn(state)
+		b.sendAction("set_aside", map[string]bool{"endTurn": endTurn})
+		if endTurn {
+			b.hasRolled = false
 		}
-
-		// Select the scoring die
-		for _, scoringIndex := range scoringIndexes {
-			selectPayload := map[string]int{"diceIndex": scoringIndex}
-			b.sendAction("select", selectPayload)
-		}
-
-		// Simulate thinking time
-		time.Sleep(1 * time.Second)
-
-		b.sendAction("set_aside", map[string]bool{"endTurn": true})
-		// Simulate thinking time
-		time.Sleep(1 * time.Second)
+		return
 	}
+
+	// Find scoring dice to select
+	scoringIndexes := b.findScoringDiceIndexes(state)
+	log.Debug().Ints("scoringIndexes", scoringIndexes).Msg("found scoring dice")
+	if len(scoringIndexes) > 0 {
+		// Select the first scoring die
+		b.sendAction("select", map[string]int{"diceIndex": scoringIndexes[0]})
+		return
+	}
+
+	// No scoring dice left, end turn
+	b.endTurn()
 }
 
-func (b *DiceGameBot) findScoringDie(state *GameState) []int {
+func (b *DiceGameBot) endTurn() {
+	b.sendAction("end_turn", nil)
+	b.hasRolled = false
+}
+
+func (b *DiceGameBot) findScoringDiceIndexes(state *GameState) []int {
 	// Collect indices of dice that are either 1 or 5
 	return slices.Collect(func(yield func(int) bool) {
-		for _, die := range state.Dice {
+		for dieIdx, die := range state.Dice {
 			if die == 1 || die == 5 {
-				if !yield(die) {
+				if !yield(dieIdx) {
 					return
 				}
 			}
@@ -99,6 +114,16 @@ func (b *DiceGameBot) findScoringDie(state *GameState) []int {
 	})
 }
 
-func (b *DiceGameBot) sendAction(action string, data interface{}) {
-	b.BotClient.Send(protocol.NewSuccessResponse(action, data))
+func (b *DiceGameBot) shouldEndTurn(state *GameState) bool {
+	// Simple logic - end turn if we have accumulated some points
+	return len(state.SetAside) > 0
+}
+
+func (b *DiceGameBot) sendAction(action string, payload interface{}) error {
+	messageData, _ := json.Marshal(payload)
+	if err := b.BotClient.SendMessage(action, messageData); err != nil {
+		log.Error().Err(err).Str("action", action).Msg("failed to send action")
+		return err
+	}
+	return nil
 }

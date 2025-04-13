@@ -92,7 +92,7 @@ func (r *Registry) HandleClientJoin(client interfaces.Client, room interfaces.Ro
 	}
 
 	// Join the room
-	if err := room.Join(client); err != nil {
+	if err = room.Join(client); err != nil {
 		log.Error().Err(err).Str("id", room.ID()).Msg("failed to join room")
 		client.Send(protocol.NewErrorResponse("join_room_result", err.Error()))
 		return err
@@ -109,7 +109,7 @@ func (r *Registry) HandleAddBot(client interfaces.Client, room interfaces.Room) 
 		return err
 	}
 
-	botClient, err := game.OnBotAdd(client, client.Room())
+	botClient, err := game.OnBotAdd(client, client.Room(), r)
 	if err != nil {
 		return err
 	}

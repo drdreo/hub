@@ -114,7 +114,7 @@ func (g *TicTacToe) OnClientJoin(client interfaces.Client, room interfaces.Room,
 	}))
 }
 
-func (g *TicTacToe) OnBotAdd(client interfaces.Client, room interfaces.Room) (interfaces.Client, error) {
+func (g *TicTacToe) OnBotAdd(client interfaces.Client, room interfaces.Room, reg interfaces.GameRegistry) (interfaces.Client, error) {
 	return nil, errors.New("game does not support bots")
 }
 
