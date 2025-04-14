@@ -11,32 +11,61 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+const BOT_DELAY = 2000 // 2 second delay for bot actions
+
 type DiceGameBot struct {
 	*client.BotClient
-	game      *DiceGame
-	hasRolled bool
+	game              *DiceGame
+	hasRolled         bool
+	waitingForBustEnd bool
 }
 
 func NewDiceGameBot(id string, game *DiceGame, reg interfaces.GameRegistry) *DiceGameBot {
 	bot := &DiceGameBot{
-		BotClient: client.NewBotClient(id, reg),
-		game:      game,
-		hasRolled: false,
+		BotClient:         client.NewBotClient(id, reg),
+		game:              game,
+		hasRolled:         false,
+		waitingForBustEnd: false,
 	}
 	bot.BotClient.SetMessageHandler(bot.handleMessage)
 	return bot
 }
 
 func (b *DiceGameBot) handleMessage(message *protocol.Response) {
-	time.Sleep(1 * time.Second) // Simulate thinking time
+	time.Sleep(BOT_DELAY * time.Millisecond)
 
+	// TODDO: ois oasch
 	switch message.Type {
 	case "game_state":
 		gameState, ok := b.getGameState(message)
 		if !ok || !gameState.Started || !b.isBotTurn(gameState) {
 			return
 		}
+
+		// Reset flags when it's no longer the bot's turn
+		if !b.isBotTurn(gameState) {
+			b.hasRolled = false
+			b.waitingForBustEnd = false
+			return
+		}
+
+		// Don't make moves if we're waiting for a bust animation to complete
+		if b.waitingForBustEnd {
+			return
+		}
+
+		// VIBE: Reset hasRolled flag when a new turn begins
+		if b.isBotTurn(gameState) && len(gameState.Dice) == 6 && len(gameState.SetAside) == 0 {
+			b.hasRolled = false
+		}
 		b.makeNextMove(gameState)
+
+	case "error":
+		// Check for bust notification
+		if message.Error == "Busted" {
+			b.waitingForBustEnd = true
+			log.Info().Msg("Bot detected bust and will wait for turn to end")
+		}
 
 	default:
 		log.Warn().Str("type", message.Type).Str("botId", b.ID()).Msg("bot could not handle data")
@@ -61,13 +90,13 @@ func (b *DiceGameBot) isBotTurn(state *GameState) bool {
 
 func (b *DiceGameBot) makeNextMove(state *GameState) {
 	// Add a small delay to simulate thinking
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(BOT_DELAY * time.Millisecond)
 
 	log.Debug().Ints("dice", state.Dice).Msg("current dice")
 
 	// If we still have all dice and havent selected any dice yet, roll the dice
 	if !b.hasRolled {
-		if err := b.sendAction("roll", nil); err == nil{
+		if err := b.sendAction("roll", nil); err == nil {
 			b.hasRolled = true
 		}
 		return
@@ -78,9 +107,7 @@ func (b *DiceGameBot) makeNextMove(state *GameState) {
 		// Decide whether to end turn based on risk assessment
 		endTurn := b.shouldEndTurn(state)
 		b.sendAction("set_aside", map[string]bool{"endTurn": endTurn})
-		if endTurn {
-			b.hasRolled = false
-		}
+		b.hasRolled = false
 		return
 	}
 
@@ -95,6 +122,7 @@ func (b *DiceGameBot) makeNextMove(state *GameState) {
 
 	// No scoring dice left, end turn
 	b.endTurn()
+	b.hasRolled = false
 }
 
 func (b *DiceGameBot) endTurn() {

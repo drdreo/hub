@@ -225,7 +225,6 @@ func (g *DiceGame) handleRoll(room interfaces.Room) bool {
 	// the first roll can be invalid but still be scoreable
 	if score == 0 && !valid {
 		busted = true
-		g.EndTurn(state)
 	}
 
 	room.SetState(state)
@@ -331,6 +330,7 @@ func (g *DiceGame) handleSetAside(room interfaces.Room, payload SetAsideActionPa
 		}
 
 		// auto-reroll when all dice were successfully played
+		// TODO: this doesnt work
 		if len(state.Dice) == len(selectedDice) {
 			// reset set aside list
 			state.SetAside = make([]int, 0)

@@ -5,6 +5,7 @@ import (
 	"gameserver/internal/interfaces"
 	"gameserver/internal/protocol"
 	"strings"
+	"time"
 
 	// 	"math/rand"
 
@@ -140,7 +141,15 @@ func (g *DiceGame) HandleMessage(client interfaces.Client, room interfaces.Room,
 	case "roll":
 		if busted := g.handleRoll(room); busted {
 			log.Info().Msg("Player busted on roll")
-			client.Send(protocol.NewErrorResponse("error", "Busted"))
+			// Schedule the turn end after a delay to allow for animations
+			go func(roomID string, playerID string) {
+				// Wait for animation time (~2 seconds)
+				time.Sleep(2100 * time.Millisecond)
+				bustedMsg := protocol.NewErrorResponse("error", "Busted")
+				room.Broadcast(bustedMsg)
+				g.handleEndTurn(room)
+				broadcastGameState(room)
+			}(room.ID(), client.ID())
 		}
 	case "select":
 		var action SelectActionPayload
