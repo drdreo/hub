@@ -12,6 +12,8 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+const BustedAnimationDelay = 3 * time.Second // (~2-3 seconds)
+
 func NewDiceGame() *DiceGame {
 	return &DiceGame{}
 }
@@ -143,8 +145,8 @@ func (g *DiceGame) HandleMessage(client interfaces.Client, room interfaces.Room,
 			log.Info().Msg("Player busted on roll")
 			// Schedule the turn end after a delay to allow for animations
 			go func(roomID string, playerID string) {
-				// Wait for animation time (~2 seconds)
-				time.Sleep(2100 * time.Millisecond)
+				// Wait for dice animation
+				time.Sleep(BustedAnimationDelay)
 				bustedMsg := protocol.NewErrorResponse("error", "Busted")
 				room.Broadcast(bustedMsg)
 				g.handleEndTurn(room)
