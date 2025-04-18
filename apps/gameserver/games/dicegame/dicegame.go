@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"gameserver/internal/interfaces"
 	"maps"
-	"math/rand"
 	"slices"
 	"sort"
 
 	"github.com/rs/zerolog/log"
 )
 
-// DiceGame implements the game interface
+const MAX_DICE = 6
+
 type DiceGame struct{}
 
 type Player struct {
@@ -52,7 +52,7 @@ func (g *DiceGame) AddPlayer(id string, name string, state *GameState) {
 
 func (g *DiceGame) RollDice(state *GameState) {
 	for i := range state.Dice {
-		state.Dice[i] = rand.Intn(6) + 1
+		state.Dice[i] = 1 // rand.Intn(MAX_DICE) + 1
 	}
 }
 
@@ -192,7 +192,7 @@ func (g *DiceGame) EndTurn(state *GameState) {
 
 	// Reset turn-specific variables
 	state.SetAside = make([]int, 0)
-	state.Dice = make([]int, 6) // we count the amount of dice, this initializes the dice to 6 x 0
+	state.Dice = make([]int, MAX_DICE) // we count the amount of dice, this initializes the dice to 6 x 0
 	state.SelectedDice = make([]int, 0)
 
 	// Switch to next player
@@ -218,7 +218,8 @@ func (g *DiceGame) handleRoll(room interfaces.Room) bool {
 	state.SelectedDice = make([]int, 0)
 
 	if len(state.Dice) == 0 {
-		state.Dice = make([]int, 6)
+		log.Warn().Msg("dice pool is empty. resetting dice")
+		state.Dice = make([]int, MAX_DICE)
 	}
 	g.RollDice(state)
 	score, valid := g.CalculateScore(state.Dice)
@@ -237,24 +238,20 @@ func (g *DiceGame) getSelectedDiceFromIndexs(indexes []int, dice []int) ([]int, 
 	** indexes: 		[1,4]
 	** selected dice: 	[2,6]
 	**/
-	selectedDice := make([]int, len(indexes))
+	selectedDice := make([]int, 0)
 
-	for idx, selectedIdx := range indexes {
+	for _, selectedIdx := range indexes {
 		// validate that the indexes are in bounds
 		if selectedIdx < 0 || selectedIdx >= len(dice) {
 			return nil, fmt.Errorf("invalid dice selection index: %d", selectedIdx)
 		}
 
-		selectedDice[idx] = dice[selectedIdx]
+		selectedDice = append(selectedDice, dice[selectedIdx])
 	}
-
-	//	// populate dice from temporary selection
-	//	for _, idx := range indexes {
-	//		selectedDice = append(selectedDice, dice[idx])
-	//	}
 
 	// Only proceed if there are valid selections
 	if len(selectedDice) == 0 {
+		log.Debug().Ints("dice", dice).Ints("indexes", indexes).Ints("selectedDice", selectedDice).Msg("No valid dice selected")
 		return nil, errors.New("no valid dice indices to select")
 	}
 
@@ -284,16 +281,21 @@ func (g *DiceGame) handleSelect(room interfaces.Room, payload SelectActionPayloa
 		tempSelected = append(tempSelected, payload.DiceIndex)
 	}
 
-	selectedDice, err := g.getSelectedDiceFromIndexs(tempSelected, state.Dice)
-	if err != nil {
-		return err
+	score := 0
+	// if we have a selection, calculate new selected score
+	if len(tempSelected) > 0 {
+		log.Debug().Msg("No dice selected")
+
+		selectedDice, err := g.getSelectedDiceFromIndexs(tempSelected, state.Dice)
+		if err != nil {
+			return err
+		}
+
+		score, _ = g.CalculateScore(selectedDice)
+
+		log.Debug().Str("room", room.ID()).Int("score", score).Ints("selectedDice", selectedDice).Msg("selected dice")
 	}
 
-	log.Debug().Str("room", room.ID()).Any("dice", selectedDice).Msg("selected dice")
-
-	score, _ := g.CalculateScore(selectedDice)
-
-	// we update the state's selected dice even if invalid, maybe stupid
 	state.SelectedDice = tempSelected
 	if player, exists := state.Players[state.CurrentTurn]; exists {
 		player.TurnScore = score
@@ -329,12 +331,13 @@ func (g *DiceGame) handleSetAside(room interfaces.Room, payload SetAsideActionPa
 			state.SetAside = append(state.SetAside, dice)
 		}
 
-		// auto-reroll when all dice were successfully played
-		// TODO: this doesnt work
-		if len(state.Dice) == len(selectedDice) {
-			// reset set aside list
+		// reset when all dice were successfully played
+		if MAX_DICE == len(state.SetAside) {
+			log.Debug().Msg("all dice were successfully played. resetting dice")
 			state.SetAside = make([]int, 0)
-			g.RollDice(state)
+			state.Dice = make([]int, MAX_DICE)
+			// auto-roll
+			//g.RollDice(state)
 		} else {
 			// otherwise remove amount of selected dice from available dice
 			state.Dice = make([]int, len(state.Dice)-len(state.SelectedDice))

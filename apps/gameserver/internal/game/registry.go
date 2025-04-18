@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"gameserver/internal/interfaces"
-	"gameserver/internal/protocol"
 	"github.com/rs/zerolog/log"
 	"maps"
 	"slices"
@@ -94,7 +93,6 @@ func (r *Registry) HandleClientJoin(client interfaces.Client, room interfaces.Ro
 	// Join the room
 	if err = room.Join(client); err != nil {
 		log.Error().Err(err).Str("id", room.ID()).Msg("failed to join room")
-		client.Send(protocol.NewErrorResponse("join_room_result", err.Error()))
 		return err
 	}
 

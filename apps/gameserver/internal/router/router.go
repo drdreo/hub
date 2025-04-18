@@ -36,9 +36,9 @@ func NewRouter(roomManager interfaces.RoomManager, gameRegistry interfaces.GameR
 func (r *Router) HandleMessage(client interfaces.Client, messageData []byte) {
 	var message protocol.Message
 	if err := json.Unmarshal(messageData, &message); err != nil {
-		log.Error().Err(err).Msg("Invalid message format")
+		log.Error().Err(err).Msg(ErrMessageInvalid.Error())
 
-		client.Send(protocol.NewErrorResponse("error", "Invalid message format"))
+		client.Send(protocol.NewErrorResponse("error", ErrMessageInvalid.Error()))
 		return
 	}
 
@@ -69,7 +69,7 @@ func (r *Router) HandleMessage(client interfaces.Client, messageData []byte) {
 // handleCreateRoom creates a new game room
 func (r *Router) handleCreateRoom(createOptions interfaces.CreateRoomOptions) (interfaces.Room, error) {
 	if createOptions.GameType == "" {
-		return nil, errors.New("game type is required")
+		return nil, ErrGameTypeRequired
 	}
 
 	log.Debug().Fields(createOptions).Msg("client creating room")
@@ -86,19 +86,19 @@ func (r *Router) handleCreateRoom(createOptions interfaces.CreateRoomOptions) (i
 func (r *Router) handleJoinRoom(client interfaces.Client, data json.RawMessage) {
 	// prevent multi-room joining
 	if client.Room() != nil {
-		client.Send(protocol.NewErrorResponse("join_room_result", "already in room "+client.Room().ID()))
+		client.Send(protocol.NewErrorResponse("join_room_result", ErrClientAlreadyInRoom.Error()))
 		return
 	}
 
 	var joinOptions interfaces.CreateRoomOptions
 
 	if err := json.Unmarshal(data, &joinOptions); err != nil {
-		client.Send(protocol.NewErrorResponse("join_room_result", "Invalid options format"))
+		client.Send(protocol.NewErrorResponse("join_room_result", ErrGameOptionsInvalid.Error()))
 		return
 	}
 
 	if len(joinOptions.PlayerName) == 0 {
-		client.Send(protocol.NewErrorResponse("join_room_result", "player name is required"))
+		client.Send(protocol.NewErrorResponse("join_room_result", ErrPlayerNameRequired.Error()))
 		return
 	}
 
@@ -122,7 +122,7 @@ func (r *Router) handleJoinRoom(client interfaces.Client, data json.RawMessage) 
 		room = tr
 		if err != nil {
 			log.Info().Str("id", *joinOptions.RoomID).Msg("Room not found, creating new room with provided id")
-			tr, err := r.handleCreateRoom(joinOptions)
+			tr, err = r.handleCreateRoom(joinOptions)
 			room = tr
 			if err != nil {
 				log.Error().Err(err).Str("id", *joinOptions.RoomID).Msg("failed to create new room with provided id")
@@ -132,7 +132,11 @@ func (r *Router) handleJoinRoom(client interfaces.Client, data json.RawMessage) 
 		}
 	}
 
-	r.gameRegistry.HandleClientJoin(client, room, joinOptions)
+	err := r.gameRegistry.HandleClientJoin(client, room, joinOptions)
+	if err != nil {
+		client.Send(protocol.NewErrorResponse("join_room_result", err.Error()))
+		return
+	}
 
 	// Send success response
 	response := map[string]interface{}{
@@ -150,14 +154,19 @@ func (r *Router) handleLeaveRoom(client interfaces.Client) {
 	room := client.Room()
 	if room == nil {
 		log.Warn().Str("id", client.ID()).Msg("client tried to leave room but room is not set")
-		client.Send(protocol.NewErrorResponse("leave_room_result", "Client not in a room"))
+		client.Send(protocol.NewErrorResponse("leave_room_result", ErrClientWithoutRoom.Error()))
 		return
 	}
 
 	log.Debug().Str("clientID", client.ID()).Msg("client leaving room")
 
 	// Notify game about client leave
-	r.gameRegistry.HandleClientLeave(client, room)
+	err := r.gameRegistry.HandleClientLeave(client, room)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to notify game about client leave")
+		client.Send(protocol.NewErrorResponse("leave_room_result", err.Error()))
+		return
+	}
 
 	// Leave the room
 	roomID := room.ID()
@@ -179,7 +188,7 @@ func (r *Router) handleLeaveRoom(client interfaces.Client) {
 // handleReconnect tries to reconnect the new socket to an existing room
 func (r *Router) handleReconnect(client interfaces.Client, data json.RawMessage) {
 	if client.Room() != nil {
-		client.Send(protocol.NewErrorResponse("reconnect_result", "client is already in a room"))
+		client.Send(protocol.NewErrorResponse("reconnect_result", ErrClientAlreadyInRoom.Error()))
 		return
 	}
 
@@ -196,7 +205,7 @@ func (r *Router) handleReconnect(client interfaces.Client, data json.RawMessage)
 	sessionData, exists := sessionStore.GetSession(recon.ClientID)
 	if !exists {
 		log.Warn().Str("clientId", recon.ClientID).Msg("client does not have a session")
-		client.Send(protocol.NewErrorResponse("reconnect_result", "Session expired or not found"))
+		client.Send(protocol.NewErrorResponse("reconnect_result", ErrSessionInvalid.Error()))
 		return
 	}
 
@@ -215,7 +224,7 @@ func (r *Router) handleReconnect(client interfaces.Client, data json.RawMessage)
 	}
 
 	// Join room and reconnect
-	if err := targetRoom.Join(client); err != nil {
+	if err = targetRoom.Join(client); err != nil {
 		log.Error().Str("room", roomID).Err(err).Msg("client failed to join during reconnect")
 		client.Send(protocol.NewErrorResponse("reconnect_result", err.Error()))
 		return
@@ -245,7 +254,7 @@ func (r *Router) handleReconnect(client interfaces.Client, data json.RawMessage)
 // handleGameAction forwards a game-specific action to the game handler
 func (r *Router) handleGameAction(client interfaces.Client, data json.RawMessage) {
 	if client.Room() == nil {
-		client.Send(protocol.NewErrorResponse("game_action_result", "Client not in a room"))
+		client.Send(protocol.NewErrorResponse("game_action_result", ErrClientWithoutRoom.Error()))
 		return
 	}
 
@@ -258,13 +267,29 @@ func (r *Router) handleGameAction(client interfaces.Client, data json.RawMessage
 // handleAddBot adds a bot to the current room
 func (r *Router) handleAddBot(client interfaces.Client) {
 	if client.Room() == nil {
-		client.Send(protocol.NewErrorResponse("add_bot_result", "Client not in a room"))
+		client.Send(protocol.NewErrorResponse("add_bot_result", ErrClientWithoutRoom.Error()))
 		return
 	}
 
-	r.gameRegistry.HandleAddBot(client, client.Room())
+	err := r.gameRegistry.HandleAddBot(client, client.Room())
+	if err != nil {
+		client.Send(protocol.NewErrorResponse("add_bot_result", err.Error()))
+		return
+	}
 
 	log.Info().Str("roomID", client.Room().ID()).Msg("bot added to room")
 
 	client.Send(protocol.NewSuccessResponse("add_bot_result", nil))
 }
+
+// Error definitions
+var (
+	ErrClientAlreadyInRoom = errors.New("client is already in a room")
+	ErrClientWithoutRoom   = errors.New("client is not in a room")
+	ErrSessionInvalid      = errors.New("session expired or not found")
+	ErrMessageInvalid      = errors.New("invalid message format")
+
+	ErrGameTypeRequired   = errors.New("game type is required")
+	ErrGameOptionsInvalid = errors.New("game options are invalid")
+	ErrPlayerNameRequired = errors.New("player name is required")
+)
