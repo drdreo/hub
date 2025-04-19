@@ -31,23 +31,46 @@ type GameState struct {
 	FinishedAt   time.Time `json:"finishedAt"`
 }
 
+func (s *GameState) ToMap() interfaces.M {
+	return interfaces.M{
+		"players":      s.Players,
+		"started":      s.Started,
+		"over":         s.Over,
+		"currentValue": s.CurrentValue,
+		"currentTurn":  s.CurrentTurn,
+	}
+}
+
 // MovePayload represents a move action from a client
 type ReadyPayload struct {
 	Ready bool `json:"ready"`
+}
+
+type HandshakePayload struct {
+	RoomID   string `json:"room"`
+	PlayerID string `json:"playerId"`
+	UserID   string `json:"uid"`
+}
+
+type NextPlayerPayload struct {
+	NextPlayerId string `json:"nextPlayerId"`
 }
 
 func (g *Game) AddPlayer(id string, name string, state *GameState) {
 	state.Players[id] = NewPlayer(id, name)
 }
 
-// TODO: Needed?
 func (g *Game) GetPlayer(id string, state *GameState) *Player {
 	return state.Players[id]
 }
 
-func (g *Game) RemovePlayer(id string, state *GameState) {
-	delete(state.Players, id)
-	// TODO: broadcast `playerLeft` to all players
+func (g *Game) RemovePlayer(clientId string, room interfaces.Room, state *GameState) {
+	playerName := state.Players[clientId].Name
+	delete(state.Players, clientId)
+
+	g.broadcastGameEvent(room, "playerLeft", interfaces.M{
+		"username": playerName,
+	})
 }
 
 // GetPlayersAlive returns all players that are still alive
@@ -126,15 +149,8 @@ func (g *Game) start(state *GameState) {
 	state.CurrentTurn = playerIDs[rand.Intn(len(playerIDs))]
 }
 
-func (g *Game) RollDice(playerId string, state *GameState) error {
-	player := g.GetPlayer(playerId, state)
-	if player == nil {
-		return errors.New("player not found")
-	}
-
-	if player.ID != state.CurrentTurn {
-		return errors.New("not your turn")
-	}
+func (g *Game) handleRoll(client interfaces.Client, state *GameState) error {
+	player := g.GetCurrentPlayer(state)
 
 	dice := random(0, 6)
 	// Rule of 3, doesn't count
@@ -153,14 +169,18 @@ func (g *Game) RollDice(playerId string, state *GameState) error {
 		state.CurrentValue = 0
 	}
 
-	// TODO: send `rolledDice` to all players, {dice, player, total}
+	g.broadcastGameEvent(client.Room(), "rolledDice", interfaces.M{
+		"dice":   dice,
+		"player": player.ToFormattedPlayer(),
+		"total":  state.CurrentValue,
+	})
 
 	if player.IsChoosing {
 		player.IsChoosing = false
 		log.Error().Msg(" How the fuck?! Player is choosing, but should not be.")
 	}
 
-	return g.setNextPlayer(state)
+	return g.setNextPlayer(client.Room(), state)
 }
 
 /**
@@ -170,26 +190,28 @@ func (g *Game) RollDice(playerId string, state *GameState) error {
  *  2. He is choosing. Is set after he "drahs owe"
  *  3. Chosen Player is still alive. (prevent choosing of already lost players)
  */
-func (g *Game) chooseNextPlayer(playerId string, nextPlayerId string, state *GameState) {
-	currentPlayer := g.GetCurrentPlayer(state)
-	nextPlayer := state.Players[nextPlayerId]
-	if nextPlayer == nil {
-		// TODO: send NO_PLAYER game error
-		//this.sendGameError({
-		//code: GameErrorCode.NO_PLAYER,
-		//	message: "You are not part of this game!"
-		//});
-		return
+func (g *Game) handleChooseNextPlayer(client interfaces.Client, state *GameState, payload []byte) error {
+	var nextPlayerData NextPlayerPayload
+	if err := json.Unmarshal(payload, &nextPlayerData); err != nil {
+		return errors.New("invalid nextPlayer format")
 	}
 
-	if currentPlayer.ID == playerId && currentPlayer.IsChoosing && nextPlayer.Life > 0 {
+	currentPlayer := g.GetCurrentPlayer(state)
+	nextPlayer := state.Players[nextPlayerData.NextPlayerId]
+	if nextPlayer == nil {
+		return errors.New("next player is invalid")
+	}
+
+	if currentPlayer.IsChoosing && nextPlayer.Life > 0 {
 		currentPlayer.IsPlayersTurn = false
 		nextPlayer.IsPlayersTurn = true
 		currentPlayer.IsChoosing = false
-		state.CurrentTurn = nextPlayerId
+		state.CurrentTurn = nextPlayerData.NextPlayerId
 	}
 
-	// TODO: send this.sendPlayerUpdate(true);
+	g.broadcastPlayerUpdate(client.Room(), state.Players, true)
+
+	return nil
 }
 
 /**
@@ -198,7 +220,7 @@ func (g *Game) chooseNextPlayer(playerId string, nextPlayerId string, state *Gam
  *
  * Determines if the game is over, when no players are left alive.
  */
-func (g *Game) setNextPlayer(state *GameState) error {
+func (g *Game) setNextPlayer(room interfaces.Room, state *GameState) error {
 	playerIDs := g.getSortedPlayerIDs(state)
 	if len(playerIDs) == 0 {
 		return errors.New("no players while trying to set next player")
@@ -233,7 +255,7 @@ func (g *Game) setNextPlayer(state *GameState) error {
 
 	if len(alivePlayers) <= 1 {
 		winner := alivePlayers[0]
-		g.gameOver(winner.Name, state)
+		g.gameOver(room, winner.Name, state)
 	} else {
 		// Find the next player who is still alive
 		nextIndex := currentIndex
@@ -256,7 +278,7 @@ func (g *Game) setNextPlayer(state *GameState) error {
 	}
 
 	if !state.Over {
-		// TODO: send this.sendPlayerUpdate()
+		g.broadcastPlayerUpdate(room, state.Players, false)
 	}
 
 	return nil
@@ -264,13 +286,13 @@ func (g *Game) setNextPlayer(state *GameState) error {
 
 // setNextPlayerRandom selects a random player to be the next player.
 // Should only be used at the start when we have no other current player yet.
-func (g *Game) setNextPlayerRandom(state *GameState) {
+func (g *Game) setNextPlayerRandom(room interfaces.Room, state *GameState) {
 	playerIDs := g.getSortedPlayerIDs(state)
 	randomIdx := random(0, len(playerIDs)-1)
 	state.CurrentTurn = playerIDs[randomIdx]
 	g.GetCurrentPlayer(state).IsPlayersTurn = true
 
-	// TODO: send   this.sendPlayerUpdate();
+	g.broadcastPlayerUpdate(room, state.Players, false)
 }
 
 func (g *Game) getSortedPlayerIDs(state *GameState) []string {
@@ -286,87 +308,109 @@ func (g *Game) getSortedPlayerIDs(state *GameState) []string {
 	return playerIDs
 }
 
-func (g *Game) gameOver(winner string, state *GameState) {
+func (g *Game) gameOver(room interfaces.Room, winner string, state *GameState) {
 	state.Over = true
 	state.FinishedAt = time.Now()
-	// TODO: send this.sendGameOver(winner);
+
+	g.broadcastGameEvent(room, "gameOver", interfaces.M{
+		"winner": winner,
+	})
 	// restart after 5s
 	time.AfterFunc(5*time.Second, func() {
 		g.Init(state)
-		// TODO: send this.sendGameInit();
+		g.broadcastGameEvent(room, "gameInit", state.ToMap())
 	})
 }
 
 // SetStatsOnPlayer connects the player and sets the stats.
-func (g *Game) SetStatsOnPlayer(clientId string, userId string, stats interface{}, state *GameState) error {
+func (g *Game) SetStatsOnPlayer(clientId string, userId string, stats interface{}, state *GameState) {
+	log.Info().Str("clientId", clientId).Str("userId", userId).Msg("Setting registered user data")
+
 	player := g.GetPlayer(clientId, state)
-	if player == nil {
-		return errors.New("player not found")
+	player.UserID = userId
+	if stats != nil {
+		player.Stats = stats
 	}
-
-	player.IsConnected = true
-
-	if userId != "" {
-		log.Info().Str("clientId", clientId).Str("userId", userId).Msg("Setting registered user data")
-		player.UserID = userId
-		if stats != nil {
-			player.Stats = stats
-		}
-	}
-	return nil
 }
 
-func (g *Game) handleReady(client interfaces.Client, room interfaces.Room, payload []byte) {
+func (g *Game) handleReady(client interfaces.Client, state *GameState, payload []byte) {
 	var ready ReadyPayload
 	if err := json.Unmarshal(payload, &ready); err != nil {
 		client.Send(protocol.NewErrorResponse("error", "Invalid ready format"))
 		return
 	}
 
-	state := room.State().(*GameState)
 	log.Debug().Str("clientID", client.ID()).Bool("ready", ready.Ready).Msg("player sends ready")
 
-	player := g.GetPlayer(client.ID(), state)
-	if player == nil {
-		client.Send(protocol.NewErrorResponse("error", "player not found"))
-		return
-	}
-
+	player := g.GetCurrentPlayer(state)
 	player.IsReady = ready.Ready
 
 	if g.IsEveryoneReady(state) {
 		g.start(state)
 
-		// TODO: send `gameStarted`
-		g.setNextPlayerRandom(state)
+		g.broadcastGameEvent(client.Room(), "gameStarted", nil)
+		g.setNextPlayerRandom(client.Room(), state)
 		// reset everyones ready state for UI purposes
 		for _, p := range state.Players {
 			p.IsReady = false
 		}
 	}
 
-	// TODO: send  this.sendPlayerUpdate(true);
+	g.broadcastPlayerUpdate(client.Room(), state.Players, true)
 }
 
-func (g *Game) handleLoseLife(client interfaces.Client, room interfaces.Room) {
-	state := room.State().(*GameState)
+func (g *Game) handleLoseLife(client interfaces.Client, state *GameState) {
 	log.Debug().Str("clientID", client.ID()).Msg("player sends rollDice")
 
-	player := g.GetPlayer(client.ID(), state)
-	if player == nil {
-		client.Send(protocol.NewErrorResponse("error", "player not found"))
-		return
-	}
-
+	player := g.GetCurrentPlayer(state)
 	player.Life -= 1
 	player.IsChoosing = true
 	state.CurrentValue = 0
 
-	// TODO: send `lostLife` {player}
-	// TODO sendGameUpdate();
+	g.broadcastGameEvent(client.Room(), "lostLife", interfaces.M{
+		"player": player.ToFormattedPlayer(),
+	})
+}
+
+//	handleHandshake
+//
+// When a client loads the game page, they send a handshake event.
+// We connect the Client back to the Player if it was one.
+func (g *Game) handleHandshake(client interfaces.Client, state *GameState, payload []byte) {
+	p := g.GetPlayer(client.ID(), state)
+	if p == nil {
+		return
+	}
+
+	var handshake HandshakePayload
+	if err := json.Unmarshal(payload, &handshake); err != nil {
+		client.Send(protocol.NewErrorResponse("error", "Invalid ready format"))
+		return
+	}
+	log.Debug().Str("clientId", client.ID()).Str("userId", handshake.UserID).Msg("handshake")
+	if handshake.UserID != "" {
+		// TODO: Fetch user stats by handshake.UserId
+		//userStats := db.GetUserStats(handshake.UserId)
+		g.SetStatsOnPlayer(client.ID(), handshake.UserID, nil, state)
+	}
+	p.IsConnected = true
 }
 
 // random returns a random number between min and max (inclusive)
 func random(min int, max int) int {
 	return rand.Intn(max-min+1) + min
+}
+
+func (g *Game) broadcastGameEvent(room interfaces.Room, eventName string, payload interfaces.M) {
+	msg := protocol.NewSuccessResponse(eventName, payload)
+	room.Broadcast(msg)
+}
+
+// TODO: fix unsorted map of players --> sorted player array
+func (g *Game) broadcastPlayerUpdate(room interfaces.Room, players map[string]*Player, updateUI bool) {
+	msg := protocol.NewSuccessResponse("playerUpdate", interfaces.M{
+		"players":  players,
+		"updateUI": updateUI,
+	})
+	room.Broadcast(msg)
 }

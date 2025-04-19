@@ -206,6 +206,7 @@ func (r *Router) handleReconnect(client interfaces.Client, data json.RawMessage)
 	if !exists {
 		log.Warn().Str("clientId", recon.ClientID).Msg(ErrSessionInvalid.Error())
 		client.Send(protocol.NewErrorResponse("reconnect_result", ErrSessionInvalid.Error()))
+		// TODO: maybe auto-remove player from room if doesnt reconnect in a while?
 		return
 	}
 

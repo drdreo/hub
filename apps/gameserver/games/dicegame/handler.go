@@ -123,7 +123,7 @@ func (g *DiceGame) HandleMessage(client interfaces.Client, room interfaces.Room,
 		return
 	}
 
-	log.Debug().Str("type", msgType).Str("payload", string(payload)).Msg("handling message")
+	log.Debug().Str("type", msgType).Bytes("payload", payload).Msg("handling message")
 
 	switch msgType {
 	case "roll":
