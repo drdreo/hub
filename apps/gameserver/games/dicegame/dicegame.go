@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"gameserver/internal/interfaces"
 	"maps"
+	"math/rand"
 	"slices"
 	"sort"
 
@@ -52,7 +53,7 @@ func (g *DiceGame) AddPlayer(id string, name string, state *GameState) {
 
 func (g *DiceGame) RollDice(state *GameState) {
 	for i := range state.Dice {
-		state.Dice[i] = 1 // rand.Intn(MAX_DICE) + 1
+		state.Dice[i] = rand.Intn(MAX_DICE) + 1
 	}
 }
 
@@ -284,8 +285,6 @@ func (g *DiceGame) handleSelect(room interfaces.Room, payload SelectActionPayloa
 	score := 0
 	// if we have a selection, calculate new selected score
 	if len(tempSelected) > 0 {
-		log.Debug().Msg("No dice selected")
-
 		selectedDice, err := g.getSelectedDiceFromIndexs(tempSelected, state.Dice)
 		if err != nil {
 			return err
@@ -380,4 +379,22 @@ func (g *DiceGame) RemoveDice(dice []int, diceIndxes []int) []int {
 		}
 	}
 	return newDice
+}
+
+func (g *DiceGame) start(state *GameState) {
+	state.Started = true
+
+	// Randomly select the starting player
+	playerIDs := make([]string, 0, len(state.Players))
+	for id := range state.Players {
+		playerIDs = append(playerIDs, id)
+	}
+	state.CurrentTurn = playerIDs[rand.Intn(len(playerIDs))]
+	// Current player for debugging with bots
+	//for _, player := range state.Players {
+	//	log.Debug().Str("name", player.Name).Msg("SEE ME")
+	//	if !strings.Contains(player.Name, "Bot") {
+	//		state.CurrentTurn = player.ID
+	//	}
+	//}
 }

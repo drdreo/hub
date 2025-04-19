@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"gameserver/internal/interfaces"
 	"gameserver/internal/protocol"
-	"strings"
 	"time"
 
 	// 	"math/rand"
@@ -59,21 +58,7 @@ func (g *DiceGame) OnClientJoin(client interfaces.Client, room interfaces.Room, 
 
 	// If we now have 2 players, start the game
 	if len(state.Players) == 2 {
-		state.Started = true
-
-		// Randomly select first player
-		playerIDs := make([]string, 0, len(state.Players))
-		for id := range state.Players {
-			playerIDs = append(playerIDs, id)
-		}
-		// TODO: put back
-		// 		state.CurrentTurn = playerIDs[rand.Intn(len(playerIDs))]
-		for _, player := range state.Players {
-			log.Debug().Str("name", player.Name).Msg("SEE ME")
-			if !strings.Contains(player.Name, "Bot") {
-				state.CurrentTurn = player.ID
-			}
-		}
+		g.start(state)
 	}
 
 	room.SetState(state)

@@ -38,7 +38,7 @@ func (b *DiceGameBot) handleMessage(message *protocol.Response) {
 		return
 	}
 
-	// TODDO: ois oasch
+	// TODO: bot is oasch, mist und gheat neich gmocht
 	switch message.Type {
 	case "game_state":
 		gameState, ok := b.getGameState(message)
