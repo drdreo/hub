@@ -44,19 +44,22 @@ func main() {
 	// Initialize game registry
 	gameRegistry := game.NewRegistry()
 
+	// Initialize client manager
+	clientManager := client.NewManager()
+
 	// Initialize room manager
 	roomManager := room.NewRoomManager(gameRegistry)
 
 	// Initialize router
-	messageRouter := router.NewRouter(roomManager, gameRegistry)
+	messageRouter := router.NewRouter(clientManager, roomManager, gameRegistry)
 
-	// Register example game (to be replaced with real game implementations)
+	// Register all games
 	tictactoe.RegisterTicTacToeGame(gameRegistry)
 	dicegame.RegisterDiceGame(gameRegistry)
 
 	http.HandleFunc("/", homeHandler)
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		wsHandler(w, r, messageRouter)
+		wsHandler(w, r, messageRouter, clientManager)
 	})
 
 	// Add a simple endpoint to list available games
@@ -92,15 +95,17 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(`{"status": "Game server running"}`))
 }
 
-func wsHandler(w http.ResponseWriter, r *http.Request, router *router.Router) {
+func wsHandler(w http.ResponseWriter, r *http.Request, router *router.Router, clientManager *client.Manager) {
+	// Get interested game type info from query parameters
+	gameType := r.URL.Query().Get("game")
+
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Error().Err(err).Msg("Error upgrading connection")
 		return
 	}
 
-	// Create new client
-	c := client.NewWebsocketClient(conn)
+	c := client.NewWebsocketClient(conn, clientManager, gameType)
 
 	// Set message handler
 	c.OnMessage = func(message []byte) {
@@ -112,7 +117,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request, router *router.Router) {
 
 	// Send welcome message
 	welcomeMsg := protocol.NewSuccessResponse("welcome", interfaces.M{
-		"message": "Connected to game server",
+		"message": "Connected to game server. Interested in game: " + gameType,
 	})
 	c.Send(welcomeMsg)
 }
@@ -136,10 +141,10 @@ func roomHandler(w http.ResponseWriter, roomManager *room.RoomManager) {
 	w.Header().Set("Content-Type", "application/json")
 
 	rooms := roomManager.ListRooms()
-	response := make([]map[string]interface{}, 0, len(rooms))
+	response := make([]interfaces.M, 0, len(rooms))
 
 	for _, r := range rooms {
-		roomInfo := map[string]interface{}{
+		roomInfo := interfaces.M{
 			"id":          r.ID(),
 			"type":        r.GameType(),
 			"clientCount": len(r.Clients()),

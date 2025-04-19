@@ -35,10 +35,17 @@ type CreateRoomOptions struct {
 	Options    json.RawMessage `json:"options,omitempty"`
 }
 
+type ClientManager interface {
+	RegisterClient(client Client, gameType string)
+	UnregisterClient(client Client)
+	GetClientsByGameType(gameType string) []Client
+}
+
 type RoomManager interface {
 	CreateRoom(createOptions CreateRoomOptions) (Room, error)
 	GetRoom(roomID string) (Room, error)
 	RemoveRoom(roomID string)
+	GetAllRoomsByGameType(gameType string) []Room
 }
 
 // Game defines the interface for game implementations

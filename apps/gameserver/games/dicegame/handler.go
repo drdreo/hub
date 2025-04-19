@@ -91,6 +91,7 @@ func (g *DiceGame) OnBotAdd(client interfaces.Client, room interfaces.Room, reg 
 func (g *DiceGame) OnClientLeave(client interfaces.Client, room interfaces.Room) {
 	state := room.State().(*GameState)
 	if state.CurrentTurn == client.ID() {
+		log.Info().Str("clientId", client.ID()).Msg("client left. Ending players turn")
 		g.EndTurn(state)
 	}
 	room.SetState(state)

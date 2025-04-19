@@ -24,8 +24,9 @@ func TestDiceGameIntegration(t *testing.T) {
 	// Set up the complete system with real components
 	registry := game.NewRegistry()
 	RegisterDiceGame(registry)
+	clientManager := client.NewManager()
 	roomManager := room.NewRoomManager(registry)
-	testRouter := router.NewRouter(roomManager, registry)
+	testRouter := router.NewRouter(clientManager, roomManager, registry)
 
 	// Create mock clients
 	client1 := client.NewClientMock("player1")

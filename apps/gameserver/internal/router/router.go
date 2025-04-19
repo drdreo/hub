@@ -6,14 +6,14 @@ import (
 	"gameserver/internal/interfaces"
 	"gameserver/internal/protocol"
 	"gameserver/internal/session"
-
 	"github.com/rs/zerolog/log"
 )
 
 // Router handles WebSocket message routing
 type Router struct {
-	roomManager  interfaces.RoomManager
-	gameRegistry interfaces.GameRegistry
+	clientManager interfaces.ClientManager
+	roomManager   interfaces.RoomManager
+	gameRegistry  interfaces.GameRegistry
 }
 
 // ReconnectPayload the reconnect message
@@ -22,13 +22,20 @@ type ReconnectPayload struct {
 	RoomID   string `json:"roomId"`
 }
 
+type RoomListInfo struct {
+	RoomId      string `json:"roomId"`
+	PlayerCount int    `json:"playerCount"`
+	GameStarted bool   `json:"started"`
+}
+
 // NewRouter creates a new message router
-func NewRouter(roomManager interfaces.RoomManager, gameRegistry interfaces.GameRegistry) *Router {
+func NewRouter(clientManager interfaces.ClientManager, roomManager interfaces.RoomManager, gameRegistry interfaces.GameRegistry) *Router {
 	log.Debug().Msg("creating new router")
 
 	return &Router{
-		roomManager:  roomManager,
-		gameRegistry: gameRegistry,
+		clientManager: clientManager,
+		roomManager:   roomManager,
+		gameRegistry:  gameRegistry,
 	}
 }
 
@@ -138,7 +145,6 @@ func (r *Router) handleJoinRoom(client interfaces.Client, data json.RawMessage) 
 		return
 	}
 
-	// Send success response
 	response := map[string]interface{}{
 		"clientId": client.ID(),
 		"roomId":   room.ID(),
@@ -147,6 +153,7 @@ func (r *Router) handleJoinRoom(client interfaces.Client, data json.RawMessage) 
 	log.Info().Str("roomID", room.ID()).Msg("client joined room")
 
 	client.Send(protocol.NewSuccessResponse("join_room_result", response))
+	r.broadCastRoomListChange(room.GameType())
 }
 
 // handleLeaveRoom leaves the current room
@@ -157,8 +164,8 @@ func (r *Router) handleLeaveRoom(client interfaces.Client) {
 		client.Send(protocol.NewErrorResponse("leave_room_result", ErrClientWithoutRoom.Error()))
 		return
 	}
-
-	log.Debug().Str("clientID", client.ID()).Msg("client leaving room")
+	roomID := room.ID()
+	log.Debug().Str("clientID", client.ID()).Str("roomID", roomID).Msg("client leaving room")
 
 	// Notify game about client leave
 	err := r.gameRegistry.HandleClientLeave(client, room)
@@ -168,21 +175,13 @@ func (r *Router) handleLeaveRoom(client interfaces.Client) {
 		return
 	}
 
-	// Leave the room
-	roomID := room.ID()
 	room.Leave(client)
-	if room.IsClosed() {
-		r.roomManager.RemoveRoom(roomID)
-	}
 	client.SetRoom(nil)
 
-	response := map[string]string{
-		"roomId": roomID,
-	}
+	log.Info().Str("clientId", client.ID()).Str("roomID", roomID).Msg("client left room")
 
-	log.Info().Str("roomID", roomID).Msg("client left room")
-
-	client.Send(protocol.NewSuccessResponse("leave_room_result", response))
+	client.Send(protocol.NewSuccessResponse("leave_room_result", nil))
+	r.broadCastRoomListChange(room.GameType())
 }
 
 // handleReconnect tries to reconnect the new socket to an existing room
@@ -200,11 +199,10 @@ func (r *Router) handleReconnect(client interfaces.Client, data json.RawMessage)
 
 	log.Debug().Str("oldClientID", recon.ClientID).Str("newClientID", client.ID()).Msg("client reconnecting to room")
 
-	// Get session store
 	sessionStore := session.GetSessionStore()
 	sessionData, exists := sessionStore.GetSession(recon.ClientID)
 	if !exists {
-		log.Warn().Str("clientId", recon.ClientID).Msg("client does not have a session")
+		log.Warn().Str("clientId", recon.ClientID).Msg(ErrSessionInvalid.Error())
 		client.Send(protocol.NewErrorResponse("reconnect_result", ErrSessionInvalid.Error()))
 		return
 	}
@@ -280,6 +278,45 @@ func (r *Router) handleAddBot(client interfaces.Client) {
 	log.Info().Str("roomID", client.Room().ID()).Msg("bot added to room")
 
 	client.Send(protocol.NewSuccessResponse("add_bot_result", nil))
+}
+
+func (r *Router) broadCastRoomListChange(gameType string) {
+	// find all clients that are connected to a certain game type and inform them of the room list change
+	rooms := r.roomManager.GetAllRoomsByGameType(gameType)
+
+	roomList := make([]RoomListInfo, 0)
+	for _, room := range rooms {
+		clients := room.Clients()
+
+		// Safely check the Started property from room state
+		started := false
+		if state := room.State(); state != nil {
+			if stateMap, ok := state.(map[string]interface{}); ok {
+				if startedVal, exists := stateMap["Started"]; exists {
+					started, _ = startedVal.(bool)
+				}
+			}
+		}
+
+		roomInfo := RoomListInfo{
+			RoomId:      room.ID(),
+			PlayerCount: len(clients),
+			GameStarted: started,
+		}
+		roomList = append(roomList, roomInfo)
+	}
+
+	response := protocol.NewSuccessResponse("room_list_update", roomList)
+
+	gameClients := r.clientManager.GetClientsByGameType(gameType)
+	r.BroadcastTo(response, gameClients)
+}
+
+// BroadcastTo sends a message to specific clients
+func (r *Router) BroadcastTo(message *protocol.Response, clients []interfaces.Client) {
+	for _, client := range clients {
+		client.Send(message)
+	}
 }
 
 // Error definitions

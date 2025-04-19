@@ -4,6 +4,7 @@ import (
 	"errors"
 	"gameserver/internal/interfaces"
 	"gameserver/internal/protocol"
+	"maps"
 	"sync"
 
 	"github.com/rs/zerolog/log"
@@ -15,14 +16,15 @@ import (
 type GameRoom struct {
 	id       string
 	gameType string
+	manager  interfaces.RoomManager
 	clients  map[string]interfaces.Client
 	state    interface{}
-	mu       sync.RWMutex
 	closed   bool
+	mu       sync.RWMutex
 }
 
 // NewRoom creates a new game room
-func NewRoom(gameType string, roomId *string) *GameRoom {
+func NewRoom(manager interfaces.RoomManager, gameType string, roomId *string) *GameRoom {
 	var id string
 	if roomId == nil || len(*roomId) == 0 {
 		id = uuid.New().String()
@@ -34,6 +36,7 @@ func NewRoom(gameType string, roomId *string) *GameRoom {
 		id:       id,
 		gameType: gameType,
 		clients:  make(map[string]interfaces.Client),
+		manager:  manager,
 		closed:   false,
 	}
 }
@@ -59,12 +62,12 @@ func (room *GameRoom) Join(client interfaces.Client) error {
 	defer room.mu.Unlock()
 	log.Debug().Str("room", room.ID()).Str("client", client.ID()).Msg("client joining")
 
-	// First, check if room is closed (only taking room lock briefly)
+	// First, check if the room is closed
 	if room.closed {
 		return ErrRoomClosed
 	}
 
-	// Leave old room
+	// Leave the old room if it was different
 	oldRoom := client.Room()
 	if oldRoom != nil && oldRoom.ID() != room.id {
 		oldRoom.Leave(client)
@@ -100,6 +103,10 @@ func (room *GameRoom) Leave(client interfaces.Client) {
 	// Close room if empty
 	if len(room.clients) == 0 && !room.closed {
 		room.Close()
+		// auto-remove from manager if manager exists
+		if room.manager != nil {
+			room.manager.RemoveRoom(room.ID())
+		}
 	}
 }
 
@@ -129,13 +136,7 @@ func (room *GameRoom) Clients() map[string]interfaces.Client {
 	room.mu.RLock()
 	defer room.mu.RUnlock()
 
-	// Return a copy to avoid race conditions
-	clientsCopy := make(map[string]interfaces.Client)
-	for id, client := range room.clients {
-		clientsCopy[id] = client
-	}
-
-	return clientsCopy
+	return maps.Clone(room.clients)
 }
 
 // State returns the room's current state
@@ -158,6 +159,7 @@ func (room *GameRoom) Close() {
 		return
 	}
 
+	log.Info().Str("roomId", room.ID()).Msg("room closing")
 	room.closed = true
 
 	// Notify all clients

@@ -7,13 +7,16 @@ import (
 )
 
 func TestRoom(t *testing.T) {
+	managerMock := NewRoomManagerMock()
+
 	t.Run("client_join_behavior", func(t *testing.T) {
+
 		// Create mock clients
 		client1 := client.NewClientMock("client1")
 		client2 := client.NewClientMock("client2")
 
 		// Create room and add clients
-		room := NewRoom("testGame", nil)
+		room := NewRoom(managerMock, "testGame", nil)
 		room.Join(client1)
 
 		// At this point, client1 shouldn't have messages since it's the first to join
@@ -61,7 +64,7 @@ func TestRoom(t *testing.T) {
 		client3 := client.NewClientMock("client3")
 
 		// Create room and add clients
-		room := NewRoom("testGame", nil)
+		room := NewRoom(managerMock, "testGame", nil)
 		room.Join(client1)
 		room.Join(client2)
 		room.Join(client3)
@@ -106,7 +109,7 @@ func TestRoom(t *testing.T) {
 		client1 := client.NewClientMock("client1")
 		client2 := client.NewClientMock("client2")
 
-		room := NewRoom("testGame", nil)
+		room := NewRoom(managerMock, "testGame", nil)
 		room.Join(client1)
 		room.Join(client2)
 
@@ -147,7 +150,7 @@ func TestRoom(t *testing.T) {
 		client1 := client.NewClientMock("client1")
 		client2 := client.NewClientMock("client2")
 
-		room := NewRoom("testGame", nil)
+		room := NewRoom(managerMock, "testGame", nil)
 		room.Join(client1)
 		room.Join(client2)
 

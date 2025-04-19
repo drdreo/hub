@@ -16,8 +16,9 @@ func TestRouter(t *testing.T) {
 
 	registry := game.NewRegistry()
 	testgame.RegisterTestGame(registry)
+	clientManager := client.NewManager()
 	roomManager := room.NewRoomManager(registry)
-	router := NewRouter(roomManager, registry)
+	router := NewRouter(clientManager, roomManager, registry)
 
 	t.Run("invalid message format", func(t *testing.T) {
 		client1 := client.NewClientMock("test1")
@@ -218,17 +219,17 @@ func TestRouter(t *testing.T) {
 
 	t.Run("add bot flow", func(t *testing.T) {
 		client1 := client.NewClientMock("client9")
-		msg := testicles.CreateMessage("join_room", map[string]interface{}{
+		joinMsg := testicles.CreateMessage("join_room", map[string]interface{}{
 			"gameType":   "testGame",
 			"playerName": "tester-1",
 		})
-		router.HandleMessage(client1, msg)
+		router.HandleMessage(client1, joinMsg)
 
 		// Clear messages from join
 		client1.ClearMessages()
 
-		msg = testicles.CreateMessage("add_bot", nil)
-		router.HandleMessage(client1, msg)
+		addBotMsg := testicles.CreateMessage("add_bot", nil)
+		router.HandleMessage(client1, addBotMsg)
 
 		// Check the response
 		messages := client1.GetSentMessages()
@@ -252,7 +253,7 @@ func TestRouter(t *testing.T) {
 		}
 
 		if !botResponse.Success {
-			t.Errorf("add_bot should succeed but got failure")
+			t.Errorf("add_bot should succeed but got failure. Error: %s", botResponse.Error)
 		}
 	})
 
