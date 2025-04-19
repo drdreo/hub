@@ -92,19 +92,6 @@ func (room *GameRoom) Leave(client interfaces.Client) {
 	if _, exists := room.clients[client.ID()]; exists {
 		delete(room.clients, client.ID())
 
-		// Log client type for monitoring
-		if client.IsBot() {
-			log.Info().
-				Str("roomId", room.ID()).
-				Str("botId", client.ID()).
-				Msg("bot client left room")
-		} else {
-			log.Info().
-				Str("roomId", room.ID()).
-				Str("clientId", client.ID()).
-				Msg("human client left room")
-		}
-
 		// Notify other clients about the departure
 		leaveMessage := protocol.NewSuccessResponse("client_left", map[string]interface{}{
 			"clientId": client.ID(),
