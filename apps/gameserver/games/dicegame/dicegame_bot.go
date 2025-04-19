@@ -27,18 +27,22 @@ func NewDiceGameBot(id string, game *DiceGame, reg interfaces.GameRegistry) *Dic
 		hasRolled:         false,
 		waitingForBustEnd: false,
 	}
-	bot.BotClient.SetMessageHandler(bot.handleMessage)
+	bot.SetMessageHandler(bot.handleMessage)
 	return bot
 }
 
 func (b *DiceGameBot) handleMessage(message *protocol.Response) {
-	time.Sleep(BOT_DELAY * time.Millisecond)
+	// First check if we should still process this message
+	if b.Context().Err() != nil {
+		log.Debug().Str("botId", b.ID()).Msg("Context canceled, ignoring message")
+		return
+	}
 
 	// TODDO: ois oasch
 	switch message.Type {
 	case "game_state":
 		gameState, ok := b.getGameState(message)
-		if !ok || !gameState.Started || !b.isBotTurn(gameState) {
+		if !ok || !gameState.Started {
 			return
 		}
 
@@ -91,6 +95,19 @@ func (b *DiceGameBot) isBotTurn(state *GameState) bool {
 func (b *DiceGameBot) makeNextMove(state *GameState) {
 	// Add a small delay to simulate thinking
 	time.Sleep(BOT_DELAY * time.Millisecond)
+
+	// Check context before proceeding
+	if b.Context().Err() != nil {
+		log.Debug().Str("botId", b.ID()).Msg("Context canceled, not making moves")
+		return
+	}
+
+	// Additionally check if the room is still valid
+	room := b.Room()
+	if room == nil || room.IsClosed() {
+		log.Debug().Str("botId", b.ID()).Msg("Room is closed or nil, not making moves")
+		return
+	}
 
 	log.Debug().Ints("dice", state.Dice).Msg("current dice")
 
@@ -150,7 +167,7 @@ func (b *DiceGameBot) shouldEndTurn(state *GameState) bool {
 
 func (b *DiceGameBot) sendAction(action string, payload interface{}) error {
 	messageData, _ := json.Marshal(payload)
-	if err := b.BotClient.SendMessage(action, messageData); err != nil {
+	if err := b.SendMessage(action, messageData); err != nil {
 		log.Error().Err(err).Str("action", action).Msg("failed to send action")
 		return err
 	}

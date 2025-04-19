@@ -92,6 +92,19 @@ func (room *GameRoom) Leave(client interfaces.Client) {
 	if _, exists := room.clients[client.ID()]; exists {
 		delete(room.clients, client.ID())
 
+		// Log client type for monitoring
+		if client.IsBot() {
+			log.Info().
+				Str("roomId", room.ID()).
+				Str("botId", client.ID()).
+				Msg("bot client left room")
+		} else {
+			log.Info().
+				Str("roomId", room.ID()).
+				Str("clientId", client.ID()).
+				Msg("human client left room")
+		}
+
 		// Notify other clients about the departure
 		leaveMessage := protocol.NewSuccessResponse("client_left", map[string]interface{}{
 			"clientId": client.ID(),
@@ -100,8 +113,16 @@ func (room *GameRoom) Leave(client interfaces.Client) {
 		room.Broadcast(leaveMessage)
 	}
 
-	// Close room if empty
-	if len(room.clients) == 0 && !room.closed {
+	// Close room if no human clients remain
+	humanClientExists := false
+	for _, c := range room.clients {
+		if !c.IsBot() {
+			humanClientExists = true
+			break
+		}
+	}
+
+	if !humanClientExists {
 		room.Close()
 		// auto-remove from manager if manager exists
 		if room.manager != nil {
@@ -168,6 +189,14 @@ func (room *GameRoom) Close() {
 	})
 
 	room.Broadcast(closeMessage)
+
+	// Explicitly close all bot clients to ensure proper cleanup
+	for id, client := range room.clients {
+		if client.IsBot() {
+			log.Info().Str("roomId", room.ID()).Str("botId", id).Msg("closing bot client")
+			client.Close()
+		}
+	}
 }
 
 // Error definitions

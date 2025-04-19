@@ -12,6 +12,7 @@ type Client interface {
 	Room() Room
 	SetRoom(room Room)
 	Close()
+	IsBot() bool
 }
 
 type Room interface {

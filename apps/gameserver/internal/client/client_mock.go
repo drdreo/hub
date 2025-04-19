@@ -20,6 +20,10 @@ func (m *ClientMock) ID() string {
 	return m.id
 }
 
+func (m *ClientMock) IsBot() bool {
+	return false
+}
+
 func (m *ClientMock) Send(message *protocol.Response) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()

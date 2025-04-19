@@ -78,6 +78,11 @@ func (c *WebSocketClient) Send(response *protocol.Response) error {
 	}
 }
 
+// IsBot returns false for WebSocketClient as it represents a human player
+func (c *WebSocketClient) IsBot() bool {
+	return false
+}
+
 // Room returns the client's current room
 func (c *WebSocketClient) Room() interfaces.Room {
 	c.mu.Lock()

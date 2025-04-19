@@ -39,7 +39,7 @@ func (r *Registry) GetGame(gameType string) (interfaces.Game, error) {
 
 	game, exists := r.games[gameType]
 	if !exists {
-		return nil, errors.New("game type not registered")
+		return nil, ErrGameTypeNotFound
 	}
 
 	return game, nil
@@ -58,7 +58,11 @@ func (r *Registry) HasGame(gameType string) bool {
 func (r *Registry) HandleMessage(client interfaces.Client, msgType string, data []byte) error {
 	room := client.Room()
 	if room == nil {
-		return errors.New("client not in a room")
+		return ErrClientNotInRoom
+	}
+
+	if room.IsClosed() {
+		return ErrRoomIsClosed
 	}
 
 	gameType := room.GameType()
@@ -148,3 +152,9 @@ func (r *Registry) ListGames() []string {
 
 	return slices.Collect(maps.Keys(r.games))
 }
+
+var (
+	ErrClientNotInRoom  = errors.New("client not in room")
+	ErrGameTypeNotFound = errors.New("game type not found")
+	ErrRoomIsClosed     = errors.New("room is closed")
+)
