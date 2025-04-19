@@ -2,62 +2,62 @@
 
 ## Data Flow
 
-- Store client ID and room ID for reconnect in session storage, not local storage to avoid shared data issues between
-  browser tabs.
+-   Store client ID and room ID for reconnect in session storage, not local storage to avoid shared data issues between
+    browser tabs.
 
 ### Client Events
 
 Client can send these events to the server:
 
-- `create_room`: Creates a new game room and joins it automatically
-    - Payload: `{ gameType: string, options?: object }`
-    - Response: `create_room_result`
-- `join_room`: Joins an existing room by ID
-    - Payload: `{ roomId: string }`
-    - Response: `join_room_result`
-- `leave_room`: Explicitly leave the current room
-    - Payload: `{}`
-    - Response: `leave_room_result`
-- `reconnect`: Attempt to reconnect to a previously joined room
-    - Payload: `{ roomId?: string, clientId: string }`
-    - Response: `reconnect_result`
-- `game_action`: Generic wrapper for game-specific actions (like `make_move`)
-    - Payload: Varies by game
-    - Response: `game_action_result`
-    - not required to stick to `game_action`, any message will be routed to the game
+-   `create_room`: Creates a new game room and joins it automatically
+    -   Payload: `{ gameType: string, options?: object }`
+    -   Response: `create_room_result`
+-   `join_room`: Joins an existing room by ID
+    -   Payload: `{ roomId: string }`
+    -   Response: `join_room_result`
+-   `leave_room`: Explicitly leave the current room
+    -   Payload: `{}`
+    -   Response: `leave_room_result`
+-   `reconnect`: Attempt to reconnect to a previously joined room
+    -   Payload: `{ roomId?: string, clientId: string }`
+    -   Response: `reconnect_result`
+-   `game_action`: Generic wrapper for game-specific actions (like `make_move`)
+    -   Payload: Varies by game
+    -   Response: `game_action_result`
+    -   not required to stick to `game_action`, any message will be routed to the game
 
 ### Server Events
 
 Server sends these events to clients:
 
-- `welcome`: Initial connection established
-- `create_room_result`: Result when creating a room
-    - Data: `{ roomId: string, gameType: string }`
-- `join_room_result`: Result when joining a room
-    - Data: `{ roomId: string, gameType: string, clients: number }`
-- `leave_room_result`: Result when leaving a room
-    - Data: `{ roomId: string }`
-- `reconnect_result`: Result of reconnection attempt
-    - Data: `{ gameType: string, roomId: string }`
-- `client_joined`: Notification when another client joins the room
-    - Data: `{ clientId: string }`
-- `client_left`: Notification when another client leaves the room
-    - Data: `{ clientId: string }`
-- `room_closed`: Notification when a room is closed
-    - Data: `{ roomId: string }`
-- `room_list_update`: Notification when the game specific room list changed
-    - Data: `{ roomId: string, playerCount: number, started: boolean }`
+-   `welcome`: Initial connection established
+-   `create_room_result`: Result when creating a room
+    -   Data: `{ roomId: string, gameType: string }`
+-   `join_room_result`: Result when joining a room
+    -   Data: `{ roomId: string, gameType: string, clients: number }`
+-   `leave_room_result`: Result when leaving a room
+    -   Data: `{ roomId: string }`
+-   `reconnect_result`: Result of reconnection attempt
+    -   Data: `{ gameType: string, roomId: string }`
+-   `client_joined`: Notification when another client joins the room
+    -   Data: `{ clientId: string }`
+-   `client_left`: Notification when another client leaves the room
+    -   Data: `{ clientId: string }`
+-   `room_closed`: Notification when a room is closed
+    -   Data: `{ roomId: string }`
+-   `room_list_update`: Notification when the game specific room list changed
+    -   Data: `{ roomId: string, playerCount: number, started: boolean }`
 
 ### Game-Specific Events
 
 Each game can implement these events to handle extra data synchronization:
 
-- `joined`: Successfully joined a game room
-    - Data: `{ clientId: string, roomId: string, symbol: string, ... }`
-- `reconnected`: Successfully reconnected to a game room
-    - Data: `{ clientId: string, roomId: string, symbol: string, ... }`
-- `game_state`: Current state of the game (sent after every state change)
-    - Data: `{ board: any, players: object, currentTurn: string, ... }`
+-   `joined`: Successfully joined a game room
+    -   Data: `{ clientId: string, roomId: string, symbol: string, ... }`
+-   `reconnected`: Successfully reconnected to a game room
+    -   Data: `{ clientId: string, roomId: string, symbol: string, ... }`
+-   `game_state`: Current state of the game (sent after every state change)
+    -   Data: `{ board: any, players: object, currentTurn: string, ... }`
 
 ## Implementation Tips
 
@@ -157,26 +157,26 @@ common infrastructure.
 
 ### Connection Management
 
-- WebSocket connection handling using Gorilla WebSocket
-- Client session tracking and lifecycle management
+-   WebSocket connection handling using Gorilla WebSocket
+-   Client session tracking and lifecycle management
 
 ### Room System
 
-- Room creation and management
-- Room joining/leaving/reconnecting logic
-- Targeted message broadcasting (to specific clients or rooms)
-- Room state persistence
+-   Room creation and management
+-   Room joining/leaving/reconnecting logic
+-   Targeted message broadcasting (to specific clients or rooms)
+-   Room state persistence
 
 ### Message Routing
 
-- Protocol-based message routing
-- Game-specific message handling
-- Efficient message distribution
+-   Protocol-based message routing
+-   Game-specific message handling
+-   Efficient message distribution
 
 ### Game Registry
 
-- Centralized registry for game implementations
-- Game-specific configuration and initialization
+-   Centralized registry for game implementations
+-   Game-specific configuration and initialization
 
 ## Architecture Diagram
 
