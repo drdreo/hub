@@ -4,7 +4,10 @@ import (
 	"errors"
 	"gameserver/internal/interfaces"
 	"gameserver/internal/protocol"
+	"maps"
 	"sync"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/google/uuid"
 )
@@ -13,14 +16,15 @@ import (
 type GameRoom struct {
 	id       string
 	gameType string
+	manager  interfaces.RoomManager
 	clients  map[string]interfaces.Client
 	state    interface{}
-	mu       sync.RWMutex
 	closed   bool
+	mu       sync.RWMutex
 }
 
 // NewRoom creates a new game room
-func NewRoom(gameType string, roomId *string) *GameRoom {
+func NewRoom(manager interfaces.RoomManager, gameType string, roomId *string) *GameRoom {
 	var id string
 	if roomId == nil || len(*roomId) == 0 {
 		id = uuid.New().String()
@@ -32,6 +36,7 @@ func NewRoom(gameType string, roomId *string) *GameRoom {
 		id:       id,
 		gameType: gameType,
 		clients:  make(map[string]interfaces.Client),
+		manager:  manager,
 		closed:   false,
 	}
 }
@@ -46,16 +51,23 @@ func (room *GameRoom) GameType() string {
 	return room.gameType
 }
 
+// IsClosed returns the room's closed status
+func (room *GameRoom) IsClosed() bool {
+	return room.closed
+}
+
 // Join adds a client to the room
 func (room *GameRoom) Join(client interfaces.Client) error {
 	room.mu.Lock()
 	defer room.mu.Unlock()
+	log.Debug().Str("room", room.ID()).Str("client", client.ID()).Msg("client joining")
 
+	// First, check if the room is closed
 	if room.closed {
 		return ErrRoomClosed
 	}
 
-	// Leave old room
+	// Leave the old room if it was different
 	oldRoom := client.Room()
 	if oldRoom != nil && oldRoom.ID() != room.id {
 		oldRoom.Leave(client)
@@ -77,9 +89,6 @@ func (room *GameRoom) Join(client interfaces.Client) error {
 
 // Leave removes a client from the room
 func (room *GameRoom) Leave(client interfaces.Client) {
-	room.mu.Lock()
-	defer room.mu.Unlock()
-
 	if _, exists := room.clients[client.ID()]; exists {
 		delete(room.clients, client.ID())
 
@@ -91,9 +100,21 @@ func (room *GameRoom) Leave(client interfaces.Client) {
 		room.Broadcast(leaveMessage)
 	}
 
-	// Close room if empty
-	if len(room.clients) == 0 && !room.closed {
-		room.closed = true
+	// Close room if no human clients remain
+	humanClientExists := false
+	for _, c := range room.clients {
+		if !c.IsBot() {
+			humanClientExists = true
+			break
+		}
+	}
+
+	if !humanClientExists {
+		room.Close()
+		// auto-remove from manager if manager exists
+		if room.manager != nil {
+			room.manager.RemoveRoom(room.ID())
+		}
 	}
 }
 
@@ -123,13 +144,7 @@ func (room *GameRoom) Clients() map[string]interfaces.Client {
 	room.mu.RLock()
 	defer room.mu.RUnlock()
 
-	// Return a copy to avoid race conditions
-	clientsCopy := make(map[string]interfaces.Client)
-	for id, client := range room.clients {
-		clientsCopy[id] = client
-	}
-
-	return clientsCopy
+	return maps.Clone(room.clients)
 }
 
 // State returns the room's current state
@@ -148,13 +163,11 @@ func (room *GameRoom) SetState(state interface{}) {
 
 // Close terminates the room and disconnects all clients
 func (room *GameRoom) Close() {
-	room.mu.Lock()
-	defer room.mu.Unlock()
-
 	if room.closed {
 		return
 	}
 
+	log.Info().Str("roomId", room.ID()).Msg("room closing")
 	room.closed = true
 
 	// Notify all clients
@@ -163,6 +176,14 @@ func (room *GameRoom) Close() {
 	})
 
 	room.Broadcast(closeMessage)
+
+	// Explicitly close all bot clients to ensure proper cleanup
+	for id, client := range room.clients {
+		if client.IsBot() {
+			log.Info().Str("roomId", room.ID()).Str("botId", id).Msg("closing bot client")
+			client.Close()
+		}
+	}
 }
 
 // Error definitions

@@ -2,7 +2,8 @@
 
 ## Data Flow
 
--   Store client ID and room ID for reconnect in session storage, not local storage to avoid shared data issues between browser tabs.
+-   Store client ID and room ID for reconnect in session storage, not local storage to avoid shared data issues between
+    browser tabs.
 
 ### Client Events
 
@@ -42,6 +43,10 @@ Server sends these events to clients:
     -   Data: `{ clientId: string }`
 -   `client_left`: Notification when another client leaves the room
     -   Data: `{ clientId: string }`
+-   `room_closed`: Notification when a room is closed
+    -   Data: `{ roomId: string }`
+-   `room_list_update`: Notification when the game specific room list changed
+    -   Data: `{ roomId: string, playerCount: number, started: boolean }`
 
 ### Game-Specific Events
 
@@ -80,10 +85,7 @@ Each game can implement these events to handle extra data synchronization:
 
     - Ensure all state changes are atomic
     - Use proper locking for concurrent access to shared resources
-
-2. **Testing**
-    - Test reconnection scenarios extensively
-    - Verify behavior with multiple clients
+    - Register game handlers through the game registry
 
 ## Example: Minimal Client Setup
 
@@ -157,12 +159,11 @@ common infrastructure.
 
 -   WebSocket connection handling using Gorilla WebSocket
 -   Client session tracking and lifecycle management
--   Bidirectional communication with browser clients
 
 ### Room System
 
--   Dynamic room creation and management
--   Room joining/leaving logic
+-   Room creation and management
+-   Room joining/leaving/reconnecting logic
 -   Targeted message broadcasting (to specific clients or rooms)
 -   Room state persistence
 
@@ -175,7 +176,6 @@ common infrastructure.
 ### Game Registry
 
 -   Centralized registry for game implementations
--   Dynamic loading of game logic
 -   Game-specific configuration and initialization
 
 ## Architecture Diagram
@@ -185,7 +185,7 @@ common infrastructure.
 │                      Game Server (Go)                          │
 │                                                                │
 │  ┌─────────────┐   ┌─────────────┐   ┌─────────────────────┐   │
-│  │  WebSocket  │   │    Room     │   │   Game Registry     │   │
+│  │  Client     │   │    Room     │   │   Game Registry     │   │
 │  │  Manager    │◄──┤   Manager   │◄──┤                     │   │
 │  └─────┬───────┘   └─────┬───────┘   │  ┌───────────────┐  │   │
 │        │                 │           │  │ Chess Game    │  │   │
@@ -210,42 +210,61 @@ common infrastructure.
 ## Key Interfaces
 
 ```go
-// Client interface
+package docs
+
+import "encoding/json"
+
+// interfaces/interfaces.go
+
 type Client interface {
-ID() string
-Send(message []byte) error
-Room() Room
-SetRoom(room Room)
-Close()
+	ID() string
+	Send(message []byte) error
+	Room() Room
+	SetRoom(room Room)
+	Close()
 }
 
-// Room interface
 type Room interface {
-ID() string
-GameType() string
-Join(client Client) error
-Leave(client Client)
-Broadcast(message []byte, exclude ...Client)
-BroadcastTo(message []byte, clients ...Client)
-Clients() map[string]Client
-State() interface{}
-SetState(state interface{})
-Close()
+	ID() string
+	GameType() string
+	Join(client Client) error
+	Leave(client Client)
+	Broadcast(message []byte, exclude ...Client)
+	BroadcastTo(message []byte, clients ...Client)
+	Clients() map[string]Client
+	State() interface{}
+	SetState(state interface{})
+	Close()
+	IsClosed() bool
 }
 
-// Game interface
 type Game interface {
-Type() string
-HandleMessage(client Client, room Room, msgType string, payload []byte)
-InitializeRoom(room Room, options json.RawMessage) error
-OnClientJoin(client Client, room Room)
-OnClientLeave(client Client, room Room)
+	Type() string
+	HandleMessage(client Client, room Room, msgType string, payload []byte)
+	InitializeRoom(room Room, options json.RawMessage) error
+	OnClientJoin(client Client, room Room)
+	OnClientLeave(client Client, room Room)
 }
+
+type RoomManager interface {
+	CreateRoom(options interface{}) (Room, error)
+	GetRoom(roomID string) (Room, error)
+	RemoveRoom(roomID string)
+	ListRooms() []Room
+	GetAllRoomsByGameType(gameType string) []Room
+}
+
+type ClientManager interface {
+	RegisterClient(client Client, gameType string)
+	UnregisterClient(client Client)
+	GetClientsByGameType(gameType string) []Client
+}
+
 ```
 
 ## Message Flow
 
-1. Client connects to server via WebSocket
+1. Client connects to server via WebSocket (should provide game type)
 2. Client joins or creates a room with specific game type
 3. Server initializes room with game-specific logic
 4. Client sends game actions as messages
@@ -259,10 +278,10 @@ OnClientLeave(client Client, room Room)
 
     - client.Close() stores session data in global session store
     - Session includes client ID, room ID, game type, and metadata
-    - Client reconnects (browser loaded)
 
-2. Client sends "reconnect" message with old client ID from localStorage
+2. Client reconnects (on browser load)
 
+    - Client sends "reconnect" message with old client ID from sessionStorage
     - Server fetches session data from global store
     - Server rejoins client to the room
     - Game handles reconnection logic via OnClientReconnect

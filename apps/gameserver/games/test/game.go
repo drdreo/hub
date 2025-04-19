@@ -32,7 +32,12 @@ func (g *TestGame) InitializeRoom(room interfaces.Room, options json.RawMessage)
 	return nil
 }
 
-func (g *TestGame) OnClientJoin(client interfaces.Client, room interfaces.Room) {
+func (g *TestGame) OnClientJoin(client interfaces.Client, room interfaces.Room, _ interfaces.CreateRoomOptions) {
+}
+
+func (g *TestGame) OnBotAdd(client interfaces.Client, room interfaces.Room, reg interfaces.GameRegistry) (interfaces.Client, error) {
+	bot := NewBot("bot-1", g, reg)
+	return bot.BotClient, nil
 }
 
 func (g *TestGame) OnClientLeave(client interfaces.Client, room interfaces.Room) {

@@ -15,7 +15,8 @@ type TestMessage struct {
 	Type string `json:"type"`
 	Data struct {
 		Action    string `json:"action"`
-		DiceIndex []int  `json:"diceIndex,omitempty"`
+		DiceIndex int    `json:"diceIndex"`
+		EndTurn   bool   `json:"endTurn"`
 	} `json:"data"`
 }
 
@@ -23,8 +24,9 @@ func TestDiceGameIntegration(t *testing.T) {
 	// Set up the complete system with real components
 	registry := game.NewRegistry()
 	RegisterDiceGame(registry)
+	clientManager := client.NewManager()
 	roomManager := room.NewRoomManager(registry)
-	testRouter := router.NewRouter(roomManager, registry)
+	testRouter := router.NewRouter(clientManager, roomManager, registry)
 
 	// Create mock clients
 	client1 := client.NewClientMock("player1")
@@ -93,8 +95,7 @@ func TestDiceGameIntegration(t *testing.T) {
 	testRoom.SetState(state)
 
 	// Test rolling dice
-	msg := TestMessage{Type: "game_action"}
-	msg.Data.Action = "roll"
+	msg := TestMessage{Type: "roll"}
 	msgBytes, _ := json.Marshal(msg)
 	testRouter.HandleMessage(client1, msgBytes)
 
@@ -119,9 +120,13 @@ func TestDiceGameIntegration(t *testing.T) {
 	state.Dice = []int{1, 2, 3, 4, 5, 6} // Set specific dice values
 	testRoom.SetState(state)
 
-	// Set aside the first die (index 0)
+	msg = TestMessage{Type: "select"}
+	msg.Data.DiceIndex = 0
+	msgBytes, _ = json.Marshal(msg)
+	testRouter.HandleMessage(client1, msgBytes)
+
+	// Set aside the currently selected dice - first die (index 0)
 	msg = TestMessage{Type: "set_aside"}
-	msg.Data.DiceIndex = []int{0}
 	msgBytes, _ = json.Marshal(msg)
 	testRouter.HandleMessage(client1, msgBytes)
 

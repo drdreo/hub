@@ -3,8 +3,10 @@ package client
 import (
 	"gameserver/internal/interfaces"
 	"gameserver/internal/protocol"
+	"gameserver/internal/session"
 	"github.com/rs/zerolog/log"
 	"sync"
+	"time"
 )
 
 type ClientMock struct {
@@ -16,6 +18,10 @@ type ClientMock struct {
 
 func (m *ClientMock) ID() string {
 	return m.id
+}
+
+func (m *ClientMock) IsBot() bool {
+	return false
 }
 
 func (m *ClientMock) Send(message *protocol.Response) error {
@@ -42,6 +48,13 @@ func (m *ClientMock) SetRoom(room interfaces.Room) {
 
 func (m *ClientMock) Close() {
 	log.Info().Str("clientId", m.id).Msg("Close()")
+	sessionStore := session.GetSessionStore()
+	sessionStore.StoreSession(m.id, session.SessionData{
+		ClientID: m.id,
+		RoomID:   m.room.ID(),
+		GameType: m.room.GameType(),
+		LeftAt:   time.Now(),
+	})
 }
 
 func (m *ClientMock) GetSentMessages() []*protocol.Response {

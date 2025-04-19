@@ -39,7 +39,7 @@ func (r *Registry) GetGame(gameType string) (interfaces.Game, error) {
 
 	game, exists := r.games[gameType]
 	if !exists {
-		return nil, errors.New("game type not registered")
+		return nil, ErrGameTypeNotFound
 	}
 
 	return game, nil
@@ -58,7 +58,11 @@ func (r *Registry) HasGame(gameType string) bool {
 func (r *Registry) HandleMessage(client interfaces.Client, msgType string, data []byte) error {
 	room := client.Room()
 	if room == nil {
-		return errors.New("client not in a room")
+		return ErrClientNotInRoom
+	}
+
+	if room.IsClosed() {
+		return ErrRoomIsClosed
 	}
 
 	gameType := room.GameType()
@@ -83,15 +87,38 @@ func (r *Registry) InitializeRoom(room interfaces.Room, options json.RawMessage)
 }
 
 // HandleClientJoin notifies the game when a client joins
-func (r *Registry) HandleClientJoin(client interfaces.Client, room interfaces.Room) error {
+func (r *Registry) HandleClientJoin(client interfaces.Client, room interfaces.Room, options interfaces.CreateRoomOptions) error {
 	gameType := room.GameType()
 	game, err := r.GetGame(gameType)
 	if err != nil {
 		return err
 	}
 
-	game.OnClientJoin(client, room)
+	// Join the room
+	if err = room.Join(client); err != nil {
+		log.Error().Err(err).Str("id", room.ID()).Msg("failed to join room")
+		return err
+	}
+
+	game.OnClientJoin(client, room, options)
 	return nil
+}
+
+func (r *Registry) HandleAddBot(client interfaces.Client, room interfaces.Room) error {
+	gameType := room.GameType()
+	game, err := r.GetGame(gameType)
+	if err != nil {
+		return err
+	}
+
+	botClient, err := game.OnBotAdd(client, client.Room(), r)
+	if err != nil {
+		return err
+	}
+
+	return r.HandleClientJoin(botClient, client.Room(), interfaces.CreateRoomOptions{
+		PlayerName: "Bot-1",
+	})
 }
 
 // HandleClientLeave notifies the game when a client leaves
@@ -125,3 +152,9 @@ func (r *Registry) ListGames() []string {
 
 	return slices.Collect(maps.Keys(r.games))
 }
+
+var (
+	ErrClientNotInRoom  = errors.New("client not in room")
+	ErrGameTypeNotFound = errors.New("game type not found")
+	ErrRoomIsClosed     = errors.New("room is closed")
+)

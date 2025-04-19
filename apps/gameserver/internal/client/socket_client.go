@@ -33,20 +33,26 @@ type WebSocketClient struct {
 	conn      *websocket.Conn
 	send      chan []byte
 	room      interfaces.Room
+	manager   *Manager
 	mu        sync.Mutex
 	closed    bool
 	OnMessage func(message []byte)
 }
 
-// NewClient creates a new WebSocketClient
-func NewClient(conn *websocket.Conn) *WebSocketClient {
-	return &WebSocketClient{
+// NewWebsocketClient creates a new WebSocketClient
+func NewWebsocketClient(conn *websocket.Conn, manager *Manager, gameType string) *WebSocketClient {
+	client := &WebSocketClient{
 		id:        uuid.New().String(),
 		conn:      conn,
 		send:      make(chan []byte, 256),
 		closed:    false,
+		manager:   manager,
 		OnMessage: func(message []byte) {},
 	}
+
+	manager.RegisterClient(client, gameType)
+
+	return client
 }
 
 // ID returns the client's unique ID
@@ -70,6 +76,11 @@ func (c *WebSocketClient) Send(response *protocol.Response) error {
 		log.Warn().Str("client", c.ID()).Msg("Dropping message due to full send channel")
 		return websocket.ErrCloseSent
 	}
+}
+
+// IsBot returns false for WebSocketClient as it represents a human player
+func (c *WebSocketClient) IsBot() bool {
+	return false
 }
 
 // Room returns the client's current room
@@ -123,6 +134,8 @@ func (c *WebSocketClient) Close() {
 		c.room.Leave(c)
 	}
 
+	c.manager.UnregisterClient(c)
+
 	c.conn.Close()
 	close(c.send)
 }
@@ -144,6 +157,8 @@ func (c *WebSocketClient) readPump() {
 		return nil
 	})
 
+	log.Debug().Str("id", c.ID()).Msg("client connected")
+
 	for {
 		_, message, err := c.conn.ReadMessage()
 		if err != nil {
@@ -156,6 +171,8 @@ func (c *WebSocketClient) readPump() {
 		// Call the message handler
 		c.OnMessage(message)
 	}
+
+	log.Debug().Str("id", c.ID()).Msg("client disconnected")
 }
 
 // writePump pumps messages from the hub to the websocket connection

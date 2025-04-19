@@ -2,10 +2,12 @@ package tictactoe
 
 import (
 	"encoding/json"
+	"errors"
 	"gameserver/internal/interfaces"
 	"gameserver/internal/protocol"
-	"github.com/rs/zerolog/log"
 	"math/rand"
+
+	"github.com/rs/zerolog/log"
 )
 
 // TicTacToe implements the game interface
@@ -65,7 +67,7 @@ func (g *TicTacToe) InitializeRoom(room interfaces.Room, options json.RawMessage
 }
 
 // OnClientJoin handles a client joining the room
-func (g *TicTacToe) OnClientJoin(client interfaces.Client, room interfaces.Room) {
+func (g *TicTacToe) OnClientJoin(client interfaces.Client, room interfaces.Room, _ interfaces.CreateRoomOptions) {
 	state := room.State().(GameState)
 
 	// Only allow 2 players
@@ -110,6 +112,10 @@ func (g *TicTacToe) OnClientJoin(client interfaces.Client, room interfaces.Room)
 		"symbol":   state.Players[client.ID()].Symbol,
 		"roomId":   room.ID(),
 	}))
+}
+
+func (g *TicTacToe) OnBotAdd(client interfaces.Client, room interfaces.Room, reg interfaces.GameRegistry) (interfaces.Client, error) {
+	return nil, errors.New("game does not support bots")
 }
 
 // OnClientLeave handles a client leaving the room
