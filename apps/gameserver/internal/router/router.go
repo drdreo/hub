@@ -60,6 +60,8 @@ func (r *Router) HandleMessage(client interfaces.Client, messageData []byte) {
 		r.handleGameAction(client, message.Data)
 	case "add_bot":
 		r.handleAddBot(client)
+	case "get_room_list":
+		r.handleGetRoomList(client, message.Data)
 	default:
 		// Forward to game-specific handler
 		if client.Room() != nil {
@@ -280,8 +282,8 @@ func (r *Router) handleAddBot(client interfaces.Client) {
 	client.Send(protocol.NewSuccessResponse("add_bot_result", nil))
 }
 
-func (r *Router) broadCastRoomListChange(gameType string) {
-	// find all clients that are connected to a certain game type and inform them of the room list change
+// getRoomList generates a list of room information for a specific game type
+func (r *Router) getRoomList(gameType string) []RoomListInfo {
 	rooms := r.roomManager.GetAllRoomsByGameType(gameType)
 
 	roomList := make([]RoomListInfo, 0)
@@ -306,10 +308,37 @@ func (r *Router) broadCastRoomListChange(gameType string) {
 		roomList = append(roomList, roomInfo)
 	}
 
+	return roomList
+}
+
+func (r *Router) broadCastRoomListChange(gameType string) {
+	// find all clients that are connected to a certain game type and inform them of the room list change
+	roomList := r.getRoomList(gameType)
 	response := protocol.NewSuccessResponse("room_list_update", roomList)
 
 	gameClients := r.clientManager.GetClientsByGameType(gameType)
 	r.BroadcastTo(response, gameClients)
+}
+
+// handleGetRoomList sends the current room list for a game type to the requesting client
+func (r *Router) handleGetRoomList(client interfaces.Client, data json.RawMessage) {
+	var request struct {
+		GameType string `json:"gameType"`
+	}
+
+	if err := json.Unmarshal(data, &request); err != nil {
+		client.Send(protocol.NewErrorResponse("get_room_list_result", "Invalid request format"))
+		return
+	}
+
+	if request.GameType == "" {
+		client.Send(protocol.NewErrorResponse("get_room_list_result", "Game type is required"))
+		return
+	}
+
+	roomList := r.getRoomList(request.GameType)
+	response := protocol.NewSuccessResponse("get_room_list_result", roomList)
+	client.Send(response)
 }
 
 // BroadcastTo sends a message to specific clients
