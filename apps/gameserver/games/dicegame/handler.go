@@ -12,7 +12,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-const BustedAnimationDelay = 3 * time.Second // (~2-3 seconds)
+const BustedAnimationDelay = 4 * time.Second // (~3-4 seconds)
 
 func NewDiceGame() *DiceGame {
 	return &DiceGame{}
@@ -129,9 +129,10 @@ func (g *DiceGame) HandleMessage(client interfaces.Client, room interfaces.Room,
 	switch msgType {
 	case "roll":
 		if busted := g.handleRoll(room); busted {
-			log.Info().Msg("Player busted on roll")
+			log.Info().Msgf("%s busted on roll", state.Players[state.CurrentTurn].Name)
 
-			bustedMsg := protocol.NewErrorResponse("error", ErrBusted.Error())
+			// using `clientId + busted message` since bot filters if it was its bust or not
+			bustedMsg := protocol.NewErrorResponse("error", client.ID()+ErrBusted.Error())
 
 			// if the bot busted, tell them immediately
 			if client.IsBot() {

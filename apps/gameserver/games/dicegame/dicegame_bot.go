@@ -7,6 +7,7 @@ import (
 	"gameserver/internal/interfaces"
 	"gameserver/internal/protocol"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -16,17 +17,19 @@ const BOT_DELAY = 2000 // 2 second delay for bot actions
 
 type DiceGameBot struct {
 	*client.BotClient
-	game   *DiceGame
-	myTurn bool
-	busted bool
+	game                *DiceGame
+	myTurn              bool
+	busted              bool
+	combinationToSelect []int
 }
 
 func NewDiceGameBot(id string, game *DiceGame, reg interfaces.GameRegistry) *DiceGameBot {
 	bot := &DiceGameBot{
-		BotClient: client.NewBotClient(id, reg),
-		game:      game,
-		myTurn:    false,
-		busted:    false,
+		BotClient:           client.NewBotClient(id, reg),
+		game:                game,
+		myTurn:              false,
+		busted:              false,
+		combinationToSelect: make([]int, 0),
 	}
 	bot.SetMessageHandler(bot.handleMessage)
 	return bot
@@ -50,18 +53,20 @@ func (b *DiceGameBot) handleMessage(message *protocol.Response) {
 
 		if !b.myTurn {
 			// do nothing
+			log.Debug().Msg("not my turn, chilling")
 			return
 		}
 		// Don't make moves if we're busted
 		if b.busted {
+			log.Debug().Msg("i am busted, chilling")
 			return
 		}
 
 		b.makeNextMove(gameState)
 
 	case "error":
-		// Check for bust notification
-		if b.myTurn && message.Error == ErrBusted.Error() {
+		// Check for bust error and if it includes the bots ID
+		if b.myTurn && strings.Contains(message.Error, ErrBusted.Error()) && strings.Contains(message.Error, b.ID()) {
 			log.Warn().Msg("Bot detected bust and will wait for turn to end")
 			b.busted = true
 		}
@@ -83,9 +88,11 @@ func (b *DiceGameBot) getGameState(message *protocol.Response) (*GameState, bool
 func (b *DiceGameBot) makeNextMove(state *GameState) {
 	// Add a small delay to simulate thinking
 	time.Sleep(BOT_DELAY * time.Millisecond)
+	log.Debug().Msg("deciding on next move")
 
 	if err := b.checkRoomStatus(); err != nil {
 		// cancel move processing if the room is invalid (closed, ...)
+		log.Debug().Msg("room is not okay: " + err.Error())
 		return
 	}
 
@@ -102,19 +109,25 @@ func (b *DiceGameBot) makeNextMove(state *GameState) {
 	log.Debug().Int("scoringIdx", scoringIdx).Msg("found scoring dice")
 	// we still have scoring dice left and havent set aside too many yet
 	if scoringIdx != -1 && len(state.SetAside) <= 3 {
+		log.Debug().Int("scoringIdx", scoringIdx).Msg("selecting dice")
 		b.sendAction("select", map[string]int{"diceIndex": scoringIdx})
 		return
 	}
 
 	// 3. Set dice aside
 	if len(state.SelectedDice) > 0 {
+		log.Debug().Ints("selectedDice", state.SelectedDice).Msg("setting dice aside")
+
 		// Decide whether to end turn based on risk assessment
 		endTurn := b.shouldEndTurn(state)
 		b.sendAction("set_aside", map[string]bool{"endTurn": endTurn})
 		return
 	}
 
-	log.Warn().Msg("Bot should already have ended turn, but did not. Weird.")
+	log.Warn().
+		Ints("dice", state.Dice).
+		Ints("selectedIdx", state.SelectedDice).
+		Msg("Bot should already have ended turn, but did not. Maybe we couldnt find a combination?")
 }
 
 func (b *DiceGameBot) findScoringDiceIdx(state *GameState) int {
@@ -136,8 +149,40 @@ func (b *DiceGameBot) findScoringDiceIdx(state *GameState) int {
 		}
 	}
 
-	return -1
+	if len(b.combinationToSelect) == 0 {
+		b.combinationToSelect = b.detectOtherDiceToSelect(state.Dice)
+	}
 
+	if len(b.combinationToSelect) > 0 {
+		combinationDie := b.combinationToSelect[0]
+		stateDiceIdx := -1
+		for idx, die := range state.Dice {
+			if die != combinationDie {
+				continue
+			}
+
+			// if we have already selected that dice, continue search
+			if slices.Contains(state.SelectedDice, idx) {
+				continue
+			}
+
+			stateDiceIdx = idx
+			// Found a valid index, so break the loop
+			break
+		}
+
+		if stateDiceIdx != -1 {
+			// remove the selected dice from the combination list
+			b.combinationToSelect = slices.Delete(b.combinationToSelect, 0, 1)
+			return stateDiceIdx
+		}
+
+		// No valid dice found in this round, so clear the combination list to avoid getting stuck
+		b.combinationToSelect = []int{}
+		return -1
+	}
+
+	return -1
 }
 
 func (b *DiceGameBot) shouldEndTurn(state *GameState) bool {
@@ -146,13 +191,17 @@ func (b *DiceGameBot) shouldEndTurn(state *GameState) bool {
 }
 
 func (b *DiceGameBot) checkBotTurn(state *GameState) {
+	log.Debug().Msg("checking bot turn")
 	// check if bot is the current turn
 	if state.CurrentTurn == b.ID() {
+		log.Debug().Msg("detected its my turn")
 		b.myTurn = true
 	} else if b.myTurn {
+		log.Debug().Msg("no longer my turn, cleaning up")
 		// Reset flags when it's no longer the bot's turn
 		b.myTurn = false
 		b.busted = false
+		b.combinationToSelect = []int{}
 	}
 }
 
@@ -198,4 +247,26 @@ func (b *DiceGameBot) allDiceInvalid(dice []int) bool {
 	}
 
 	return true
+}
+
+// checkMultiples checks for three of a kind and beyond.
+func (b *DiceGameBot) detectOtherDiceToSelect(stateDice []int) []int {
+	// Count occurrences for remaining dice
+	var combinations []int
+	counts := make(map[int]int)
+	for _, die := range stateDice {
+		counts[die]++
+	}
+
+	// Check for three of a kind and beyond
+	for num, count := range counts {
+		if count >= 3 {
+			log.Debug().Int("num", num).Int("count", count).Msg("Found three or more of a kind")
+			for i := 0; i < count; i++ {
+				combinations = append(combinations, num)
+			}
+		}
+	}
+
+	return combinations
 }

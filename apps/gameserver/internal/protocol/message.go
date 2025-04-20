@@ -16,7 +16,7 @@ type Message struct {
 type Response struct {
 	Type    string      `json:"type"`
 	Success bool        `json:"success"`
-	Error   string      `json:"error,omitempty"`
+	Error   string      `json:"error,omitempty"` // TODO: look into using Error error type instead
 	Data    interface{} `json:"data,omitempty"`
 }
 
