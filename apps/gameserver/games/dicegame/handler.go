@@ -78,7 +78,7 @@ func (g *DiceGame) OnClientLeave(client interfaces.Client, room interfaces.Room)
 	state := room.State().(*GameState)
 	if state.CurrentTurn == client.ID() {
 		log.Info().Str("clientId", client.ID()).Msg("client left. Ending players turn")
-		g.EndTurn(state)
+		g.EndTurn(room, state)
 	}
 	room.SetState(state)
 }
@@ -102,11 +102,6 @@ func (g *DiceGame) OnClientReconnect(client interfaces.Client, room interfaces.R
 	// If it was this player's turn, update the current turn
 	if state.CurrentTurn == oldClientID {
 		state.CurrentTurn = client.ID()
-	}
-
-	// Update the winner reference if applicable
-	if state.Winner == oldClientID {
-		state.Winner = client.ID()
 	}
 
 	room.SetState(state)
