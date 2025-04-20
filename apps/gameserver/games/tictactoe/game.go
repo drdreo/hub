@@ -177,7 +177,7 @@ func (g *TicTacToe) OnClientReconnect(client interfaces.Client, room interfaces.
 }
 
 // HandleMessage processes game-specific messages
-func (g *TicTacToe) HandleMessage(client interfaces.Client, room interfaces.Room, msgType string, payload []byte) {
+func (g *TicTacToe) HandleMessage(client interfaces.Client, room interfaces.Room, msgType string, payload []byte) error {
 	switch msgType {
 	case "make_move":
 		g.handleMakeMove(client, room, payload)
@@ -186,6 +186,8 @@ func (g *TicTacToe) HandleMessage(client interfaces.Client, room interfaces.Room
 	default:
 		client.Send(protocol.NewErrorResponse("error", "Unknown message type: "+msgType))
 	}
+
+	return nil
 }
 
 // handleMakeMove processes a move from a player

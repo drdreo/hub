@@ -45,7 +45,7 @@ Server sends these events to clients:
     -   Data: `{ clientId: string }`
 -   `room_closed`: Notification when a room is closed
     -   Data: `{ roomId: string }`
--   `room_list_update`: Notification when the game specific room list changed
+-   `get_room_list_result`: Notification when the game specific room list changed
     -   Data: `{ roomId: string, playerCount: number, started: boolean }`
 
 ### Game-Specific Events

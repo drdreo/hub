@@ -270,6 +270,12 @@ func TestCalculateScore(t *testing.T) {
 			expected: 1200, // 1000 for three 1s + 200 for three 2s
 			valid:    true,
 		},
+		{
+			name:     "2, 2, 3, 5, 6, 6",
+			dice:     []int{2, 2, 3, 5, 6, 6},
+			expected: 50,
+			valid:    false,
+		},
 	}
 
 	for _, tc := range testCases {

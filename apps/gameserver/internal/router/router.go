@@ -65,8 +65,7 @@ func (r *Router) HandleMessage(client interfaces.Client, messageData []byte) {
 	default:
 		// Forward to game-specific handler
 		if client.Room() != nil {
-			err := r.gameRegistry.HandleMessage(client, message.Type, message.Data)
-			if err != nil {
+			if err := r.gameRegistry.HandleMessage(client, message.Type, message.Data); err != nil {
 				client.Send(protocol.NewErrorResponse("error", err.Error()))
 			}
 		} else {
@@ -314,7 +313,7 @@ func (r *Router) getRoomList(gameType string) []RoomListInfo {
 func (r *Router) broadCastRoomListChange(gameType string) {
 	// find all clients that are connected to a certain game type and inform them of the room list change
 	roomList := r.getRoomList(gameType)
-	response := protocol.NewSuccessResponse("room_list_update", roomList)
+	response := protocol.NewSuccessResponse("get_room_list_result", roomList)
 
 	gameClients := r.clientManager.GetClientsByGameType(gameType)
 	r.BroadcastTo(response, gameClients)

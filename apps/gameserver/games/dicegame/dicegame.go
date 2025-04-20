@@ -183,7 +183,7 @@ func removeRun(dice []int, start, end int) []int {
 }
 
 func (g *DiceGame) EndTurn(state *GameState) {
-	log.Info().Msg("Ending turn")
+	log.Info().Str("currentPlayer", state.Players[state.CurrentTurn].Name).Msg("ending turn")
 	// Add turn score to player's total score
 	if player, exists := state.Players[state.CurrentTurn]; exists {
 		player.Score += player.RoundScore
@@ -304,7 +304,7 @@ func (g *DiceGame) handleSelect(room interfaces.Room, payload SelectActionPayloa
 	return nil
 }
 
-func (g *DiceGame) handleSetAside(room interfaces.Room, payload SetAsideActionPayload) error {
+func (g *DiceGame) handleSetAside(room interfaces.Room, endTurn bool) error {
 	log.Debug().Str("room", room.ID()).Msg("setting dice aside")
 
 	state := room.State().(*GameState)
@@ -324,7 +324,7 @@ func (g *DiceGame) handleSetAside(room interfaces.Room, payload SetAsideActionPa
 		return fmt.Errorf("failed to get current player: %s", state.CurrentTurn)
 	}
 
-	if !payload.EndTurn {
+	if !endTurn {
 		// Move selected dice to setAside
 		for _, dice := range selectedDice {
 			state.SetAside = append(state.SetAside, dice)
@@ -347,7 +347,8 @@ func (g *DiceGame) handleSetAside(room interfaces.Room, payload SetAsideActionPa
 	currentPlayer.RoundScore += selectedScore
 	state.SelectedDice = make([]int, 0)
 
-	if payload.EndTurn {
+	// TODO: align with busted endTurn logic
+	if endTurn {
 		g.EndTurn(state)
 	}
 
