@@ -65,8 +65,7 @@ func (r *Router) HandleMessage(client interfaces.Client, messageData []byte) {
 	default:
 		// Forward to game-specific handler
 		if client.Room() != nil {
-			err := r.gameRegistry.HandleMessage(client, message.Type, message.Data)
-			if err != nil {
+			if err := r.gameRegistry.HandleMessage(client, message.Type, message.Data); err != nil {
 				client.Send(protocol.NewErrorResponse("error", err.Error()))
 			}
 		} else {

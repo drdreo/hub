@@ -52,7 +52,7 @@ type RoomManager interface {
 // Game defines the interface for game implementations
 type Game interface {
 	Type() string
-	HandleMessage(client Client, room Room, msgType string, data []byte)
+	HandleMessage(client Client, room Room, msgType string, data []byte) error
 	InitializeRoom(room Room, options json.RawMessage) error
 	OnClientJoin(client Client, room Room, options CreateRoomOptions)
 	OnClientLeave(client Client, room Room)

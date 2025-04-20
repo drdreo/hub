@@ -71,8 +71,7 @@ func (r *Registry) HandleMessage(client interfaces.Client, msgType string, data 
 		return err
 	}
 
-	game.HandleMessage(client, room, msgType, data)
-	return nil
+	return game.HandleMessage(client, room, msgType, data)
 }
 
 // InitializeRoom initializes a room with game-specific state
