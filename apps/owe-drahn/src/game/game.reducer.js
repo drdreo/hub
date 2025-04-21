@@ -1,6 +1,7 @@
 const initialState = {
     diceRoll: undefined, // Latest server dice roll data
     rolledDice: undefined, // Dice values for UI
+    currentTurn: "", // current players turn
     currentValue: 0, // Server value
     ui_currentValue: 0, // UI value
     players: [],
@@ -32,7 +33,6 @@ const gameReducer = (state = initialState, action) => {
                 started: action.payload.started,
                 over: action.payload.over,
                 currentValue: action.payload.currentValue,
-                ui_currentValue: action.payload.currentValue
             };
         case "GAME_OVER":
             return { ...state, over: true, started: false };
@@ -66,9 +66,7 @@ const gameReducer = (state = initialState, action) => {
             };
         case "PLAYER_LOST_LIFE": {
             const currentPlayerId = localStorage.getItem("playerId");
-            const playersTurn = state.players.some(
-                player => player.id === currentPlayerId && player.isPlayersTurn
-            );
+            const playersTurn = state.currentTurn === currentPlayerId;
             const message = playersTurn ? "Choose next Player or roll" : "";
             return {
                 ...state,

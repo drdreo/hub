@@ -1,48 +1,45 @@
-import { Component, createRef } from "react";
-import { connect } from "react-redux";
+import { useRef, useEffect } from "react";
+import { useSelector } from "react-redux";
 
 import FeedMessage from "./FeedMessage/FeedMessage";
 import "./Feed.scss";
 
-class Feed extends Component {
-    constructor(props) {
-        super(props);
-        this.feedRef = createRef();
-    }
+const Feed = () => {
+    const feedRef = useRef(null);
+    const messages = useSelector(state => state.feed.messages);
+    const enabled = useSelector(state => state.settings.feed.enabled);
 
-    render() {
-        const { messages, enabled } = this.props;
-
-        if (!enabled) {
-            return null;
+    const scrollToBottom = () => {
+        if (feedRef.current) {
+            feedRef.current.scrollTop = feedRef.current.scrollHeight + 21;
         }
+    };
 
-        if (this.feedRef.current) {
-            setTimeout(() => {
-                this.scrollToBottom();
+    useEffect(() => {
+        if (feedRef.current) {
+            const timeoutId = setTimeout(() => {
+                scrollToBottom();
             }, 10);
+            return () => clearTimeout(timeoutId);
         }
-        return (
-            <div
-                className="feed"
-                ref={this.feedRef}>
-                {messages.map((message, key) => (
-                    <FeedMessage
-                        message={message}
-                        key={key}
-                    />
-                ))}
-            </div>
-        );
+    }, [messages]); // Scroll to bottom when messages change
+
+    if (!enabled) {
+        return null;
     }
 
-    scrollToBottom() {
-        this.feedRef.current.scrollTop = this.feedRef.current.scrollHeight + 21;
-    }
-}
-
-const mapStateToProps = state => {
-    return { ...state.feed, enabled: state.settings.feed.enabled };
+    return (
+        <div
+            className="feed"
+            ref={feedRef}>
+            {messages.map((message, index) => (
+                <FeedMessage
+                    message={message}
+                    key={index}
+                />
+            ))}
+        </div>
+    );
 };
 
-export default connect(mapStateToProps)(Feed);
+export default Feed;

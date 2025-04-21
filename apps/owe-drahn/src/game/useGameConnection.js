@@ -10,13 +10,9 @@ export const useGameConnection = room => {
 
     useEffect(() => {
         // Initialize socket listeners
-        const cleanup = initializeGameSocketListeners(socket, dispatch);
+        initializeGameSocketListeners(socket, dispatch);
         // Perform handshake
         const uid = authUser?.uid;
         dispatch(handshake(room, uid));
-
-        return () => {
-            cleanup();
-        };
     }, [room, authUser, dispatch]);
 };

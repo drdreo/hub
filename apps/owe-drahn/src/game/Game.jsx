@@ -73,7 +73,9 @@ const Game = () => {
                 };
             }
 
-            dispatch(feedMessage(msg));
+            if (msg) {
+                dispatch(feedMessage(msg));
+            }
         });
     }, [diceRoll]);
 

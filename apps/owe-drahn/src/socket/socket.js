@@ -11,71 +11,96 @@ import {
     rolledDice
 } from "../game/game.actions";
 import { gameOverview } from "../home/home.actions.js";
+import { getWebSocket } from "./websocket";
 
 export default store => {
-    const { socket } = store.getState().socket;
+    const socket = getWebSocket();
 
-    socket.on("connect", () => console.log("Socket connected!"));
-    socket.on("disconnect", () => console.log("Socket disconnected!"));
+    socket.onmessage = event => {
+        const messages = JSON.parse(event.data);
+        console.log("Received messages in general:", messages);
 
-    socket.on("gameOverview", data => {
-        store.dispatch(gameOverview(data));
-    });
+        // Handle multiple messages
+        messages.forEach(message => {
+            console.log("message type:", message.type);
+
+            // out room events
+            switch (message.type) {
+                case "room_list_update":
+                case "get_room_list_result":
+                    if (message.success) {
+                        // Format the data to match the expected overview format
+                        const overviewData = {
+                            totalPlayers: message.data.reduce(
+                                (sum, { playerCount }) => sum + playerCount,
+                                0
+                            ),
+                            rooms: message.data.map(({ roomId, started }) => ({
+                                room: roomId,
+                                started
+                            }))
+                        };
+                        store.dispatch(gameOverview(overviewData));
+                    } else {
+                        console.error("Error fetching room list:", message.error);
+                    }
+                    break;
+                // ... other cases
+            }
+        });
+    };
+
+    socket.onopen = () => console.log("Socket connected!");
+    socket.onclose = () => console.log("Socket disconnected!");
 };
 
 export const initializeGameSocketListeners = (socket, dispatch) => {
-    socket.on("gameInit", response => {
-        dispatch(gameInit(response));
-    });
+    socket.onmessage = event => {
+        const messages = JSON.parse(event.data);
+        console.log("Received messages in game listeners:", messages);
+        // Handle multiple messages
+        messages.forEach(message => {
+            console.log("message type:", message.type);
 
-    socket.on("gameStarted", response => {
-        dispatch(gameStarted(response));
-    });
+            switch (message.type) {
+                case "gameInit":
+                    dispatch(gameInit(message.data));
+                    break;
+                case "gameStarted":
+                    dispatch(gameStarted(message.data));
+                    break;
+                case "game_state":
+                    dispatch(gameUpdate(message.data));
+                    break;
+                case "gameOver":
+                    dispatch(gameOver(message.data.winner));
+                    break;
+                case "gameError":
+                    dispatch(gameError(message.data));
+                    break;
+                case "playerUpdate":
+                    dispatch(playerUpdate(message.data));
+                    break;
+                case "playerLeft":
+                    dispatch(playerLeft(message.data.username));
+                    break;
+                case "rolledDice":
+                    dispatch(rolledDice(message.data));
+                    break;
+                case "lostLife":
+                    dispatch(lostLife());
+                    dispatch(
+                        feedMessage({ type: "LOST_LIFE", username: message.data.player.username })
+                    );
+                    break;
+                case "lost":
+                    // dispatch(playerLost(data.player.id));
+                    // dispatch(feedMessage({type: "LOST", username: data.player.username, dice: data.dice, total: data.total}));
+                    break;
 
-    socket.on("gameUpdate", response => {
-        dispatch(gameUpdate(response));
-    });
-
-    socket.on("gameOver", response => {
-        dispatch(gameOver(response));
-    });
-
-    socket.on("gameError", data => {
-        dispatch(gameError(data));
-    });
-
-    socket.on("playerUpdate", data => {
-        dispatch(playerUpdate(data));
-    });
-
-    socket.on("playerLeft", data => {
-        dispatch(playerLeft(data));
-    });
-
-    socket.on("rolledDice", data => {
-        dispatch(rolledDice(data));
-    });
-
-    socket.on("lostLife", data => {
-        dispatch(lostLife());
-        dispatch(feedMessage({ type: "LOST_LIFE", username: data.player.username }));
-    });
-
-    socket.on("lost", data => {
-        // dispatch(playerLost(data.player.id));
-        // dispatch(feedMessage({type: "LOST", username: data.player.username, dice: data.dice, total: data.total}));
-    });
-
-    return () => {
-        socket.off("gameInit");
-        socket.off("gameStarted");
-        socket.off("gameUpdate");
-        socket.off("gameOver");
-        socket.off("gameError");
-        socket.off("playerUpdate");
-        socket.off("playerLeft");
-        socket.off("rolledDice");
-        socket.off("lostLife");
-        socket.off("lost");
+                default:
+                    console.warn("Unhandled message type:", message.type);
+            }
+        });
     };
 };

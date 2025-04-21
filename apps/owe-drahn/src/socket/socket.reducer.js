@@ -1,43 +1,65 @@
-import socketIOClient from "socket.io-client";
 import {
     CONNECTION_HANDSHAKE,
+    eventMap,
+    GET_ROOM_LIST,
+    JOIN_ROOM,
     PLAYER_CHOOSE_NEXT,
     PLAYER_LOSE_LIFE,
     PLAYER_READY,
     PLAYER_ROLL_DICE
 } from "./socket.actions";
 
-const SERVER_URL = import.meta.env.VITE_DOMAIN;
+import { connectWebSocket, getWebSocket } from "./websocket";
 
-const io = socketIOClient(SERVER_URL, {
-    transports: ["websocket"],
-    withCredentials: true
-});
+const initialState = { socket: connectWebSocket() };
 
-const initialState = { socket: io };
+const sendMessage = (socket, type, payload) => {
+    if(!socket.OPEN){
+        console.error("WebSocket is not open. Cannot send message.");
+        return;
+    }
+    const message = {
+        type: type,
+        data: payload
+    };
+    socket.send(JSON.stringify(message));
+};
+
 const socketReducer = (state = initialState, action) => {
+    const socket = getWebSocket();
+    if (!socket) {
+        console.error("WebSocket not initialized!");
+        return state;
+    }
+
     switch (action.type) {
         case "GAME_RESET":
-            state.socket.emit("leave");
+            sendMessage(socket, "leave_room");
             return state;
         case CONNECTION_HANDSHAKE:
-            state.socket.emit("handshake", {
+            sendMessage(socket, eventMap[action.type], {
                 playerId: localStorage.getItem("playerId"),
-                room: action.payload.room,
-                uid: action.payload.uid
+                room: action.data.room,
+                uid: action.data.uid
             });
             return state;
         case PLAYER_READY:
-            state.socket.emit("ready", action.payload);
+            sendMessage(socket, eventMap[action.type], action.data);
             return state;
         case PLAYER_ROLL_DICE:
-            state.socket.emit("rollDice");
+            sendMessage(socket, eventMap[PLAYER_ROLL_DICE]);
             return state;
         case PLAYER_LOSE_LIFE:
-            state.socket.emit("loseLife");
+            sendMessage(socket, eventMap[PLAYER_LOSE_LIFE]);
             return state;
         case PLAYER_CHOOSE_NEXT:
-            state.socket.emit("chooseNextPlayer", action.payload);
+            sendMessage(socket, eventMap[PLAYER_CHOOSE_NEXT], action.data);
+            return state;
+        case GET_ROOM_LIST:
+            sendMessage(socket, eventMap[GET_ROOM_LIST], action.data);
+            return state;
+        case JOIN_ROOM:
+            sendMessage(socket, eventMap[JOIN_ROOM], action.data);
             return state;
         default:
             return state;
