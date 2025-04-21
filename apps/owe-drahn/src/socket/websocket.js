@@ -24,4 +24,4 @@ export const connectWebSocket = () => {
 
 export const getWebSocket = () => {
     return socket;
-}
+};

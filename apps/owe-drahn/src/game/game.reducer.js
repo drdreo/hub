@@ -32,7 +32,7 @@ const gameReducer = (state = initialState, action) => {
                 ui_players: action.payload.players,
                 started: action.payload.started,
                 over: action.payload.over,
-                currentValue: action.payload.currentValue,
+                currentValue: action.payload.currentValue
             };
         case "GAME_OVER":
             return { ...state, over: true, started: false };

@@ -13,7 +13,7 @@ export const eventMap = {
     PLAYER_LOSE_LIFE: "loseLife",
     PLAYER_CHOOSE_NEXT: "chooseNextPlayer",
     GET_ROOM_LIST: "get_room_list",
-    JOIN_ROOM: "join_room",
+    JOIN_ROOM: "join_room"
 };
 
 export const handshake = (room, uid) => {

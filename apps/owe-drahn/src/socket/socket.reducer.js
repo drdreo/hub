@@ -14,7 +14,7 @@ import { connectWebSocket, getWebSocket } from "./websocket";
 const initialState = { socket: connectWebSocket() };
 
 const sendMessage = (socket, type, payload) => {
-    if(!socket.OPEN){
+    if (!socket.OPEN) {
         console.error("WebSocket is not open. Cannot send message.");
         return;
     }
