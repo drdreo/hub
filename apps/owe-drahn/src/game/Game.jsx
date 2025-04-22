@@ -33,8 +33,17 @@ const Game = () => {
     dispatch(reconnect(clientId, room));
 
     const settings = useSelector(state => state.settings);
-    const { diceRoll, currentValue, currentTurn, ui_currentValue, ui_players, players, started, over, error } =
-        useSelector(state => state.game);
+    const {
+        diceRoll,
+        currentValue,
+        currentTurn,
+        ui_currentValue,
+        ui_players,
+        players,
+        started,
+        over,
+        error
+    } = useSelector(state => state.game);
 
     const [animatingDice, setAnimatingDice] = useState(false);
     const [animatingHeart, setAnimatingHeart] = useState(false);

@@ -15,7 +15,6 @@ import { gameOverview } from "../home/home.actions.js";
 import { reconnect } from "./socket.actions";
 import { getWebSocket } from "./websocket";
 
-
 export default store => {
     const socket = getWebSocket();
 

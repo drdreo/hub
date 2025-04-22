@@ -6,7 +6,8 @@ import {
     PLAYER_CHOOSE_NEXT,
     PLAYER_LOSE_LIFE,
     PLAYER_READY,
-    PLAYER_ROLL_DICE, RECONNECT
+    PLAYER_ROLL_DICE,
+    RECONNECT
 } from "./socket.actions";
 
 import { connectWebSocket, getWebSocket } from "./websocket";
