@@ -6,7 +6,7 @@ import {
     PLAYER_CHOOSE_NEXT,
     PLAYER_LOSE_LIFE,
     PLAYER_READY,
-    PLAYER_ROLL_DICE
+    PLAYER_ROLL_DICE, RECONNECT
 } from "./socket.actions";
 
 import { connectWebSocket, getWebSocket } from "./websocket";
@@ -14,8 +14,8 @@ import { connectWebSocket, getWebSocket } from "./websocket";
 const initialState = { socket: connectWebSocket() };
 
 const sendMessage = (socket, type, payload) => {
-    if (!socket.OPEN) {
-        console.error("WebSocket is not open. Cannot send message.");
+    if (socket.readyState !== WebSocket.OPEN) {
+        console.error("WebSocket is not connected");
         return;
     }
     const message = {
@@ -38,7 +38,7 @@ const socketReducer = (state = initialState, action) => {
             return state;
         case CONNECTION_HANDSHAKE:
             sendMessage(socket, eventMap[action.type], {
-                playerId: localStorage.getItem("playerId"),
+                playerId: sessionStorage.getItem("playerId"),
                 room: action.data.room,
                 uid: action.data.uid
             });
@@ -59,6 +59,9 @@ const socketReducer = (state = initialState, action) => {
             sendMessage(socket, eventMap[GET_ROOM_LIST], action.data);
             return state;
         case JOIN_ROOM:
+            sendMessage(socket, eventMap[JOIN_ROOM], action.data);
+            return state;
+        case RECONNECT:
             sendMessage(socket, eventMap[JOIN_ROOM], action.data);
             return state;
         default:

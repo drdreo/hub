@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"gameserver/games/dicegame"
+	"gameserver/games/owe_drahn"
 	"gameserver/games/tictactoe"
 	"gameserver/internal/client"
 	"gameserver/internal/game"
@@ -56,6 +57,7 @@ func main() {
 	// Register all games
 	tictactoe.RegisterTicTacToeGame(gameRegistry)
 	dicegame.RegisterDiceGame(gameRegistry)
+	owe_drahn.RegisterGame(gameRegistry)
 
 	http.HandleFunc("/", homeHandler)
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {

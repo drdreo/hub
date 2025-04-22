@@ -60,7 +60,7 @@ func (room *GameRoom) IsClosed() bool {
 func (room *GameRoom) Join(client interfaces.Client) error {
 	room.mu.Lock()
 	defer room.mu.Unlock()
-	log.Debug().Str("room", room.ID()).Str("client", client.ID()).Msg("client joining")
+	log.Debug().Str("roomId", room.ID()).Str("clientId", client.ID()).Msg("client joining")
 
 	// First, check if the room is closed
 	if room.closed {

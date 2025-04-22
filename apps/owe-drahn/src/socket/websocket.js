@@ -3,7 +3,10 @@ const SERVER_URL = import.meta.env.VITE_DOMAIN;
 let socket;
 
 export const connectWebSocket = () => {
-    socket = new WebSocket(SERVER_URL.replace("http", "ws") + "/ws?game=owedrahn"); //http to ws/wss
+    const wsUrl = SERVER_URL.replace("http", "ws") + "/ws?game=owedrahn"; //http to ws/wss
+    console.log("Connecting to WebSocket server at:", wsUrl);
+
+    socket = new WebSocket(wsUrl);
 
     socket.onopen = () => {
         console.log("WebSocket connected!");

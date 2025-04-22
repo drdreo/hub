@@ -97,23 +97,23 @@ func (g *Game) OnClientReconnect(client interfaces.Client, room interfaces.Room,
 func (g *Game) HandleMessage(client interfaces.Client, room interfaces.Room, msgType string, payload []byte) {
 	state := room.State().(*GameState)
 
+	log.Debug().Str("type", msgType).Bytes("payload", payload).Msg("handling message")
+
 	// TODO: revisit during game actions vs. non handling
 	if msgType == "handshake" {
 		g.handleHandshake(client, state, payload)
+	} else if msgType == "ready" {
+		g.handleReady(client, state, payload)
 	} else {
 		// Validate it's the player's turn
 		if state.CurrentTurn != client.ID() {
+			log.Warn().Str("clientId", client.ID()).Str("currentTurn", state.CurrentTurn).Msg("not players turn")
 			client.Send(protocol.NewErrorResponse("error", "not your turn"))
 			return
 		}
 
-		log.Debug().Str("type", msgType).Bytes("payload", payload).Msg("handling message")
-
 		// current turn action handling
 		switch msgType {
-		case "ready":
-			g.handleReady(client, state, payload)
-			break
 		case "roll":
 			if err := g.handleRoll(client, state); err != nil {
 				log.Error().Msg(err.Error())
@@ -122,11 +122,12 @@ func (g *Game) HandleMessage(client interfaces.Client, room interfaces.Room, msg
 			break
 		case "loseLife":
 			g.handleLoseLife(client, state)
+			g.broadcastGameState(room)
 			break
 		case "chooseNextPlayer":
 			if err := g.handleChooseNextPlayer(client, state, payload); err != nil {
 				log.Error().Msg(err.Error())
-				client.Send(protocol.NewErrorResponse("error", "Invalid nextPlayer: "+err.Error()))
+				client.Send(protocol.NewErrorResponse("error", err.Error()))
 			}
 
 			break
@@ -134,14 +135,23 @@ func (g *Game) HandleMessage(client interfaces.Client, room interfaces.Room, msg
 			client.Send(protocol.NewErrorResponse("error", "Unknown message type: "+msgType))
 		}
 	}
+}
 
-	g.broadcastGameState(room)
+func (g *Game) broadcastGameEvent(room interfaces.Room, eventName string, payload interfaces.M) {
+	msg := protocol.NewSuccessResponse(eventName, payload)
+	room.Broadcast(msg)
 }
 
 // broadcastGameState sends the current game state to all clients in the room
 func (g *Game) broadcastGameState(room interfaces.Room) {
-	state := room.State()
+	state := room.State().(*GameState)
+	g.broadcastGameEvent(room, "game_state", state.ToMap())
+}
 
-	msg := protocol.NewSuccessResponse("game_state", state)
-	room.Broadcast(msg)
+func (g *Game) broadcastPlayerUpdate(room interfaces.Room, players map[string]*Player, currentTurn string, updateUI bool) {
+	g.broadcastGameEvent(room, "playerUpdate", interfaces.M{
+		"currentTurn": currentTurn,
+		"players":     mapPlayersToSortedSlice(players),
+		"updateUI":    updateUI,
+	})
 }

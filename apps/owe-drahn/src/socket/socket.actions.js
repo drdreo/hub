@@ -5,6 +5,7 @@ export const PLAYER_LOSE_LIFE = "PLAYER_LOSE_LIFE";
 export const PLAYER_CHOOSE_NEXT = "PLAYER_CHOOSE_NEXT";
 export const GET_ROOM_LIST = "GET_ROOM_LIST";
 export const JOIN_ROOM = "JOIN_ROOM";
+export const RECONNECT = "RECONNECT";
 
 export const eventMap = {
     CONNECTION_HANDSHAKE: "handshake",
@@ -13,7 +14,8 @@ export const eventMap = {
     PLAYER_LOSE_LIFE: "loseLife",
     PLAYER_CHOOSE_NEXT: "chooseNextPlayer",
     GET_ROOM_LIST: "get_room_list",
-    JOIN_ROOM: "join_room"
+    JOIN_ROOM: "join_room",
+    RECONNECT: "reconnect"
 };
 
 export const handshake = (room, uid) => {
@@ -60,5 +62,12 @@ export const joinRoom = (roomId, playerName) => {
     return {
         type: JOIN_ROOM,
         data: { roomId, playerName, gameType: "owedrahn" }
+    };
+};
+
+export const reconnect = (clientId, roomId) => {
+    return {
+        type: RECONNECT,
+        data: { clientId, roomId }
     };
 };

@@ -2,11 +2,11 @@ import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom"; // Use this hook for navigation
 import { useFirebase } from "../auth/Firebase"; // Custom hook for Firebase context
+import SignInGoogle from "../auth/SignIn/SignIn";
 import { gameReset } from "../game/game.actions";
 import { getRoomList, joinRoom } from "../socket/socket.actions";
-import SignInGoogle from "../auth/SignIn/SignIn";
-import { debounce } from "../utils/helpers";
 import { getWebSocket } from "../socket/websocket";
+import { debounce } from "../utils/helpers";
 
 import "./Home.scss";
 
@@ -24,7 +24,7 @@ const Home = () => {
 
     useEffect(() => {
         console.log("Home mounted");
-        localStorage.removeItem("playerId");
+        sessionStorage.removeItem("playerId");
         fetchOverview();
         dispatch(gameReset());
     }, [dispatch]);
@@ -77,7 +77,7 @@ const Home = () => {
 
                     if (message.success) {
                         const { clientId, roomId } = message.data;
-                        localStorage.setItem("playerId", clientId);
+                        sessionStorage.setItem("playerId", clientId);
                         navigate(`/game/${roomId}`);
                     } else {
                         let errMsg = message.error || "Failed to join game";

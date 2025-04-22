@@ -338,7 +338,7 @@ func (r *Router) handleGetRoomList(client interfaces.Client, data json.RawMessag
 	}
 
 	roomList := r.getRoomList(request.GameType)
-	response := protocol.NewSuccessResponse("get_room_list_result", roomList)
+	response := protocol.NewSuccessResponse("room_list_update", roomList)
 	client.Send(response)
 }
 

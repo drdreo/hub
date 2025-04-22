@@ -1,3 +1,4 @@
+import { useParams } from "react-router-dom";
 import { feedMessage } from "../game/Feed/feed.actions";
 import {
     gameError,
@@ -11,7 +12,9 @@ import {
     rolledDice
 } from "../game/game.actions";
 import { gameOverview } from "../home/home.actions.js";
+import { reconnect } from "./socket.actions";
 import { getWebSocket } from "./websocket";
+
 
 export default store => {
     const socket = getWebSocket();
@@ -49,9 +52,6 @@ export default store => {
             }
         });
     };
-
-    socket.onopen = () => console.log("Socket connected!");
-    socket.onclose = () => console.log("Socket disconnected!");
 };
 
 export const initializeGameSocketListeners = (socket, dispatch) => {
