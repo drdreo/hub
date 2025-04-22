@@ -314,7 +314,7 @@ func (r *Router) getRoomList(gameType string) []RoomListInfo {
 func (r *Router) broadCastRoomListChange(gameType string) {
 	// find all clients that are connected to a certain game type and inform them of the room list change
 	roomList := r.getRoomList(gameType)
-	response := protocol.NewSuccessResponse("get_room_list_result", roomList)
+	response := protocol.NewSuccessResponse("room_list_update", roomList)
 
 	gameClients := r.clientManager.GetClientsByGameType(gameType)
 	r.BroadcastTo(response, gameClients)

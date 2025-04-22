@@ -94,7 +94,7 @@ func (g *Game) OnClientReconnect(client interfaces.Client, room interfaces.Room,
 	client.Send(msg)
 }
 
-func (g *Game) HandleMessage(client interfaces.Client, room interfaces.Room, msgType string, payload []byte) {
+func (g *Game) HandleMessage(client interfaces.Client, room interfaces.Room, msgType string, payload []byte) error {
 	state := room.State().(*GameState)
 
 	log.Debug().Str("type", msgType).Bytes("payload", payload).Msg("handling message")
@@ -107,17 +107,16 @@ func (g *Game) HandleMessage(client interfaces.Client, room interfaces.Room, msg
 	} else {
 		// Validate it's the player's turn
 		if state.CurrentTurn != client.ID() {
-			log.Warn().Str("clientId", client.ID()).Str("currentTurn", state.CurrentTurn).Msg("not players turn")
-			client.Send(protocol.NewErrorResponse("error", "not your turn"))
-			return
+			log.Warn().Str("clientId", client.ID()).Str("currentTurn", state.CurrentTurn).Msg(ErrNotYourTurn.Error())
+			return ErrNotYourTurn
 		}
 
 		// current turn action handling
 		switch msgType {
 		case "roll":
 			if err := g.handleRoll(client, state); err != nil {
-				log.Error().Msg(err.Error())
-				client.Send(protocol.NewErrorResponse("error", "roll failed: "+err.Error()))
+				log.Error().Err(err).Msg("roll failed")
+				return ErrRollFailed
 			}
 			break
 		case "loseLife":
@@ -126,15 +125,16 @@ func (g *Game) HandleMessage(client interfaces.Client, room interfaces.Room, msg
 			break
 		case "chooseNextPlayer":
 			if err := g.handleChooseNextPlayer(client, state, payload); err != nil {
-				log.Error().Msg(err.Error())
-				client.Send(protocol.NewErrorResponse("error", err.Error()))
+				log.Error().Err(err).Msg("chooseNextPlayer failed")
+				return ErrNextPlayerInvalid
 			}
 
 			break
 		default:
-			client.Send(protocol.NewErrorResponse("error", "Unknown message type: "+msgType))
+			return errors.New("unknown message type: " + msgType)
 		}
 	}
+	return nil
 }
 
 func (g *Game) broadcastGameEvent(room interfaces.Room, eventName string, payload interfaces.M) {
@@ -155,3 +155,9 @@ func (g *Game) broadcastPlayerUpdate(room interfaces.Room, players map[string]*P
 		"updateUI":    updateUI,
 	})
 }
+
+var (
+	ErrNotYourTurn       = errors.New("not your turn")
+	ErrRollFailed        = errors.New("roll failed")
+	ErrNextPlayerInvalid = errors.New("next player is invalid")
+)
