@@ -86,7 +86,7 @@ func (b *BotClient) Close() {
 	if b.room != nil && !b.room.IsClosed() {
 		roomId = b.room.ID()
 	}
-	log.Error().
+	log.Info().
 		Str("clientId", b.id).
 		Str("roomId", roomId).
 		Msg("BotClient shutting down and cleaning up resources")

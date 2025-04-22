@@ -72,7 +72,7 @@ func (b *DiceGameBot) handleMessage(message *protocol.Response) {
 		}
 
 	default:
-		log.Warn().Str("type", message.Type).Str("botId", b.ID()).Msg("bot could not handle data")
+		log.Warn().Str("type", message.Type).Str("botId", b.ID()).Msg("bot did not handle message")
 	}
 }
 
@@ -186,8 +186,8 @@ func (b *DiceGameBot) findScoringDiceIdx(state *GameState) int {
 }
 
 func (b *DiceGameBot) shouldEndTurn(state *GameState) bool {
-	// end turn if we have banked at least 2 dice
-	return len(state.SetAside) >= 3 || len(state.SelectedDice) >= 3
+	// end turn if we have banked at least 3 dice or are about to bank more than 3 dice
+	return len(state.SetAside) >= 3 || len(state.SetAside)+len(state.SelectedDice) >= 3
 }
 
 func (b *DiceGameBot) checkBotTurn(state *GameState) {
