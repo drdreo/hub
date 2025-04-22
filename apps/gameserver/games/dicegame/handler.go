@@ -2,6 +2,7 @@ package dicegame
 
 import (
 	"encoding/json"
+	"errors"
 	"gameserver/internal/interfaces"
 	"gameserver/internal/protocol"
 	"time"
@@ -11,7 +12,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-const BustedAnimationDelay = 3 * time.Second // (~2-3 seconds)
+const BustedAnimationDelay = 4 * time.Second // (~3-4 seconds)
 
 func NewDiceGame() *DiceGame {
 	return &DiceGame{}
@@ -77,7 +78,7 @@ func (g *DiceGame) OnClientLeave(client interfaces.Client, room interfaces.Room)
 	state := room.State().(*GameState)
 	if state.CurrentTurn == client.ID() {
 		log.Info().Str("clientId", client.ID()).Msg("client left. Ending players turn")
-		g.EndTurn(state)
+		g.EndTurn(room, state)
 	}
 	room.SetState(state)
 }
@@ -103,11 +104,6 @@ func (g *DiceGame) OnClientReconnect(client interfaces.Client, room interfaces.R
 		state.CurrentTurn = client.ID()
 	}
 
-	// Update the winner reference if applicable
-	if state.Winner == oldClientID {
-		state.Winner = client.ID()
-	}
-
 	room.SetState(state)
 
 	// tell the new client the game state
@@ -115,12 +111,12 @@ func (g *DiceGame) OnClientReconnect(client interfaces.Client, room interfaces.R
 	client.Send(msg)
 }
 
-func (g *DiceGame) HandleMessage(client interfaces.Client, room interfaces.Room, msgType string, payload []byte) {
+func (g *DiceGame) HandleMessage(client interfaces.Client, room interfaces.Room, msgType string, payload []byte) error {
 	state := room.State().(*GameState)
 	// Validate it's the player's turn
 	if state.CurrentTurn != client.ID() {
-		client.Send(protocol.NewErrorResponse("error", "Not your turn"))
-		return
+		client.Send(protocol.NewErrorResponse("error", ErrNotYourTurn.Error()))
+		return ErrNotYourTurn
 	}
 
 	log.Debug().Str("type", msgType).Bytes("payload", payload).Msg("handling message")
@@ -128,56 +124,65 @@ func (g *DiceGame) HandleMessage(client interfaces.Client, room interfaces.Room,
 	switch msgType {
 	case "roll":
 		if busted := g.handleRoll(room); busted {
-			log.Info().Msg("Player busted on roll")
+			log.Info().Msgf("%s busted on roll", state.Players[state.CurrentTurn].Name)
+
+			// using `clientId + busted message` since bot filters if it was its bust or not
+			bustedMsg := protocol.NewErrorResponse("error", client.ID()+ErrBusted.Error())
+
+			// if the bot busted, tell them immediately
+			if client.IsBot() {
+				room.BroadcastTo(bustedMsg, client)
+			}
+
+			bustedPlayer := state.Players[state.CurrentTurn]
+
 			// Schedule the turn end after a delay to allow for animations
-			go func(roomID string, playerID string) {
-				// Wait for dice animation
-				time.Sleep(BustedAnimationDelay)
-				bustedMsg := protocol.NewErrorResponse("error", "Busted")
+			time.AfterFunc(BustedAnimationDelay, func() {
 				room.Broadcast(bustedMsg)
+				bustedPlayer.TurnScore = 0
+				bustedPlayer.RoundScore = 0
 				g.handleEndTurn(room)
 				broadcastGameState(room)
-			}(room.ID(), client.ID())
+			})
 		}
 	case "select":
 		var action SelectActionPayload
 		if len(payload) > 0 {
 			if err := json.Unmarshal(payload, &action); err != nil {
-				log.Error().Str("error", err.Error()).Msg("invalid select payload")
-				client.Send(protocol.NewErrorResponse("error", "Invalid select payload"))
-				return
+				log.Error().Str("error", err.Error()).Msg(ErrSelectPayloadInvalid.Error())
+				return ErrSelectPayloadInvalid
 			}
 		}
 
 		log.Debug().Int("diceIndex", action.DiceIndex).Int("length", len(state.Dice)).Msg("select coming in")
 
 		if err := g.handleSelect(room, action); err != nil {
-			log.Error().Int("diceIndex", action.DiceIndex).Int("length", len(state.Dice)).Msg(err.Error())
-			client.Send(protocol.NewErrorResponse("error", "Select failed; "+err.Error()))
+			log.Error().Int("diceIndex", action.DiceIndex).Int("length", len(state.Dice)).Err(err).Msg(ErrSelectInvalid.Error())
+			return ErrSelectInvalid
 		}
 	case "set_aside":
 		var action SetAsideActionPayload
 		if len(payload) > 0 {
 			if err := json.Unmarshal(payload, &action); err != nil {
-				log.Error().Err(err).Msg("invalid set aside payload")
-				client.Send(protocol.NewErrorResponse("error", "Invalid set aside payload"))
-				return
+				log.Error().Err(err).Msg(ErrSetAsidePayloadInvalid.Error())
+				return ErrSetAsidePayloadInvalid
 			}
 		}
 
 		log.Info().Bool("endTurn", action.EndTurn).Ints("selectedDice", state.SelectedDice).Ints("dice", state.Dice).Msg("setting dice aside")
 
-		if err := g.handleSetAside(room, action); err != nil {
-			log.Error().Err(err).Msg("set aside failed; " + err.Error())
-			client.Send(protocol.NewErrorResponse("error", "set aside failed; "+err.Error()))
+		if err := g.handleSetAside(room, action.EndTurn); err != nil {
+			log.Error().Err(err).Msg(ErrSetAsideInvalid.Error())
+			return ErrSetAsideInvalid
 		}
-	case "end_turn":
-		g.handleEndTurn(room)
+	//case "end_turn":
+	//	g.handleEndTurn(room)
 	default:
 		client.Send(protocol.NewErrorResponse("error", "Unknown message type: "+msgType))
 	}
 
 	broadcastGameState(room)
+	return nil
 }
 
 // broadcastGameState sends the current game state to all clients in the room
@@ -187,3 +192,12 @@ func broadcastGameState(room interfaces.Room) {
 	msg := protocol.NewSuccessResponse("game_state", state)
 	room.Broadcast(msg)
 }
+
+var (
+	ErrNotYourTurn            = errors.New("not your turn")
+	ErrBusted                 = errors.New("busted")
+	ErrSelectPayloadInvalid   = errors.New("select payload invalid")
+	ErrSelectInvalid          = errors.New("select invalid")
+	ErrSetAsidePayloadInvalid = errors.New("set aside payload invalid ")
+	ErrSetAsideInvalid        = errors.New("set aside invalid")
+)

@@ -28,7 +28,7 @@ type GameState struct {
 	Players      map[string]*Player `json:"players"`
 	Started      bool               `json:"started"`
 	CurrentTurn  string             `json:"currentTurn"`
-	Winner       string             `json:"winner"`
+	Winner       string             `json:"winner"` // the winners name
 	Dice         []int              `json:"dice"`
 	SelectedDice []int              `json:"selectedDice"`
 	SetAside     []int              `json:"setAside"`
@@ -182,13 +182,21 @@ func removeRun(dice []int, start, end int) []int {
 	return result
 }
 
-func (g *DiceGame) EndTurn(state *GameState) {
-	log.Info().Msg("Ending turn")
+func (g *DiceGame) EndTurn(room interfaces.Room, state *GameState) {
+	log.Info().Str("currentPlayer", state.Players[state.CurrentTurn].Name).Msg("ending turn")
 	// Add turn score to player's total score
 	if player, exists := state.Players[state.CurrentTurn]; exists {
 		player.Score += player.RoundScore
 		player.TurnScore = 0
 		player.RoundScore = 0
+
+		if player.Score >= state.TargetScore {
+			// game is over
+			state.Winner = player.Name
+			state.CurrentTurn = ""
+			return
+		}
+
 	}
 
 	// Reset turn-specific variables
@@ -304,7 +312,7 @@ func (g *DiceGame) handleSelect(room interfaces.Room, payload SelectActionPayloa
 	return nil
 }
 
-func (g *DiceGame) handleSetAside(room interfaces.Room, payload SetAsideActionPayload) error {
+func (g *DiceGame) handleSetAside(room interfaces.Room, endTurn bool) error {
 	log.Debug().Str("room", room.ID()).Msg("setting dice aside")
 
 	state := room.State().(*GameState)
@@ -324,7 +332,7 @@ func (g *DiceGame) handleSetAside(room interfaces.Room, payload SetAsideActionPa
 		return fmt.Errorf("failed to get current player: %s", state.CurrentTurn)
 	}
 
-	if !payload.EndTurn {
+	if !endTurn {
 		// Move selected dice to setAside
 		for _, dice := range selectedDice {
 			state.SetAside = append(state.SetAside, dice)
@@ -347,8 +355,9 @@ func (g *DiceGame) handleSetAside(room interfaces.Room, payload SetAsideActionPa
 	currentPlayer.RoundScore += selectedScore
 	state.SelectedDice = make([]int, 0)
 
-	if payload.EndTurn {
-		g.EndTurn(state)
+	// TODO: align with busted endTurn logic
+	if endTurn {
+		g.EndTurn(room, state)
 	}
 
 	room.SetState(state)
@@ -359,7 +368,7 @@ func (g *DiceGame) handleEndTurn(room interfaces.Room) {
 	log.Debug().Str("room", room.ID()).Msg("ending turn")
 
 	state := room.State().(*GameState)
-	g.EndTurn(state)
+	g.EndTurn(room, state)
 	room.SetState(state)
 }
 

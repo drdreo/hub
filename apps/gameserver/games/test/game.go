@@ -19,8 +19,8 @@ func (g *TestGame) Type() string {
 	return "testGame"
 }
 
-func (g *TestGame) HandleMessage(client interfaces.Client, room interfaces.Room, msgType string, payload []byte) {
-
+func (g *TestGame) HandleMessage(client interfaces.Client, room interfaces.Room, msgType string, payload []byte) error {
+	return nil
 }
 
 func (g *TestGame) InitializeRoom(room interfaces.Room, options json.RawMessage) error {

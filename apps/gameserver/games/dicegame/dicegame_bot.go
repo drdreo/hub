@@ -2,10 +2,12 @@ package dicegame
 
 import (
 	"encoding/json"
+	"errors"
 	"gameserver/internal/client"
 	"gameserver/internal/interfaces"
 	"gameserver/internal/protocol"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -15,17 +17,19 @@ const BOT_DELAY = 2000 // 2 second delay for bot actions
 
 type DiceGameBot struct {
 	*client.BotClient
-	game              *DiceGame
-	hasRolled         bool
-	waitingForBustEnd bool
+	game                *DiceGame
+	myTurn              bool
+	busted              bool
+	combinationToSelect []int
 }
 
 func NewDiceGameBot(id string, game *DiceGame, reg interfaces.GameRegistry) *DiceGameBot {
 	bot := &DiceGameBot{
-		BotClient:         client.NewBotClient(id, reg),
-		game:              game,
-		hasRolled:         false,
-		waitingForBustEnd: false,
+		BotClient:           client.NewBotClient(id, reg),
+		game:                game,
+		myTurn:              false,
+		busted:              false,
+		combinationToSelect: make([]int, 0),
 	}
 	bot.SetMessageHandler(bot.handleMessage)
 	return bot
@@ -38,7 +42,6 @@ func (b *DiceGameBot) handleMessage(message *protocol.Response) {
 		return
 	}
 
-	// TODO: bot is oasch, mist und gheat neich gmocht
 	switch message.Type {
 	case "game_state":
 		gameState, ok := b.getGameState(message)
@@ -46,33 +49,30 @@ func (b *DiceGameBot) handleMessage(message *protocol.Response) {
 			return
 		}
 
-		// Reset flags when it's no longer the bot's turn
-		if !b.isBotTurn(gameState) {
-			b.hasRolled = false
-			b.waitingForBustEnd = false
+		b.checkBotTurn(gameState)
+
+		if !b.myTurn {
+			// do nothing
+			log.Debug().Msg("not my turn, chilling")
+			return
+		}
+		// Don't make moves if we're busted
+		if b.busted {
+			log.Debug().Msg("i am busted, chilling")
 			return
 		}
 
-		// Don't make moves if we're waiting for a bust animation to complete
-		if b.waitingForBustEnd {
-			return
-		}
-
-		// VIBE: Reset hasRolled flag when a new turn begins
-		if b.isBotTurn(gameState) && len(gameState.Dice) == 6 && len(gameState.SetAside) == 0 {
-			b.hasRolled = false
-		}
 		b.makeNextMove(gameState)
 
 	case "error":
-		// Check for bust notification
-		if message.Error == "Busted" {
-			b.waitingForBustEnd = true
-			log.Info().Msg("Bot detected bust and will wait for turn to end")
+		// Check for bust error and if it includes the bots ID
+		if b.myTurn && strings.Contains(message.Error, ErrBusted.Error()) && strings.Contains(message.Error, b.ID()) {
+			log.Warn().Msg("Bot detected bust and will wait for turn to end")
+			b.busted = true
 		}
 
 	default:
-		log.Warn().Str("type", message.Type).Str("botId", b.ID()).Msg("bot could not handle data")
+		log.Warn().Str("type", message.Type).Str("botId", b.ID()).Msg("bot did not handle message")
 	}
 }
 
@@ -85,84 +85,124 @@ func (b *DiceGameBot) getGameState(message *protocol.Response) (*GameState, bool
 	return gameState, ok
 }
 
-func (b *DiceGameBot) isBotTurn(state *GameState) bool {
-	if state.CurrentTurn == b.ID() {
-		return true
-	}
-	return false
-}
-
 func (b *DiceGameBot) makeNextMove(state *GameState) {
 	// Add a small delay to simulate thinking
 	time.Sleep(BOT_DELAY * time.Millisecond)
+	log.Debug().Msg("deciding on next move")
 
-	// Check context before proceeding
-	if b.Context().Err() != nil {
-		log.Debug().Str("botId", b.ID()).Msg("Context canceled, not making moves")
-		return
-	}
-
-	// Additionally check if the room is still valid
-	room := b.Room()
-	if room == nil || room.IsClosed() {
-		log.Debug().Str("botId", b.ID()).Msg("Room is closed or nil, not making moves")
+	if err := b.checkRoomStatus(); err != nil {
+		// cancel move processing if the room is invalid (closed, ...)
+		log.Debug().Msg("room is not okay: " + err.Error())
 		return
 	}
 
 	log.Debug().Ints("dice", state.Dice).Msg("current dice")
 
-	// If we still have all dice and havent selected any dice yet, roll the dice
-	if !b.hasRolled {
-		if err := b.sendAction("roll", nil); err == nil {
-			b.hasRolled = true
-		}
+	// 1. Check roll condition
+	if b.shouldRoll(state) {
+		b.sendAction("roll", nil)
 		return
 	}
 
-	// If we have selected dice, set them aside
+	// 2. Select some dice
+	scoringIdx := b.findScoringDiceIdx(state)
+	log.Debug().Int("scoringIdx", scoringIdx).Msg("found scoring dice")
+	// we still have scoring dice left and havent set aside too many yet
+	if scoringIdx != -1 && len(state.SetAside) <= 3 {
+		log.Debug().Int("scoringIdx", scoringIdx).Msg("selecting dice")
+		b.sendAction("select", map[string]int{"diceIndex": scoringIdx})
+		return
+	}
+
+	// 3. Set dice aside
 	if len(state.SelectedDice) > 0 {
+		log.Debug().Ints("selectedDice", state.SelectedDice).Msg("setting dice aside")
+
 		// Decide whether to end turn based on risk assessment
 		endTurn := b.shouldEndTurn(state)
 		b.sendAction("set_aside", map[string]bool{"endTurn": endTurn})
-		b.hasRolled = false
 		return
 	}
 
-	// Find scoring dice to select
-	scoringIndexes := b.findScoringDiceIndexes(state)
-	log.Debug().Ints("scoringIndexes", scoringIndexes).Msg("found scoring dice")
-	if len(scoringIndexes) > 0 {
-		// Select the first scoring die
-		b.sendAction("select", map[string]int{"diceIndex": scoringIndexes[0]})
-		return
-	}
-
-	// No scoring dice left, end turn
-	b.endTurn()
-	b.hasRolled = false
+	log.Warn().
+		Ints("dice", state.Dice).
+		Ints("selectedIdx", state.SelectedDice).
+		Msg("Bot should already have ended turn, but did not. Maybe we couldnt find a combination?")
 }
 
-func (b *DiceGameBot) endTurn() {
-	b.sendAction("end_turn", nil)
-	b.hasRolled = false
-}
+func (b *DiceGameBot) findScoringDiceIdx(state *GameState) int {
+	// 1. select all 1s
+	// 2. no 1s left, select all 5s
+	// 3. gotta check for multiples
+	scoringPriorities := []int{1, 5}
 
-func (b *DiceGameBot) findScoringDiceIndexes(state *GameState) []int {
-	// Collect indices of dice that are either 1 or 5
-	return slices.Collect(func(yield func(int) bool) {
-		for dieIdx, die := range state.Dice {
-			if die == 1 || die == 5 {
-				if !yield(dieIdx) {
-					return
-				}
+	for _, priority := range scoringPriorities {
+		for idx, die := range state.Dice {
+			// Don't select dice that are already selected
+			if slices.Contains(state.SelectedDice, idx) {
+				continue
+			}
+
+			if die == priority {
+				return idx
 			}
 		}
-	})
+	}
+
+	if len(b.combinationToSelect) == 0 {
+		b.combinationToSelect = b.detectOtherDiceToSelect(state.Dice)
+	}
+
+	if len(b.combinationToSelect) > 0 {
+		combinationDie := b.combinationToSelect[0]
+		stateDiceIdx := -1
+		for idx, die := range state.Dice {
+			if die != combinationDie {
+				continue
+			}
+
+			// if we have already selected that dice, continue search
+			if slices.Contains(state.SelectedDice, idx) {
+				continue
+			}
+
+			stateDiceIdx = idx
+			// Found a valid index, so break the loop
+			break
+		}
+
+		if stateDiceIdx != -1 {
+			// remove the selected dice from the combination list
+			b.combinationToSelect = slices.Delete(b.combinationToSelect, 0, 1)
+			return stateDiceIdx
+		}
+
+		// No valid dice found in this round, so clear the combination list to avoid getting stuck
+		b.combinationToSelect = []int{}
+		return -1
+	}
+
+	return -1
 }
 
 func (b *DiceGameBot) shouldEndTurn(state *GameState) bool {
-	// Simple logic - end turn if we have accumulated some points
-	return len(state.SetAside) > 0
+	// end turn if we have banked at least 3 dice or are about to bank more than 3 dice
+	return len(state.SetAside) >= 3 || len(state.SetAside)+len(state.SelectedDice) >= 3
+}
+
+func (b *DiceGameBot) checkBotTurn(state *GameState) {
+	log.Debug().Msg("checking bot turn")
+	// check if bot is the current turn
+	if state.CurrentTurn == b.ID() {
+		log.Debug().Msg("detected its my turn")
+		b.myTurn = true
+	} else if b.myTurn {
+		log.Debug().Msg("no longer my turn, cleaning up")
+		// Reset flags when it's no longer the bot's turn
+		b.myTurn = false
+		b.busted = false
+		b.combinationToSelect = []int{}
+	}
 }
 
 func (b *DiceGameBot) sendAction(action string, payload interface{}) error {
@@ -172,4 +212,61 @@ func (b *DiceGameBot) sendAction(action string, payload interface{}) error {
 		return err
 	}
 	return nil
+}
+
+func (b *DiceGameBot) checkRoomStatus() error {
+	// Check context before proceeding
+	if b.Context().Err() != nil {
+		log.Debug().Str("botId", b.ID()).Msg("Context canceled, not making moves")
+		return errors.New("context canceled")
+	}
+
+	// Additionally check if the room is still valid
+	room := b.Room()
+	if room == nil || room.IsClosed() {
+		log.Debug().Str("botId", b.ID()).Msg("Room is closed or nil, not making moves")
+		return errors.New("room is closed")
+	}
+
+	return nil
+}
+
+func (b *DiceGameBot) shouldRoll(state *GameState) bool {
+	// If we have invalid dice (unrolled), roll the dice
+	if b.allDiceInvalid(state.Dice) {
+		return true
+	}
+	return false
+}
+
+func (b *DiceGameBot) allDiceInvalid(dice []int) bool {
+	for _, die := range dice {
+		if die != 0 {
+			return false
+		}
+	}
+
+	return true
+}
+
+// checkMultiples checks for three of a kind and beyond.
+func (b *DiceGameBot) detectOtherDiceToSelect(stateDice []int) []int {
+	// Count occurrences for remaining dice
+	var combinations []int
+	counts := make(map[int]int)
+	for _, die := range stateDice {
+		counts[die]++
+	}
+
+	// Check for three of a kind and beyond
+	for num, count := range counts {
+		if count >= 3 {
+			log.Debug().Int("num", num).Int("count", count).Msg("Found three or more of a kind")
+			for i := 0; i < count; i++ {
+				combinations = append(combinations, num)
+			}
+		}
+	}
+
+	return combinations
 }
