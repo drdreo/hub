@@ -43,9 +43,11 @@ const Home = () => {
             const roomId = sessionStorage.getItem("roomId");
             if (roomId) {
                 // show notification and offer to rejoin game
-                const shouldRejoin = window.confirm(`Game still in progress. Rejoin '${roomId}'?`);
+                const shouldRejoin = window.confirm(`Game still in progress. Rejoin '${roomId}'? Cancel to leave room`);
                 if (shouldRejoin) {
                     navigate(`/game/${roomId}`);
+                } else {
+                    dispatch(gameLeave());
                 }
             } else {
                 console.warn("No roomId found in sessionStorage after reconnection.");
