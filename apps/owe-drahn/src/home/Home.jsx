@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom"; // Use this hook for navigation
 import { useFirebase } from "../auth/Firebase"; // Custom hook for Firebase context
 import SignInGoogle from "../auth/SignIn/SignIn";
-import { gameReset } from "../game/game.actions";
+import { gameLeave } from "../game/game.actions";
 import { getRoomList, joinRoom } from "../socket/socket.actions";
 import { getWebSocket } from "../socket/websocket";
 import { debounce } from "../utils/helpers";
@@ -16,6 +16,7 @@ const Home = () => {
     const [usernameSetFromDB, setUsernameSetFromDB] = useState(false);
     const overview = useSelector(state => state.home.overview);
     const [formError, setFormError] = useState("");
+    const reconnected = useSelector(state => state.socket.reconnected);
 
     const navigate = useNavigate();
     const firebase = useFirebase();
@@ -24,9 +25,8 @@ const Home = () => {
 
     useEffect(() => {
         console.log("Home mounted");
-        sessionStorage.removeItem("playerId");
-        fetchOverview();
-        dispatch(gameReset());
+        dispatch(getRoomList());
+        // dispatch(gameLeave());
     }, [dispatch]);
 
     useEffect(() => {
@@ -37,6 +37,22 @@ const Home = () => {
             setUsernameSetFromDB(false);
         }
     }, [authUser, usernameSetFromDB, username]);
+
+    useEffect(() => {
+        if (reconnected) {
+            const roomId = sessionStorage.getItem("roomId");
+            if (roomId) {
+                // show notification and offer to rejoin game
+                const shouldRejoin = window.confirm(`Game still in progress. Rejoin '${roomId}'?`);
+                if (shouldRejoin) {
+                    navigate(`/game/${roomId}`);
+                }
+            } else {
+                console.warn("No roomId found in sessionStorage after reconnection.");
+            }
+        }
+    }, [reconnected, navigate]);
+
 
     const updateRoom = room => {
         setRoom(room);
@@ -93,11 +109,6 @@ const Home = () => {
         socket.addEventListener("message", messageHandler);
 
         dispatch(joinRoom(room, username));
-    };
-
-    const fetchOverview = () => {
-        // Request room list via WebSockets instead of HTTP
-        dispatch(getRoomList());
     };
 
     return (

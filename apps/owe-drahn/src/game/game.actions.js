@@ -1,8 +1,8 @@
 export const ROLLED_DICE = "ROLLED_DICE";
 
-export const gameReset = () => {
+export const gameLeave = () => {
     return {
-        type: "GAME_RESET"
+        type: "GAME_LEAVE"
     };
 };
 
@@ -80,3 +80,11 @@ export const animatedDice = data => {
         payload: data
     };
 };
+
+export const patchUIState = data => {
+    return {
+        type: "PATCH_UI_STATE",
+        payload: data
+    };
+};
+

@@ -94,7 +94,15 @@ func (r *Router) handleCreateRoom(createOptions interfaces.CreateRoomOptions) (i
 func (r *Router) handleJoinRoom(client interfaces.Client, data json.RawMessage) {
 	// prevent multi-room joining
 	if client.Room() != nil {
-		client.Send(protocol.NewErrorResponse("join_room_result", ErrClientAlreadyInRoom.Error()))
+		log.Warn().Str("id", client.ID()).Msg("client tried to join room but already in room")
+		//client.Send(protocol.NewErrorResponse("join_room_result", ErrClientAlreadyInRoom.Error()))
+		response := map[string]interface{}{
+			"clientId": client.ID(),
+			"roomId":   client.Room().ID(),
+		}
+
+		// trying to auto-reconnect when client tries to join a room
+		client.Send(protocol.NewSuccessResponse("reconnect_result", response))
 		return
 	}
 

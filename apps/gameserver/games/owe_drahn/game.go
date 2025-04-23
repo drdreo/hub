@@ -43,7 +43,7 @@ func (s *GameState) ToMap() interfaces.M {
 
 type HandshakePayload struct {
 	RoomID   string `json:"room"`
-	PlayerID string `json:"playerId"`
+	ClientId string `json:"clientId"`
 	UserID   string `json:"uid"`
 }
 
@@ -126,6 +126,8 @@ func (g *Game) HasPlayers(state *GameState) bool {
 }
 
 func (g *Game) Reset(state *GameState) {
+	log.Info().Msg("resetting game")
+
 	state.Started = false
 	state.Over = false
 	state.CurrentValue = 0
@@ -137,7 +139,6 @@ func (g *Game) Reset(state *GameState) {
 }
 
 func (g *Game) start(state *GameState) {
-	log.Debug().Msg("starting game")
 	state.Started = true
 	state.StartedAt = time.Now()
 
@@ -147,9 +148,12 @@ func (g *Game) start(state *GameState) {
 		playerIDs = append(playerIDs, id)
 	}
 	state.CurrentTurn = playerIDs[rand.Intn(len(playerIDs))]
+
+	log.Debug().Str("currentTurn", state.CurrentTurn).Msg("starting game")
 }
 
-func (g *Game) handleRoll(client interfaces.Client, state *GameState) error {
+func (g *Game) handleRoll(room interfaces.Room) error {
+	state := room.State().(*GameState)
 	player := g.GetCurrentPlayer(state)
 
 	dice := random(1, 6)
@@ -170,18 +174,19 @@ func (g *Game) handleRoll(client interfaces.Client, state *GameState) error {
 		state.CurrentValue = 0
 	}
 
-	g.broadcastGameEvent(client.Room(), "rolledDice", interfaces.M{
-		"dice":   dice,
-		"player": player.ToFormattedPlayer(),
-		"total":  total,
-	})
-
 	if player.IsChoosing {
 		player.IsChoosing = false
 		log.Error().Msg(" How the fuck?! Player is choosing, but should not be.")
 	}
 
-	return g.setNextPlayer(client.Room(), state)
+	room.SetState(state)
+	g.broadcastGameEvent(room, "rolledDice", interfaces.M{
+		"dice":   dice,
+		"player": player.ToFormattedPlayer(),
+		"total":  total,
+	})
+
+	return g.setNextPlayer(room, state)
 }
 
 /**
@@ -204,12 +209,13 @@ func (g *Game) handleChooseNextPlayer(client interfaces.Client, state *GameState
 	}
 
 	if currentPlayer.IsChoosing && nextPlayer.Life > 0 {
+		log.Info().Str("currentTurn", state.CurrentTurn).Str("nextPlayerId", nextPlayerData.NextPlayerId).Msg("choosing next player")
 		currentPlayer.IsChoosing = false
 		state.CurrentTurn = nextPlayerData.NextPlayerId
 	}
 
-	g.broadcastPlayerUpdate(client.Room(), state.Players, state.CurrentTurn, true)
-
+	//g.broadcastPlayerUpdate(client.Room(), state.Players, state.CurrentTurn, true)
+	//g.broadcastGameState(client.Room())
 	return nil
 }
 
@@ -261,6 +267,7 @@ func (g *Game) setNextPlayer(room interfaces.Room, state *GameState) error {
 
 			// Check if the player is alive
 			if state.Players[nextPlayerID].Life > 0 {
+				log.Info().Str("currentTurn", state.CurrentTurn).Str("nextPlayerID", nextPlayerID).Msg("setting next player")
 				state.CurrentTurn = nextPlayerID
 				break
 			}
@@ -274,7 +281,8 @@ func (g *Game) setNextPlayer(room interfaces.Room, state *GameState) error {
 	}
 
 	if !state.Over {
-		g.broadcastPlayerUpdate(room, state.Players, state.CurrentTurn, false)
+		//g.broadcastPlayerUpdate(room, state.Players, state.CurrentTurn, false)
+		//g.broadcastGameState(room)
 	}
 
 	return nil
@@ -287,7 +295,7 @@ func (g *Game) setNextPlayerRandom(room interfaces.Room, state *GameState) {
 	randomIdx := random(0, len(playerIDs)-1)
 	state.CurrentTurn = playerIDs[randomIdx]
 
-	g.broadcastPlayerUpdate(room, state.Players, state.CurrentTurn, false)
+	//g.broadcastPlayerUpdate(room, state.Players, state.CurrentTurn, false)
 }
 
 func (g *Game) getSortedPlayerIDs(state *GameState) []string {
@@ -304,7 +312,7 @@ func (g *Game) getSortedPlayerIDs(state *GameState) []string {
 }
 
 func (g *Game) gameOver(room interfaces.Room, winner string, state *GameState) {
-	log.Info().Msg("game over")
+	log.Info().Str("winner", winner).Msg("game over")
 	state.Over = true
 	state.FinishedAt = time.Now()
 
@@ -352,7 +360,7 @@ func (g *Game) handleReady(client interfaces.Client, state *GameState, payload [
 		}
 	}
 
-	g.broadcastPlayerUpdate(client.Room(), state.Players, state.CurrentTurn, true)
+	//g.broadcastPlayerUpdate(client.Room(), state.Players, state.CurrentTurn, true)
 }
 
 func (g *Game) handleLoseLife(client interfaces.Client, state *GameState) {
@@ -380,7 +388,7 @@ func (g *Game) handleHandshake(client interfaces.Client, state *GameState, paylo
 
 	var handshake HandshakePayload
 	if err := json.Unmarshal(payload, &handshake); err != nil {
-		client.Send(protocol.NewErrorResponse("error", "Invalid ready format"))
+		client.Send(protocol.NewErrorResponse("error", "Invalid handshake format"))
 		return
 	}
 	log.Debug().Str("clientId", client.ID()).Str("userId", handshake.UserID).Msg("handshake")

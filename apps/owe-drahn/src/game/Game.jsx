@@ -11,8 +11,8 @@ import Feed from "./Feed/Feed";
 import Settings from "../settings/Settings";
 import RolledDice from "./RolledDice/RolledDice.jsx";
 
-import { chooseNextPlayer, loseLife, ready, reconnect, rollDice } from "../socket/socket.actions";
-import { animatedDice } from "./game.actions";
+import { chooseNextPlayer, loseLife, ready, resetReconnected, rollDice } from "../socket/socket.actions";
+import { animatedDice, patchUIState } from "./game.actions";
 import { feedMessage } from "./Feed/feed.actions";
 
 import "./Game.scss";
@@ -27,10 +27,8 @@ const Game = () => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
     const { room } = useParams();
+    const clientId = useSelector(state => state.socket.clientId);
     useGameConnection(room);
-
-    const clientId = sessionStorage.getItem("playerId");
-    dispatch(reconnect(clientId, room));
 
     const settings = useSelector(state => state.settings);
     const {
@@ -44,6 +42,7 @@ const Game = () => {
         over,
         error
     } = useSelector(state => state.game);
+    const reconnected = useSelector(state => state.socket.reconnected);
 
     const [animatingDice, setAnimatingDice] = useState(false);
     const [animatingHeart, setAnimatingHeart] = useState(false);
@@ -56,9 +55,17 @@ const Game = () => {
         }
     };
 
+
+    useEffect(() => {
+        if (reconnected) {
+            dispatch(patchUIState({ currentValue }));
+            dispatch(resetReconnected());
+        }
+    }, [reconnected, currentValue]);
+
+    
     const getPlayer = () => {
-        const currentPlayerId = sessionStorage.getItem("playerId");
-        return players.find(player => player.id === currentPlayerId);
+        return players.find(player => player.id === clientId);
     };
 
     const player = getPlayer();

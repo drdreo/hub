@@ -14,7 +14,7 @@ const initialState = {
 
 const gameReducer = (state = initialState, action) => {
     switch (action.type) {
-        case "GAME_RESET":
+        case "GAME_LEAVE":
             return { ...state, ...initialState };
         case "GAME_INIT":
             return {
@@ -25,6 +25,11 @@ const gameReducer = (state = initialState, action) => {
             };
         case "GAME_STARTED":
             return { ...state, started: true, over: false };
+        case "PATCH_UI_STATE":
+            return {
+                ...state,
+                ui_currentValue: action.payload.currentValue
+            };
         case "GAME_UPDATE":
             return {
                 ...state,
@@ -32,6 +37,7 @@ const gameReducer = (state = initialState, action) => {
                 ui_players: action.payload.players,
                 started: action.payload.started,
                 over: action.payload.over,
+                currentTurn: action.payload.currentTurn,
                 currentValue: action.payload.currentValue
             };
         case "GAME_OVER":
@@ -66,7 +72,7 @@ const gameReducer = (state = initialState, action) => {
                 ui_players: state.players
             };
         case "PLAYER_LOST_LIFE": {
-            const currentPlayerId = sessionStorage.getItem("playerId");
+            const currentPlayerId = sessionStorage.getItem("clientId");
             const playersTurn = state.currentTurn === currentPlayerId;
             const message = playersTurn ? "Choose next Player or roll" : "";
             return {

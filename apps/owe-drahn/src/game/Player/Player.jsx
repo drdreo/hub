@@ -1,4 +1,5 @@
 import { Dice1, Dice2, Dice3, Dice4, Dice5, Dice6, Skull } from "lucide-react";
+import { useSelector } from "react-redux";
 import rank10 from "../../assets/images/ranks/rank10.png";
 import rank15 from "../../assets/images/ranks/rank15.png";
 import rank20 from "../../assets/images/ranks/rank20.png";
@@ -16,6 +17,7 @@ import PlayerStats from "./PlayerStats/PlayerStats.jsx";
 import { Tooltip } from "react-tooltip";
 
 const Player = ({ player, isPlayersTurn, started, choosing, onClick, style }) => {
+    const clientId = useSelector(state => state.socket.clientId);
     const getRankIcon = rank => {
         switch (true) {
             case 5 <= rank && rank < 10:
@@ -69,7 +71,7 @@ const Player = ({ player, isPlayersTurn, started, choosing, onClick, style }) =>
                 onClick={onClick}
                 style={style}
                 data-tooltip-id={`player-tooltip-${player.id}`}
-                className={`player ${sessionStorage.getItem("playerId") === player.id ? "me" : ""} 
+                className={`player ${clientId === player.id ? "me" : ""} 
             ${started ? "started" : ""} 
             ${player.ready ? "ready" : ""} 
             ${isPlayersTurn ? "turn" : ""}

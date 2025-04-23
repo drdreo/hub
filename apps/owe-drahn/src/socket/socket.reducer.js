@@ -3,16 +3,23 @@ import {
     eventMap,
     GET_ROOM_LIST,
     JOIN_ROOM,
+    JOINED_ROOM,
     PLAYER_CHOOSE_NEXT,
     PLAYER_LOSE_LIFE,
     PLAYER_READY,
     PLAYER_ROLL_DICE,
-    RECONNECT
+    RECONNECT,
+    RECONNECTED,
+    RESET_RECONNECTED
 } from "./socket.actions";
 
 import { connectWebSocket, getWebSocket } from "./websocket";
 
-const initialState = { socket: connectWebSocket() };
+const initialState = {
+    socket: connectWebSocket(),
+    clientId: sessionStorage.getItem("clientId"),
+    roomId: sessionStorage.getItem("roomId")
+};
 
 const sendMessage = (socket, type, payload) => {
     if (socket.readyState !== WebSocket.OPEN) {
@@ -34,18 +41,18 @@ const socketReducer = (state = initialState, action) => {
     }
 
     switch (action.type) {
-        case "GAME_RESET":
+        case "GAME_LEAVE":
             sendMessage(socket, "leave_room");
             return state;
         case CONNECTION_HANDSHAKE:
-            sendMessage(socket, eventMap[action.type], {
-                playerId: sessionStorage.getItem("playerId"),
+            sendMessage(socket, eventMap[CONNECTION_HANDSHAKE], {
+                clientId: sessionStorage.getItem("clientId"),
                 room: action.data.room,
                 uid: action.data.uid
             });
             return state;
         case PLAYER_READY:
-            sendMessage(socket, eventMap[action.type], action.data);
+            sendMessage(socket, eventMap[PLAYER_READY], action.data);
             return state;
         case PLAYER_ROLL_DICE:
             sendMessage(socket, eventMap[PLAYER_ROLL_DICE]);
@@ -62,9 +69,28 @@ const socketReducer = (state = initialState, action) => {
         case JOIN_ROOM:
             sendMessage(socket, eventMap[JOIN_ROOM], action.data);
             return state;
+        case JOINED_ROOM:
+            return {
+                ...state,
+                joinedRoom: true,
+                clientId: action.data.clientId,
+                roomId: action.data.roomId
+            };
         case RECONNECT:
-            sendMessage(socket, eventMap[JOIN_ROOM], action.data);
+            sendMessage(socket, eventMap[RECONNECT], action.data);
             return state;
+        case RESET_RECONNECTED:
+            return {
+                ...state,
+                reconnected: false
+            };
+        case RECONNECTED:
+            return {
+                ...state,
+                reconnected: true,
+                clientId: action.data.clientId,
+                roomId: action.data.roomId
+            };
         default:
             return state;
     }

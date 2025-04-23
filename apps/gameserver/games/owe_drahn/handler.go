@@ -90,7 +90,7 @@ func (g *Game) OnClientReconnect(client interfaces.Client, room interfaces.Room,
 	room.SetState(state)
 
 	// tell the new client the game state
-	msg := protocol.NewSuccessResponse("game_state", state)
+	msg := protocol.NewSuccessResponse("game_state", state.ToMap())
 	client.Send(msg)
 }
 
@@ -114,14 +114,13 @@ func (g *Game) HandleMessage(client interfaces.Client, room interfaces.Room, msg
 		// current turn action handling
 		switch msgType {
 		case "roll":
-			if err := g.handleRoll(client, state); err != nil {
+			if err := g.handleRoll(client.Room()); err != nil {
 				log.Error().Err(err).Msg("roll failed")
 				return ErrRollFailed
 			}
 			break
 		case "loseLife":
 			g.handleLoseLife(client, state)
-			g.broadcastGameState(room)
 			break
 		case "chooseNextPlayer":
 			if err := g.handleChooseNextPlayer(client, state, payload); err != nil {
@@ -134,6 +133,7 @@ func (g *Game) HandleMessage(client interfaces.Client, room interfaces.Room, msg
 			return errors.New("unknown message type: " + msgType)
 		}
 	}
+	g.broadcastGameState(room)
 	return nil
 }
 

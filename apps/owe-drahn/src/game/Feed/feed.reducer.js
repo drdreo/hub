@@ -3,7 +3,7 @@ import { ADD_FEED_MESSAGE } from "./feed.actions";
 const initialState = { enabled: true, messages: [] };
 const feedReducer = (state = initialState, action) => {
     switch (action.type) {
-        case "GAME_RESET":
+        case "GAME_LEAVE":
             return { ...state, ...initialState };
         case ADD_FEED_MESSAGE:
             return {
