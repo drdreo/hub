@@ -21,8 +21,9 @@ type Roll struct {
 
 type GameState struct {
 	Players     map[string]*Player `json:"players"`
+	PlayerOrder []string           `json:"playerOrder"`
 	Started     bool               `json:"started"`
-	CurrentTurn string             `json:"currentTurn"` // TODO: this prop is new, adapt frontend
+	CurrentTurn string             `json:"currentTurn"`
 	Over        bool               `json:"over"`
 
 	Rolls        []Roll    `json:"rolls"`
@@ -33,7 +34,7 @@ type GameState struct {
 
 func (s *GameState) ToMap() interfaces.M {
 	return interfaces.M{
-		"players":      mapPlayersToSortedSlice(s.Players),
+		"players":      mapPlayersToArray(s.Players, s.PlayerOrder),
 		"started":      s.Started,
 		"over":         s.Over,
 		"currentValue": s.CurrentValue,
@@ -53,6 +54,7 @@ type NextPlayerPayload struct {
 
 func (g *Game) AddPlayer(id string, name string, state *GameState) {
 	state.Players[id] = NewPlayer(id, name)
+	state.PlayerOrder = append(state.PlayerOrder, id)
 }
 
 func (g *Game) GetPlayer(id string, state *GameState) *Player {
@@ -62,6 +64,14 @@ func (g *Game) GetPlayer(id string, state *GameState) *Player {
 func (g *Game) RemovePlayer(clientId string, room interfaces.Room, state *GameState) {
 	playerName := state.Players[clientId].Name
 	delete(state.Players, clientId)
+
+	// Remove from player order
+	for i, id := range state.PlayerOrder {
+		if id == clientId {
+			state.PlayerOrder = append(state.PlayerOrder[:i], state.PlayerOrder[i+1:]...)
+			break
+		}
+	}
 
 	g.broadcastGameEvent(room, "playerLeft", interfaces.M{
 		"username": playerName,
@@ -226,22 +236,20 @@ func (g *Game) handleChooseNextPlayer(client interfaces.Client, state *GameState
  * Determines if the game is over, when no players are left alive.
  */
 func (g *Game) setNextPlayer(room interfaces.Room, state *GameState) error {
-	playerIDs := g.getSortedPlayerIDs(state)
-	if len(playerIDs) == 0 {
+	if len(state.PlayerOrder) == 0 {
 		return errors.New("no players while trying to set next player")
 	}
 
 	// start of the game, nobodys turn
 	// If no current turn is set, start with the first player
 	if state.CurrentTurn == "" {
-		log.Error().Msg("no current turn set, starting with first player")
-		state.CurrentTurn = playerIDs[0]
+		state.CurrentTurn = state.PlayerOrder[0]
 		return nil
 	}
 
 	// Find the current player's position in our ordered list
 	currentIndex := -1
-	for i, id := range playerIDs {
+	for i, id := range state.PlayerOrder {
 		if id == state.CurrentTurn {
 			currentIndex = i
 			break
@@ -262,8 +270,8 @@ func (g *Game) setNextPlayer(room interfaces.Room, state *GameState) error {
 		// Find the next player who is still alive
 		nextIndex := currentIndex
 		for {
-			nextIndex = (nextIndex + 1) % len(playerIDs)
-			nextPlayerID := playerIDs[nextIndex]
+			nextIndex = (nextIndex + 1) % len(state.PlayerOrder)
+			nextPlayerID := state.PlayerOrder[nextIndex]
 
 			// Check if the player is alive
 			if state.Players[nextPlayerID].Life > 0 {
@@ -291,9 +299,12 @@ func (g *Game) setNextPlayer(room interfaces.Room, state *GameState) error {
 // setNextPlayerRandom selects a random player to be the next player.
 // Should only be used at the start when we have no other current player yet.
 func (g *Game) setNextPlayerRandom(room interfaces.Room, state *GameState) {
-	playerIDs := g.getSortedPlayerIDs(state)
-	randomIdx := random(0, len(playerIDs)-1)
-	state.CurrentTurn = playerIDs[randomIdx]
+	if len(state.PlayerOrder) == 0 {
+		log.Error().Msg("no players while trying to set next random player")
+		return
+	}
+	randomIdx := random(0, len(state.PlayerOrder)-1)
+	state.CurrentTurn = state.PlayerOrder[randomIdx]
 
 	//g.broadcastPlayerUpdate(room, state.Players, state.CurrentTurn, false)
 }
@@ -405,16 +416,14 @@ func random(min int, max int) int {
 	return rand.Intn(max-min+1) + min
 }
 
-// Convert the map of players to a sorted array
-func mapPlayersToSortedSlice(players map[string]*Player) []*Player {
-	playerIDs := make([]string, 0, len(players))
-	for id := range players {
-		playerIDs = append(playerIDs, id)
+func mapPlayersToArray(players map[string]*Player, playerOrder []string) []*Player {
+	result := make([]*Player, 0, len(players))
+	for _, id := range playerOrder {
+		if player, exists := players[id]; exists {
+			result = append(result, player)
+		} else {
+			log.Error().Str("id", id).Strs("order", playerOrder).Msg("player not found in player order")
+		}
 	}
-	sort.Strings(playerIDs)
-	sortedPlayers := make([]*Player, 0, len(players))
-	for _, id := range playerIDs {
-		sortedPlayers = append(sortedPlayers, players[id])
-	}
-	return sortedPlayers
+	return result
 }

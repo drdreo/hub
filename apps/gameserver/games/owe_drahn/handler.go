@@ -27,6 +27,7 @@ func (g *Game) InitializeRoom(room interfaces.Room, options json.RawMessage) err
 	// Create initial game state
 	state := GameState{
 		Players:     make(map[string]*Player),
+		PlayerOrder: make([]string, 0),
 		Started:     false,
 		CurrentTurn: "",
 	}
@@ -81,6 +82,14 @@ func (g *Game) OnClientReconnect(client interfaces.Client, room interfaces.Room,
 	oldPlayer.ID = client.ID()
 	state.Players[client.ID()] = oldPlayer
 	delete(state.Players, oldClientID)
+
+	// Update the new player ID in the player order
+	for i, id := range state.PlayerOrder {
+		if id == oldClientID {
+			state.PlayerOrder[i] = client.ID()
+			break
+		}
+	}
 
 	// If it was this player's turn, update the current turn
 	if state.CurrentTurn == oldClientID {
@@ -148,10 +157,10 @@ func (g *Game) broadcastGameState(room interfaces.Room) {
 	g.broadcastGameEvent(room, "game_state", state.ToMap())
 }
 
-func (g *Game) broadcastPlayerUpdate(room interfaces.Room, players map[string]*Player, currentTurn string, updateUI bool) {
+func (g *Game) broadcastPlayerUpdate(room interfaces.Room, players map[string]*Player, playersOrder []string, currentTurn string, updateUI bool) {
 	g.broadcastGameEvent(room, "playerUpdate", interfaces.M{
 		"currentTurn": currentTurn,
-		"players":     mapPlayersToSortedSlice(players),
+		"players":     mapPlayersToArray(players, playersOrder),
 		"updateUI":    updateUI,
 	})
 }

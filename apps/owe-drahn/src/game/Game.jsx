@@ -123,6 +123,7 @@ const Game = () => {
         }
     }, [isPlayersTurn, isChoosing, animatingDice, settings.sound.enabled]);
 
+    // TODO: this no longer works with new gameserver
     useEffect(() => {
         if (!error) {
             return;
