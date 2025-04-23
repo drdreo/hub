@@ -11,7 +11,13 @@ import Feed from "./Feed/Feed";
 import Settings from "../settings/Settings";
 import RolledDice from "./RolledDice/RolledDice.jsx";
 
-import { chooseNextPlayer, loseLife, ready, resetReconnected, rollDice } from "../socket/socket.actions";
+import {
+    chooseNextPlayer,
+    loseLife,
+    ready,
+    resetReconnected,
+    rollDice
+} from "../socket/socket.actions";
 import { animatedDice, patchUIState } from "./game.actions";
 import { feedMessage } from "./Feed/feed.actions";
 
@@ -55,7 +61,6 @@ const Game = () => {
         }
     };
 
-
     useEffect(() => {
         if (reconnected) {
             dispatch(patchUIState({ currentValue }));
@@ -63,7 +68,6 @@ const Game = () => {
         }
     }, [reconnected, currentValue]);
 
-    
     const getPlayer = () => {
         return players.find(player => player.id === clientId);
     };

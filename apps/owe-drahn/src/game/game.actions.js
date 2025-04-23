@@ -87,4 +87,3 @@ export const patchUIState = data => {
         payload: data
     };
 };
-

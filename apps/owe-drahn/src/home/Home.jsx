@@ -53,7 +53,6 @@ const Home = () => {
         }
     }, [reconnected, navigate]);
 
-
     const updateRoom = room => {
         setRoom(room);
     };
