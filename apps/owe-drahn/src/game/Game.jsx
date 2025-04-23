@@ -1,15 +1,10 @@
-import { useEffect, useRef, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
-
 import diceRoller from "dice-roller-3d";
 import { Howl } from "howler";
+import { useEffect, useRef, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useNavigate, useParams } from "react-router-dom";
 import yourTurnAudio from "../assets/sounds/your_turn.mp3";
-
-import Player from "./Player/Player";
-import LifeLoseBtn from "./LifeLoseBtn/LifeLoseBtn";
-import Feed from "./Feed/Feed";
 import Settings from "../settings/Settings";
-import RolledDice from "./RolledDice/RolledDice.jsx";
 
 import {
     chooseNextPlayer,
@@ -18,13 +13,18 @@ import {
     resetReconnected,
     rollDice
 } from "../socket/socket.actions";
-import { animatedDice, patchUIState } from "./game.actions";
+import Feed from "./Feed/Feed";
 import { feedMessage } from "./Feed/feed.actions";
 
 import "./Game.scss";
-import RollButton from "./RollButton/RollButton";
+import { animatedDice, patchUIState } from "./game.actions";
 import GameInfo from "./GameInfo/GameInfo";
-import { useNavigate, useParams } from "react-router-dom";
+import LifeLoseBtn from "./LifeLoseBtn/LifeLoseBtn";
+
+import Player from "./Player/Player";
+import PlayerStandings from "./PlayerStandings/PlayerStandings";
+import RollButton from "./RollButton/RollButton";
+import RolledDice from "./RolledDice/RolledDice.jsx";
 import { useGameConnection } from "./useGameConnection.js";
 
 const MIN_VAL_TO_OWE_DRAHN = 10;
@@ -291,6 +291,7 @@ const Game = () => {
             <Feed />
             <Settings className="settings" />
             <GameInfo />
+            <PlayerStandings />
         </div>
     );
 };

@@ -182,6 +182,7 @@ func (g *Game) handleRoll(room interfaces.Room) error {
 	if total > 15 {
 		player.Life = 0
 		state.CurrentValue = 0
+		player.Score -= 1
 	}
 
 	if player.IsChoosing {
@@ -265,6 +266,7 @@ func (g *Game) setNextPlayer(room interfaces.Room, state *GameState) error {
 
 	if len(alivePlayers) <= 1 {
 		winner := alivePlayers[0]
+		winner.Score += len(state.Players) - 1 // add winnings to the winner, -1 for their own bet
 		g.gameOver(room, winner.Name, state)
 	} else {
 		// Find the next player who is still alive
