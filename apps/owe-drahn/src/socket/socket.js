@@ -11,7 +11,7 @@ import {
     rolledDice
 } from "../game/game.actions";
 import { gameOverview } from "../home/home.actions.js";
-import { joinedRoom, reconnect, reconnected } from "./socket.actions";
+import { connectionStatus, joinedRoom, reconnect, reconnected } from "./socket.actions";
 import { getWebSocket } from "./websocket";
 
 function handleJoinData(data) {
@@ -34,8 +34,14 @@ export default store => {
     socket.addEventListener("open", () => {
         console.warn("Socket connection opened");
         const state = store.getState();
+        store.dispatch(connectionStatus(WebSocket.OPEN));
         store.dispatch(reconnect(state.socket.clientId, state.socket.roomId));
     });
+
+    socket.addEventListener("close", () => {
+        console.warn("Socket connection closed");
+        store.dispatch(connectionStatus(WebSocket.CLOSED));
+    })
 
     socket.onmessage = event => {
         const messages = JSON.parse(event.data);

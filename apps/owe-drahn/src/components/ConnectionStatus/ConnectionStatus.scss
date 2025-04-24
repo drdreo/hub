@@ -1,0 +1,63 @@
+.connection-status-container {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    display: inline-block;
+    cursor: pointer;
+    margin: 8px;
+
+    &:hover {
+        .connection-tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
+    }
+}
+
+.connection-status {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(60, 60, 60, 0.5);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+
+    .status-icon {
+        font-size: 10px;
+        font-weight: normal;
+    }
+
+    &.connected {
+        background-color: rgba(46, 204, 113, 0.5);
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    &.disconnected {
+        background-color: rgba(231, 76, 60, 0.5);
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    &.connecting, &.closing {
+        background-color: rgba(243, 156, 18, 0.5);
+        color: rgba(255, 255, 255, 0.9);
+    }
+}
+
+.connection-tooltip {
+    position: absolute;
+    background-color: rgba(40, 40, 40, 0.7);
+    color: rgba(255, 255, 255, 0.9);
+    padding: 4px 8px;
+    border-radius: 3px;
+    font-size: 10px;
+    white-space: nowrap;
+    bottom: 100%;
+    right: 0;
+    margin-bottom: 6px;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease;
+    z-index: 100;
+}

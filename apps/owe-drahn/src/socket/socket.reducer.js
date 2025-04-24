@@ -18,7 +18,8 @@ import { connectWebSocket, getWebSocket } from "./websocket";
 const initialState = {
     socket: connectWebSocket(),
     clientId: sessionStorage.getItem("clientId"),
-    roomId: sessionStorage.getItem("roomId")
+    roomId: sessionStorage.getItem("roomId"),
+    connectionStatus: WebSocket.CLOSED,
 };
 
 const sendMessage = (socket, type, payload) => {
@@ -41,6 +42,11 @@ const socketReducer = (state = initialState, action) => {
     }
 
     switch (action.type) {
+        case "CONNECTION_STATUS":
+            return {
+                ...state,
+                connectionStatus: action.data.status
+            };
         case "GAME_LEAVE":
             sendMessage(socket, "leave_room");
             return state;

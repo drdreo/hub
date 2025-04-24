@@ -9,6 +9,7 @@ export const JOINED_ROOM = "JOINED_ROOM";
 export const RECONNECT = "RECONNECT";
 export const RESET_RECONNECTED = "RESET_RECONNECTED";
 export const RECONNECTED = "RECONNECTED";
+export const CONNECTION_STATUS = "CONNECTION_STATUS";
 
 export const eventMap = {
     CONNECTION_HANDSHAKE: "handshake",
@@ -96,3 +97,11 @@ export const resetReconnected = () => {
         type: RESET_RECONNECTED
     };
 };
+
+export const connectionStatus = (status) => {
+    return {
+        type: CONNECTION_STATUS,
+        data : { status }
+    };
+};
+
