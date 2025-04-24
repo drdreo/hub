@@ -1,6 +1,7 @@
 package router
 
 import (
+	"context"
 	testgame "gameserver/games/test"
 	"gameserver/internal/client"
 	"gameserver/internal/game"
@@ -14,11 +15,12 @@ import (
 func TestRouter(t *testing.T) {
 	session.InitGlobalStore(2)
 
+	testCtx := context.Background()
 	registry := game.NewRegistry()
 	testgame.RegisterTestGame(registry)
 	clientManager := client.NewManager()
 	roomManager := room.NewRoomManager(registry)
-	router := NewRouter(clientManager, roomManager, registry)
+	router := NewRouter(testCtx, clientManager, roomManager, registry)
 
 	t.Run("invalid message format", func(t *testing.T) {
 		client1 := client.NewClientMock("test1")

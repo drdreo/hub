@@ -1,6 +1,6 @@
 package owe_drahn
 
-import "gameserver/internal/interfaces"
+import "gameserver/games/owe_drahn/models"
 
 type Player struct {
 	ID          string      `json:"id"`
@@ -37,12 +37,12 @@ func (p *Player) SetStats(stats interface{}) {
 	// TODO calculate rank from stats.totalGames
 }
 
-func (p *Player) ToFormattedPlayer() interfaces.M {
-	return interfaces.M{
-		"life":     p.Life,
-		"points":   p.Points,
-		"uid":      p.UserID,
-		"username": p.Name,
-		"rank":     p.Rank,
+func (p *Player) ToFormattedPlayer() *models.FormattedPlayer {
+	return &models.FormattedPlayer{
+		Life:     p.Life,
+		Points:   p.Points,
+		UID:      p.UserID,
+		Username: p.Name,
+		Rank:     p.Rank,
 	}
 }

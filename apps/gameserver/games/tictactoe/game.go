@@ -1,6 +1,7 @@
 package tictactoe
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"gameserver/internal/interfaces"
@@ -51,7 +52,7 @@ func (g *TicTacToe) Type() string {
 }
 
 // InitializeRoom sets up a new room with the initial game state
-func (g *TicTacToe) InitializeRoom(room interfaces.Room, options json.RawMessage) error {
+func (g *TicTacToe) InitializeRoom(ctx context.Context, room interfaces.Room, options json.RawMessage) error {
 	// Create initial game state
 	state := GameState{
 		Board:       [3][3]string{{"", "", ""}, {"", "", ""}, {"", "", ""}},

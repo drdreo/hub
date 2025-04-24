@@ -1,8 +1,17 @@
 package interfaces
 
 import (
+	"context"
 	"encoding/json"
 	"gameserver/internal/protocol"
+)
+
+// Environment represents the application environment, development or production
+type Environment string
+
+const (
+	Production  Environment = "production"
+	Development Environment = "development"
 )
 
 // Client represents a connected websocket client
@@ -43,7 +52,7 @@ type ClientManager interface {
 }
 
 type RoomManager interface {
-	CreateRoom(createOptions CreateRoomOptions) (Room, error)
+	CreateRoom(ctx context.Context, createOptions CreateRoomOptions) (Room, error)
 	GetRoom(roomID string) (Room, error)
 	RemoveRoom(roomID string)
 	GetAllRoomsByGameType(gameType string) []Room
@@ -53,7 +62,7 @@ type RoomManager interface {
 type Game interface {
 	Type() string
 	HandleMessage(client Client, room Room, msgType string, data []byte) error
-	InitializeRoom(room Room, options json.RawMessage) error
+	InitializeRoom(ctx context.Context, room Room, options json.RawMessage) error
 	OnClientJoin(client Client, room Room, options CreateRoomOptions)
 	OnClientLeave(client Client, room Room)
 	OnClientReconnect(client Client, room Room, oldClientId string)
@@ -64,7 +73,7 @@ type GameRegistry interface {
 	RegisterGame(game Game)
 	GetGame(gameType string) (Game, error)
 	HasGame(gameType string) bool
-	InitializeRoom(room Room, options json.RawMessage) error
+	InitializeRoom(ctx context.Context, room Room, options json.RawMessage) error
 	HandleMessage(client Client, msgType string, data []byte) error
 	HandleClientJoin(client Client, room Room, options CreateRoomOptions) error
 	HandleClientLeave(client Client, room Room) error

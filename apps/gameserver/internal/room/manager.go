@@ -1,6 +1,7 @@
 package room
 
 import (
+	"context"
 	"errors"
 	"gameserver/internal/interfaces"
 	"maps"
@@ -37,7 +38,7 @@ func NewRoomManager(registry interfaces.GameRegistry) *RoomManager {
 }
 
 // CreateRoom creates a new game room
-func (m *RoomManager) CreateRoom(createOptions interfaces.CreateRoomOptions) (interfaces.Room, error) {
+func (m *RoomManager) CreateRoom(ctx context.Context, createOptions interfaces.CreateRoomOptions) (interfaces.Room, error) {
 	// Verify game type exists
 	if !m.gameRegistry.HasGame(createOptions.GameType) {
 		return nil, errors.New("unknown game type")
@@ -47,7 +48,7 @@ func (m *RoomManager) CreateRoom(createOptions interfaces.CreateRoomOptions) (in
 	log.Info().Str("id", room.ID()).Str("type", room.GameType()).Msg("room created")
 
 	// Initialize with game-specific settings
-	if err := m.gameRegistry.InitializeRoom(room, createOptions.Options); err != nil {
+	if err := m.gameRegistry.InitializeRoom(ctx, room, createOptions.Options); err != nil {
 		return nil, err
 	}
 

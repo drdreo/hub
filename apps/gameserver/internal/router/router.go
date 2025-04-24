@@ -1,6 +1,7 @@
 package router
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"gameserver/internal/interfaces"
@@ -11,6 +12,7 @@ import (
 
 // Router handles WebSocket message routing
 type Router struct {
+	ctx           context.Context
 	clientManager interfaces.ClientManager
 	roomManager   interfaces.RoomManager
 	gameRegistry  interfaces.GameRegistry
@@ -29,10 +31,11 @@ type RoomListInfo struct {
 }
 
 // NewRouter creates a new message router
-func NewRouter(clientManager interfaces.ClientManager, roomManager interfaces.RoomManager, gameRegistry interfaces.GameRegistry) *Router {
+func NewRouter(ctx context.Context, clientManager interfaces.ClientManager, roomManager interfaces.RoomManager, gameRegistry interfaces.GameRegistry) *Router {
 	log.Debug().Msg("creating new router")
 
 	return &Router{
+		ctx:           ctx,
 		clientManager: clientManager,
 		roomManager:   roomManager,
 		gameRegistry:  gameRegistry,
@@ -51,7 +54,7 @@ func (r *Router) HandleMessage(client interfaces.Client, messageData []byte) {
 
 	switch message.Type {
 	case "join_room":
-		r.handleJoinRoom(client, message.Data)
+		r.handleJoinRoom(r.ctx, client, message.Data)
 	case "leave_room":
 		r.handleLeaveRoom(client)
 	case "reconnect":
@@ -75,14 +78,14 @@ func (r *Router) HandleMessage(client interfaces.Client, messageData []byte) {
 }
 
 // handleCreateRoom creates a new game room
-func (r *Router) handleCreateRoom(createOptions interfaces.CreateRoomOptions) (interfaces.Room, error) {
+func (r *Router) handleCreateRoom(ctx context.Context, createOptions interfaces.CreateRoomOptions) (interfaces.Room, error) {
 	if createOptions.GameType == "" {
 		return nil, ErrGameTypeRequired
 	}
 
 	log.Debug().Fields(createOptions).Msg("client creating room")
 
-	room, err := r.roomManager.CreateRoom(createOptions)
+	room, err := r.roomManager.CreateRoom(ctx, createOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +94,7 @@ func (r *Router) handleCreateRoom(createOptions interfaces.CreateRoomOptions) (i
 }
 
 // handleJoinRoom joins an existing room
-func (r *Router) handleJoinRoom(client interfaces.Client, data json.RawMessage) {
+func (r *Router) handleJoinRoom(ctx context.Context, client interfaces.Client, data json.RawMessage) {
 	// prevent multi-room joining
 	if client.Room() != nil {
 		log.Warn().Str("id", client.ID()).Msg("client tried to join room but already in room")
@@ -123,7 +126,7 @@ func (r *Router) handleJoinRoom(client interfaces.Client, data json.RawMessage) 
 	var room interfaces.Room
 	if joinOptions.RoomID == nil {
 		log.Info().Msg("Room id not provided, creating new room")
-		cr, err := r.handleCreateRoom(joinOptions)
+		cr, err := r.handleCreateRoom(ctx, joinOptions)
 		room = cr
 		if err != nil {
 			log.Error().Err(err).Msg("failed to create room")
@@ -138,7 +141,7 @@ func (r *Router) handleJoinRoom(client interfaces.Client, data json.RawMessage) 
 		room = tr
 		if err != nil {
 			log.Info().Str("id", *joinOptions.RoomID).Msg("Room not found, creating new room with provided id")
-			tr, err = r.handleCreateRoom(joinOptions)
+			tr, err = r.handleCreateRoom(r.ctx, joinOptions)
 			room = tr
 			if err != nil {
 				log.Error().Err(err).Str("id", *joinOptions.RoomID).Msg("failed to create new room with provided id")

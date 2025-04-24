@@ -1,6 +1,7 @@
 package testgame
 
 import (
+	"context"
 	"encoding/json"
 	"gameserver/internal/interfaces"
 )
@@ -23,7 +24,7 @@ func (g *TestGame) HandleMessage(client interfaces.Client, room interfaces.Room,
 	return nil
 }
 
-func (g *TestGame) InitializeRoom(room interfaces.Room, options json.RawMessage) error {
+func (g *TestGame) InitializeRoom(ctx context.Context, room interfaces.Room, options json.RawMessage) error {
 	state := GameState{
 		Players: make(map[string]PlayerInfo),
 	}

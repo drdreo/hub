@@ -1,20 +1,41 @@
 package owe_drahn
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
+	"gameserver/games/owe_drahn/database"
 	"gameserver/internal/interfaces"
 	"gameserver/internal/protocol"
 	"github.com/rs/zerolog/log"
+	"time"
 )
 
-func NewGame() *Game {
-	return &Game{}
+type GameConfig struct {
+	Stage          interfaces.Environment
+	CredentialsDir string
 }
 
-func RegisterGame(r interfaces.GameRegistry) {
-	g := NewGame()
+func NewGame(dbService *database.DatabaseService) *Game {
+	return &Game{
+		dbService: dbService,
+	}
+}
+
+func RegisterGame(ctx context.Context, r interfaces.GameRegistry, config GameConfig) error {
+	dbInitCtx, dbInitCancel := context.WithTimeout(ctx, 10*time.Second)
+	defer dbInitCancel()
+
+	dbFactory := database.NewDatabaseFactory(config.Stage, config.CredentialsDir)
+	dbService, err := dbFactory.CreateDatabaseService(dbInitCtx)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to initialize database service")
+		return err
+	}
+
+	g := NewGame(dbService)
 	r.RegisterGame(g)
+	return nil
 }
 
 // Type returns the game type
@@ -23,9 +44,10 @@ func (g *Game) Type() string {
 }
 
 // InitializeRoom sets up a new room with the initial game state
-func (g *Game) InitializeRoom(room interfaces.Room, options json.RawMessage) error {
+func (g *Game) InitializeRoom(ctx context.Context, room interfaces.Room, options json.RawMessage) error {
 	// Create initial game state
 	state := GameState{
+		Ctx:         ctx,
 		Players:     make(map[string]*Player),
 		PlayerOrder: make([]string, 0),
 		Started:     false,

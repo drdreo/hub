@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"gameserver/games/dicegame"
@@ -13,13 +14,13 @@ import (
 	"gameserver/internal/room"
 	"gameserver/internal/router"
 	"gameserver/internal/session"
+	"github.com/rs/zerolog"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
 
 	"github.com/gorilla/websocket"
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
@@ -32,32 +33,35 @@ var upgrader = websocket.Upgrader{
 }
 
 func main() {
-	zerolog.CallerMarshalFunc = func(pc uintptr, file string, line int) string {
-		return filepath.Base(file) + ":" + strconv.Itoa(line)
+	rootCtx, rootCancel := context.WithCancel(context.Background())
+	defer rootCancel() // Safety net - cancels if main exits unexpectedly
+
+	initLogger()
+
+	stage := interfaces.Production
+	if os.Getenv("STAGE") == "development" {
+		stage = interfaces.Development
 	}
 
-	zerolog.SetGlobalLevel(zerolog.DebugLevel)
-	log.Logger = log.With().Caller().Logger().Output(zerolog.ConsoleWriter{Out: os.Stdout})
+	log.Info().Str("env.STAGE", os.Getenv("STAGE")).Msg("environment: " + string(stage))
 
 	// Initialize the global session store with 5 minute expiry
 	session.InitGlobalStore(300)
 
-	// Initialize game registry
 	gameRegistry := game.NewRegistry()
-
-	// Initialize client manager
 	clientManager := client.NewManager()
-
-	// Initialize room manager
 	roomManager := room.NewRoomManager(gameRegistry)
-
-	// Initialize router
-	messageRouter := router.NewRouter(clientManager, roomManager, gameRegistry)
+	messageRouter := router.NewRouter(rootCtx, clientManager, roomManager, gameRegistry)
 
 	// Register all games
 	tictactoe.RegisterTicTacToeGame(gameRegistry)
 	dicegame.RegisterDiceGame(gameRegistry)
-	owe_drahn.RegisterGame(gameRegistry)
+	if err := owe_drahn.RegisterGame(rootCtx, gameRegistry, owe_drahn.GameConfig{
+		Stage:          stage,
+		CredentialsDir: "apps/gameserver/internal/database/firestore/credentials",
+	}); err != nil {
+		log.Fatal().Err(err).Msg("Failed to register owe_drahn")
+	}
 
 	http.HandleFunc("/", homeHandler)
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
@@ -82,6 +86,16 @@ func main() {
 	if err := http.ListenAndServe(addr, nil); err != nil {
 		log.Fatal().Err(err).Msg("Failed to start server")
 	}
+}
+
+func initLogger() {
+	zerolog.CallerMarshalFunc = func(pc uintptr, file string, line int) string {
+		return filepath.Base(file) + ":" + strconv.Itoa(line)
+	}
+
+	zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	log.Logger = log.With().Caller().Logger().Output(zerolog.ConsoleWriter{Out: os.Stdout})
+
 }
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {

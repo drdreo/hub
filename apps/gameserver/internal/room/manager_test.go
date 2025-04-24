@@ -1,6 +1,7 @@
 package room
 
 import (
+	"context"
 	testgame "gameserver/games/test"
 	"gameserver/internal/game"
 	"gameserver/internal/interfaces"
@@ -13,8 +14,9 @@ func TestRoomManager(t *testing.T) {
 	testgame.RegisterTestGame(registry)
 	manager := NewRoomManager(registry)
 
+	testCtx := context.Background()
 	t.Run("create and get room by ID", func(t *testing.T) {
-		room, err := manager.CreateRoom(interfaces.CreateRoomOptions{
+		room, err := manager.CreateRoom(testCtx, interfaces.CreateRoomOptions{
 			GameType: "testGame",
 		})
 
@@ -36,7 +38,7 @@ func TestRoomManager(t *testing.T) {
 
 	t.Run("create room with custom ID", func(t *testing.T) {
 		roomId := "test-room-1"
-		room, err := manager.CreateRoom(interfaces.CreateRoomOptions{
+		room, err := manager.CreateRoom(testCtx, interfaces.CreateRoomOptions{
 			GameType: "testGame",
 			RoomID:   &roomId,
 		})
@@ -53,7 +55,7 @@ func TestRoomManager(t *testing.T) {
 
 	t.Run("create room with empty ID", func(t *testing.T) {
 		emptyID := ""
-		room, err := manager.CreateRoom(interfaces.CreateRoomOptions{
+		room, err := manager.CreateRoom(testCtx, interfaces.CreateRoomOptions{
 			GameType: "testGame",
 			RoomID:   &emptyID,
 		})
@@ -84,7 +86,7 @@ func TestRoomManager(t *testing.T) {
 	})
 
 	t.Run("cleanup empty rooms", func(t *testing.T) {
-		room, err := manager.CreateRoom(interfaces.CreateRoomOptions{
+		room, err := manager.CreateRoom(testCtx, interfaces.CreateRoomOptions{
 			GameType: "testGame",
 		})
 		if err != nil {
@@ -106,7 +108,7 @@ func TestRoomManager(t *testing.T) {
 	})
 
 	t.Run("create room with invalid game type", func(t *testing.T) {
-		room, err := manager.CreateRoom(interfaces.CreateRoomOptions{
+		room, err := manager.CreateRoom(testCtx, interfaces.CreateRoomOptions{
 			GameType: "invalid-game",
 		})
 		if err == nil {
@@ -123,7 +125,7 @@ func TestRoomManager(t *testing.T) {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				_, err := manager.CreateRoom(interfaces.CreateRoomOptions{
+				_, err := manager.CreateRoom(testCtx, interfaces.CreateRoomOptions{
 					GameType: "testGame",
 				})
 				if err != nil {

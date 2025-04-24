@@ -1,8 +1,11 @@
 package owe_drahn
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
+	"gameserver/games/owe_drahn/database"
+	"gameserver/games/owe_drahn/models"
 	"gameserver/internal/interfaces"
 	"gameserver/internal/protocol"
 	"github.com/rs/zerolog/log"
@@ -11,25 +14,22 @@ import (
 	"time"
 )
 
-type Game struct{}
-
-type Roll struct {
-	Player interfaces.M `json:"player"`
-	Dice   int          `json:"dice"`
-	Total  int          `json:"total"`
+type Game struct {
+	dbService *database.DatabaseService
 }
 
 type GameState struct {
+	Ctx         context.Context
 	Players     map[string]*Player `json:"players"`
 	PlayerOrder []string           `json:"playerOrder"`
 	Started     bool               `json:"started"`
 	CurrentTurn string             `json:"currentTurn"`
 	Over        bool               `json:"over"`
 
-	Rolls        []Roll    `json:"rolls"`
-	CurrentValue int       `json:"currentValue"`
-	StartedAt    time.Time `json:"startedAt"`
-	FinishedAt   time.Time `json:"finishedAt"`
+	Rolls        []models.Roll `json:"rolls"`
+	CurrentValue int           `json:"currentValue"`
+	StartedAt    time.Time     `json:"startedAt"`
+	FinishedAt   time.Time     `json:"finishedAt"`
 }
 
 func (s *GameState) ToMap() interfaces.M {
@@ -39,6 +39,15 @@ func (s *GameState) ToMap() interfaces.M {
 		"over":         s.Over,
 		"currentValue": s.CurrentValue,
 		"currentTurn":  s.CurrentTurn,
+	}
+}
+
+func (s *GameState) ToDBGame() models.DBGame {
+	return models.DBGame{
+		Players:    mapPlayersToFormattedPlayers(mapPlayersToArray(s.Players, s.PlayerOrder)),
+		StartedAt:  s.StartedAt,
+		FinishedAt: s.FinishedAt,
+		Rolls:      s.Rolls,
 	}
 }
 
@@ -145,7 +154,7 @@ func (g *Game) Reset(state *GameState) {
 	for _, player := range state.Players {
 		player.Reset()
 	}
-	state.Rolls = make([]Roll, 0)
+	state.Rolls = make([]models.Roll, 0)
 }
 
 func (g *Game) start(state *GameState) {
@@ -171,7 +180,7 @@ func (g *Game) handleRoll(room interfaces.Room) error {
 	if dice != 3 {
 		state.CurrentValue += dice
 	}
-	state.Rolls = append(state.Rolls, Roll{
+	state.Rolls = append(state.Rolls, models.Roll{
 		Player: player.ToFormattedPlayer(),
 		Dice:   dice,
 		Total:  state.CurrentValue,
@@ -332,6 +341,8 @@ func (g *Game) gameOver(room interfaces.Room, winner string, state *GameState) {
 	g.broadcastGameEvent(room, "gameOver", interfaces.M{
 		"winner": winner,
 	})
+
+	g.dbService.StoreGame(state.Ctx, state.ToDBGame())
 	// restart after 5s
 	time.AfterFunc(5*time.Second, func() {
 		g.Reset(state)
@@ -340,14 +351,12 @@ func (g *Game) gameOver(room interfaces.Room, winner string, state *GameState) {
 }
 
 // SetStatsOnPlayer connects the player and sets the stats.
-func (g *Game) SetStatsOnPlayer(clientId string, userId string, stats interface{}, state *GameState) {
+func (g *Game) SetStatsOnPlayer(clientId string, userId string, stats *models.PlayerStats, state *GameState) {
 	log.Info().Str("clientId", clientId).Str("userId", userId).Msg("setting registered user data")
 
 	player := g.GetPlayer(clientId, state)
 	player.UserID = userId
-	if stats != nil {
-		player.Stats = stats
-	}
+	player.Stats = stats
 }
 
 func (g *Game) handleReady(client interfaces.Client, state *GameState, payload []byte) {
@@ -406,9 +415,11 @@ func (g *Game) handleHandshake(client interfaces.Client, state *GameState, paylo
 	}
 	log.Debug().Str("clientId", client.ID()).Str("userId", handshake.UserID).Msg("handshake")
 	if handshake.UserID != "" {
-		// TODO: Fetch user stats by handshake.UserId
-		//userStats := db.GetUserStats(handshake.UserId)
-		g.SetStatsOnPlayer(client.ID(), handshake.UserID, nil, state)
+		if userStats, err := g.dbService.GetUserStats(state.Ctx, handshake.UserID); err == nil {
+			g.SetStatsOnPlayer(client.ID(), handshake.UserID, userStats, state)
+		} else {
+			log.Error().Err(err).Msg("error getting user stats")
+		}
 	}
 	p.IsConnected = true
 }
@@ -428,4 +439,13 @@ func mapPlayersToArray(players map[string]*Player, playerOrder []string) []*Play
 		}
 	}
 	return result
+}
+
+func mapPlayersToFormattedPlayers(players []*Player) []*models.FormattedPlayer {
+	dbPlayers := make([]*models.FormattedPlayer, 0, len(players))
+	for _, player := range players {
+		dbPlayers = append(dbPlayers, player.ToFormattedPlayer())
+	}
+
+	return dbPlayers
 }
