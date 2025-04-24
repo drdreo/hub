@@ -71,7 +71,7 @@ func (s *DatabaseService) updateUserStats(ctx context.Context, player *models.Fo
 	user.Stats = MergeStats(user.Stats, newStats)
 
 	updates := []googlefirestore.Update{
-		{Path: "Stats", Value: user.Stats},
+		{Path: "stats", Value: user.Stats},
 	}
 
 	log.Debug().Str("username", player.Username).Str("uid", uid).Msg("updating user stats ")

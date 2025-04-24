@@ -13,14 +13,14 @@ type DBUser struct {
 // PlayerStats represents a player's game statistics
 // This replaces the TypeScript PlayerStats interface
 type PlayerStats struct {
-	RolledDice   []int `json:"rolledDice"` // dice value rolled 1-6 e.g. [123,33,100,300,100, 99], 123x1, 33x2, 100x3, 300x4, 100x5, 99x6
-	Wins         int   `json:"wins"`
-	TotalGames   int   `json:"totalGames"`
-	PerfectRoll  int   `json:"perfectRoll"`  // rolling from 9 to 15
-	LuckiestRoll int   `json:"luckiestRoll"` // rolling 3 at 15
-	WorstRoll    int   `json:"worstRoll"`    // rolling a 6 at 10
-	Rolled21     int   `json:"rolled21"`     // rolling 6 at 15
-	MaxLifeLoss  int   `json:"maxLifeLoss"`  // losing with 6 life left
+	RolledDice   []int `json:"rolledDice" firestore:"rolledDice"` // dice value rolled 1-6 e.g. [123,33,100,300,100, 99], 123x1, 33x2, 100x3, 300x4, 100x5, 99x6
+	Wins         int   `json:"wins" firestore:"wins"`
+	TotalGames   int   `json:"totalGames" firestore:"totalGames"`
+	PerfectRoll  int   `json:"perfectRoll" firestore:"perfectRoll"`   // rolling from 9 to 15
+	LuckiestRoll int   `json:"luckiestRoll" firestore:"luckiestRoll"` // rolling 3 at 15
+	WorstRoll    int   `json:"worstRoll" firestore:"worstRoll"`       // rolling a 6 at 10
+	Rolled21     int   `json:"rolled21" firestore:"rolled21"`         // rolling 6 at 15
+	MaxLifeLoss  int   `json:"maxLifeLoss" firestore:"maxLifeLoss"`   // losing with 6 life left
 }
 
 // PlayerStatAggregation omits wins and totalGames from PlayerStats and adds a won field
