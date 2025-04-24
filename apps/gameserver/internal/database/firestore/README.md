@@ -13,7 +13,7 @@ This package provides a Firestore client for data persistence.
 
 ```go
 // Create a new client
-client, err := firestore.NewClient(ctx, 
+client, err := firestore.NewClient(ctx,
     firestore.WithProjectID("your-game-project-id"),
     firestore.WithCredentialsFile("path/to/credentials.json"))
 if err != nil {
