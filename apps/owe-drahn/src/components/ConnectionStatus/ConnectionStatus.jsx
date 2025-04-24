@@ -6,7 +6,7 @@ const ConnectionStatus = () => {
     const socket = useSelector(state => state.socket.socket);
     const connectionStatus = useSelector(state => state.socket.connectionStatus);
     const readyState = socket?.readyState;
-    console.log({ readyState, connectionStatus});
+    console.log({ readyState, connectionStatus });
     const getStatusDetails = () => {
         switch (readyState) {
             case WebSocket.CONNECTING:

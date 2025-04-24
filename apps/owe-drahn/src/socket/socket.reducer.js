@@ -19,7 +19,7 @@ const initialState = {
     socket: connectWebSocket(),
     clientId: sessionStorage.getItem("clientId"),
     roomId: sessionStorage.getItem("roomId"),
-    connectionStatus: WebSocket.CLOSED,
+    connectionStatus: WebSocket.CLOSED
 };
 
 const sendMessage = (socket, type, payload) => {

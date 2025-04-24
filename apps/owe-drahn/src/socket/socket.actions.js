@@ -98,10 +98,9 @@ export const resetReconnected = () => {
     };
 };
 
-export const connectionStatus = (status) => {
+export const connectionStatus = status => {
     return {
         type: CONNECTION_STATUS,
-        data : { status }
+        data: { status }
     };
 };
-

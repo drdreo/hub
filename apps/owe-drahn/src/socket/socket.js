@@ -41,7 +41,7 @@ export default store => {
     socket.addEventListener("close", () => {
         console.warn("Socket connection closed");
         store.dispatch(connectionStatus(WebSocket.CLOSED));
-    })
+    });
 
     socket.onmessage = event => {
         const messages = JSON.parse(event.data);
