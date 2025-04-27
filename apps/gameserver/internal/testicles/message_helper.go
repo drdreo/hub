@@ -3,6 +3,7 @@ package testicles
 import (
 	"encoding/json"
 	"gameserver/internal/protocol"
+	"gameserver/internal/router"
 )
 
 // TestMessage represents a generic game message structure
@@ -73,31 +74,19 @@ func ExtractJoinRoomResponseData(response *protocol.Response) (string, bool) {
 		return "", false
 	}
 
-	// Extract the roomID field from the response data
-	roomID, ok := GetMessageField(response, "roomId")
-	if !ok {
-		// If direct field extraction doesn't work, try JSON approach
-		dataMap := make(map[string]interface{})
-		dataBytes, err := json.Marshal(response.Data)
-		if err != nil {
-			return "", false
-		}
-
-		if err := json.Unmarshal(dataBytes, &dataMap); err != nil {
-			return "", false
-		}
-
-		roomID, ok = dataMap["roomId"]
-		if !ok {
-			return "", false
-		}
-	}
-
-	// Convert the roomID to a string
-	roomIDStr, ok := roomID.(string)
+	resp, ok := response.Data.(*router.JoinResponse)
 	if !ok {
 		return "", false
 	}
 
-	return roomIDStr, true
+	return resp.RoomID, true
+}
+
+// GetMessageField extracts a field from a response's data
+func GetMessageField(response *protocol.Response, fieldName string) (interface{}, bool) {
+	if data, ok := response.Data.(map[string]interface{}); ok {
+		value, exists := data[fieldName]
+		return value, exists
+	}
+	return nil, false
 }

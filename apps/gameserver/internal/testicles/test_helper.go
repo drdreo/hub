@@ -2,7 +2,6 @@ package testicles
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"gameserver/internal/client"
 	"gameserver/internal/game"
@@ -69,20 +68,12 @@ func (th *TestHelper) CreateRoom(client *client.ClientMock, gameType, playerName
 
 	// Extract room ID from response
 	createResponse := messages[len(messages)-1]
-	if createResponse.Success != true {
-		th.t.Fatalf("createResponse was not successful")
-	}
-
-	if createResponse.Type != "join_room_result" {
-		th.t.Fatalf("Expected 'join_room_result' message, got: %v", createResponse.Type)
-	}
-
-	data, ok := createResponse.Data.(*router.JoinResponse)
+	roomId, ok := ExtractJoinRoomResponseData(createResponse)
 	if !ok {
-		th.t.Fatalf("Invalid data in response")
+		th.t.Fatalf("invalid join response")
 	}
 
-	th.RoomID = data.RoomID
+	th.RoomID = roomId
 
 	client.ClearMessages()
 
@@ -119,15 +110,7 @@ func (th *TestHelper) SendMessage(clientID string, msgType string, data interfac
 	if rawData, ok := data.([]byte); ok {
 		msgBytes = rawData
 	} else {
-		msg := map[string]interface{}{
-			"type": msgType,
-		}
-
-		if data != nil {
-			msg["data"] = data
-		}
-
-		msgBytes, _ = json.Marshal(msg)
+		msgBytes = CreateGameMessage(msgType, data)
 	}
 
 	th.Router.HandleMessage(c, msgBytes)

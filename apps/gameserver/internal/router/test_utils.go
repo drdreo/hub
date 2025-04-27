@@ -1,4 +1,4 @@
-package testicles
+package router
 
 import (
 	"encoding/json"
@@ -24,13 +24,4 @@ func CreateMessage(messageType string, data interface{}) []byte {
 
 	msgData, _ := json.Marshal(message)
 	return msgData
-}
-
-// GetMessageField extracts a field from a response's data
-func GetMessageField(response *protocol.Response, fieldName string) (interface{}, bool) {
-	if data, ok := response.Data.(map[string]interface{}); ok {
-		value, exists := data[fieldName]
-		return value, exists
-	}
-	return nil, false
 }
