@@ -20,7 +20,7 @@ const ConnectionStatus = () => {
                 return {
                     text: "Connected",
                     class: "connected",
-                    icon: <Signal size={15}/>
+                    icon: <Signal size={15} />
                 };
             case WebSocket.CLOSING:
                 return {
@@ -33,7 +33,7 @@ const ConnectionStatus = () => {
                 return {
                     text: "Disconnected",
                     class: "disconnected",
-                    icon: <Unplug size={15}/>
+                    icon: <Unplug size={15} />
                 };
         }
     };
