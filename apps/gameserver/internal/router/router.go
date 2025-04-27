@@ -24,6 +24,17 @@ type ReconnectPayload struct {
 	RoomID   string `json:"roomId"`
 }
 
+type ReconnectResponse struct {
+	RoomID   string `json:"roomId"`
+	ClientID string `json:"clientId"`
+	GameType string `json:"gameType"`
+}
+
+type JoinResponse struct {
+	ClientID string `json:"clientId"`
+	RoomID   string `json:"roomId"`
+}
+
 type RoomListInfo struct {
 	RoomId      string `json:"roomId"`
 	PlayerCount int    `json:"playerCount"`
@@ -99,9 +110,9 @@ func (r *Router) handleJoinRoom(ctx context.Context, client interfaces.Client, d
 	if client.Room() != nil {
 		log.Warn().Str("id", client.ID()).Msg("client tried to join room but already in room")
 		//client.Send(protocol.NewErrorResponse("join_room_result", ErrClientAlreadyInRoom.Error()))
-		response := map[string]interface{}{
-			"clientId": client.ID(),
-			"roomId":   client.Room().ID(),
+		response := &JoinResponse{
+			ClientID: client.ID(),
+			RoomID:   client.Room().ID(),
 		}
 
 		// trying to auto-reconnect when client tries to join a room
@@ -157,9 +168,9 @@ func (r *Router) handleJoinRoom(ctx context.Context, client interfaces.Client, d
 		return
 	}
 
-	response := map[string]interface{}{
-		"clientId": client.ID(),
-		"roomId":   room.ID(),
+	response := &JoinResponse{
+		ClientID: client.ID(),
+		RoomID:   room.ID(),
 	}
 
 	log.Info().Str("roomID", room.ID()).Msg("client joined room")
@@ -223,10 +234,12 @@ func (r *Router) handleReconnect(client interfaces.Client, data json.RawMessage)
 	// Find room (either from session or from request)
 	roomID := sessionData.RoomID
 	if recon.RoomID != "" {
+		if recon.RoomID != sessionData.RoomID {
+			log.Warn().Str("recon_room", recon.RoomID).Str("session_room", sessionData.RoomID).Msg("room mismatch, using request room")
+		}
 		roomID = recon.RoomID
 	}
 
-	// Get the room
 	targetRoom, err := r.roomManager.GetRoom(roomID)
 	if err != nil {
 		log.Error().Str("room", roomID).Msg("room not found")
@@ -251,10 +264,10 @@ func (r *Router) handleReconnect(client interfaces.Client, data json.RawMessage)
 	// Remove the old session
 	sessionStore.RemoveSession(recon.ClientID)
 
-	response := map[string]interface{}{
-		"roomId":   targetRoom.ID(),
-		"clientId": client.ID(),
-		"gameType": targetRoom.GameType(),
+	response := &ReconnectResponse{
+		RoomID:   targetRoom.ID(),
+		ClientID: client.ID(),
+		GameType: targetRoom.GameType(),
 	}
 
 	log.Info().Str("roomId", targetRoom.ID()).Str("gameType", targetRoom.GameType()).Msg("client reconnected")

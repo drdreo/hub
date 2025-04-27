@@ -70,7 +70,6 @@ func (g *Game) OnClientJoin(client interfaces.Client, room interfaces.Room, opti
 	g.AddPlayer(client.ID(), options.PlayerName, state)
 
 	room.SetState(state)
-
 	g.broadcastGameState(room)
 }
 
@@ -85,8 +84,14 @@ func (g *Game) OnClientLeave(client interfaces.Client, room interfaces.Room) {
 		log.Error().Msg("player not found")
 		return
 	}
-	player.IsConnected = false
+	if !state.Started {
+		log.Info().Str("clientID", client.ID()).Msg("game has not started yet. removing player")
+		g.RemovePlayer(client.ID(), room)
+	} else {
+		player.IsConnected = false
+	}
 	room.SetState(state)
+	g.broadcastGameState(room)
 }
 
 // OnClientReconnect handles reconnecting a client to the game
@@ -119,51 +124,51 @@ func (g *Game) OnClientReconnect(client interfaces.Client, room interfaces.Room,
 	}
 
 	room.SetState(state)
-
-	// tell the new client the game state
-	msg := protocol.NewSuccessResponse("game_state", state.ToMap())
-	client.Send(msg)
+	g.broadcastGameState(room)
 }
 
 func (g *Game) HandleMessage(client interfaces.Client, room interfaces.Room, msgType string, payload []byte) error {
 	state := room.State().(*GameState)
-
 	log.Debug().Str("type", msgType).Bytes("payload", payload).Msg("handling message")
 
-	// TODO: revisit during game actions vs. non handling
-	if msgType == "handshake" {
+	// Handle pre-game messages that don't require turn validation
+	switch msgType {
+	case "handshake":
 		g.handleHandshake(client, state, payload)
-	} else if msgType == "ready" {
+		g.broadcastGameState(room)
+		return nil
+	case "ready":
 		g.handleReady(client, state, payload)
-	} else {
-		// Validate it's the player's turn
-		if state.CurrentTurn != client.ID() {
-			log.Warn().Str("clientId", client.ID()).Str("currentTurn", state.CurrentTurn).Msg(ErrNotYourTurn.Error())
-			return ErrNotYourTurn
-		}
-
-		// current turn action handling
-		switch msgType {
-		case "roll":
-			if err := g.handleRoll(client.Room()); err != nil {
-				log.Error().Err(err).Msg("roll failed")
-				return ErrRollFailed
-			}
-			break
-		case "loseLife":
-			g.handleLoseLife(client, state)
-			break
-		case "chooseNextPlayer":
-			if err := g.handleChooseNextPlayer(client, state, payload); err != nil {
-				log.Error().Err(err).Msg("chooseNextPlayer failed")
-				return ErrNextPlayerInvalid
-			}
-
-			break
-		default:
-			return errors.New("unknown message type: " + msgType)
-		}
+		g.broadcastGameState(room)
+		return nil
 	}
+
+	// Handle in-game actions
+	// Validate it's the player's turn
+	if state.CurrentTurn != client.ID() {
+		log.Warn().Str("clientId", client.ID()).Str("currentTurn", state.CurrentTurn).Msg(ErrNotYourTurn.Error())
+		return ErrNotYourTurn
+	}
+
+	// current turn action handling
+	var err error
+	switch msgType {
+	case "roll":
+		if err = g.handleRoll(client.Room()); err != nil {
+			log.Error().Err(err).Msg("roll failed")
+			return ErrRollFailed
+		}
+	case "loseLife":
+		g.handleLoseLife(client, state)
+	case "chooseNextPlayer":
+		if err = g.handleChooseNextPlayer(client, state, payload); err != nil {
+			log.Error().Err(err).Msg("chooseNextPlayer failed")
+			return ErrNextPlayerInvalid
+		}
+	default:
+		return errors.New("unknown message type: " + msgType)
+	}
+
 	g.broadcastGameState(room)
 	return nil
 }

@@ -70,7 +70,8 @@ func (g *Game) GetPlayer(id string, state *GameState) *Player {
 	return state.Players[id]
 }
 
-func (g *Game) RemovePlayer(clientId string, room interfaces.Room, state *GameState) {
+func (g *Game) RemovePlayer(clientId string, room interfaces.Room) {
+	state := room.State().(*GameState)
 	playerName := state.Players[clientId].Name
 	delete(state.Players, clientId)
 

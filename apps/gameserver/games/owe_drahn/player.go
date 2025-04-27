@@ -1,19 +1,21 @@
 package owe_drahn
 
-import "gameserver/games/owe_drahn/models"
+import (
+	"gameserver/games/owe_drahn/models"
+)
 
 type Player struct {
-	ID          string      `json:"id"`
-	UserID      string      `json:"uid"`
-	Name        string      `json:"username"`
-	Rank        int         `json:"rank"`  // if the user was logged in, we can show their rank
-	Stats       interface{} `json:"stats"` // TODO: formatted stats
-	Life        int         `json:"life"`
-	Points      int         `json:"points"`
-	IsReady     bool        `json:"ready"`
-	IsChoosing  bool        `json:"choosing"`
-	IsConnected bool        `json:"connected"`
-	Score       int         `json:"score"` // how often the player won/lost
+	ID          string              `json:"id"`
+	UserID      string              `json:"uid"`
+	Name        string              `json:"username"`
+	Rank        int                 `json:"rank"` // if the user was logged in, we can show their rank
+	Stats       *models.PlayerStats `json:"stats"`
+	Life        int                 `json:"life"`
+	Points      int                 `json:"points"`
+	IsReady     bool                `json:"ready"`
+	IsChoosing  bool                `json:"choosing"`
+	IsConnected bool                `json:"connected"`
+	Score       int                 `json:"score"` // how often the player won/lost
 }
 
 func NewPlayer(id string, name string) *Player {
@@ -32,9 +34,9 @@ func (p *Player) Reset() {
 	p.IsChoosing = false
 }
 
-func (p *Player) SetStats(stats interface{}) {
+func (p *Player) SetStats(stats *models.PlayerStats) {
 	p.Stats = stats
-	// TODO calculate rank from stats.totalGames
+	p.Rank = calculateRank(stats.TotalGames)
 }
 
 func (p *Player) ToFormattedPlayer() *models.FormattedPlayer {
@@ -45,4 +47,8 @@ func (p *Player) ToFormattedPlayer() *models.FormattedPlayer {
 		Username: p.Name,
 		Rank:     p.Rank,
 	}
+}
+
+func calculateRank(totalGames int) int {
+	return totalGames/10 + totalGames
 }
