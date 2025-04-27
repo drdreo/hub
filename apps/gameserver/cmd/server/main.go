@@ -37,17 +37,17 @@ var upgrader = websocket.Upgrader{
 func main() {
 	rootCtx, rootCancel := context.WithCancel(context.Background())
 	defer rootCancel() // Safety net - cancels if main exits unexpectedly
-
-	defer initObservability()
-
 	initLogger()
+
+	observeFlush := initObservability()
+	defer observeFlush()
 
 	stage := interfaces.Production
 	if os.Getenv("STAGE") == "development" {
 		stage = interfaces.Development
 	}
 
-	log.Info().Str("env.STAGE", os.Getenv("STAGE")).Msg("environment: " + string(stage))
+	log.Info().Str("env.STAGE", os.Getenv("STAGE")).Str("stage", string(stage)).Msg("checking environment")
 
 	// Initialize the global session store with 5 minute expiry
 	session.InitGlobalStore(300)
@@ -93,7 +93,7 @@ func main() {
 }
 
 func initObservability() func() {
-	log.Info().Msg("initializing observability") // Get DSN from environment variable
+	log.Info().Msg("initializing Sentry") // Get DSN from environment variable
 	dsn := os.Getenv("SENTRY_DSN")
 	if dsn == "" {
 		log.Warn().Msg("SENTRY_DSN environment variable not set - skipping Sentry initialization")
@@ -102,7 +102,8 @@ func initObservability() func() {
 
 	err := sentry.Init(sentry.ClientOptions{
 		Dsn:            dsn,
-		Debug:          true,
+		Debug:          false,
+		Environment:    "production",
 		SendDefaultPII: true,
 	})
 	if err != nil {
