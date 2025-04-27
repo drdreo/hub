@@ -33,13 +33,6 @@ export const gameOver = winner => {
     };
 };
 
-export const gameError = data => {
-    return {
-        type: "GAME_ERROR",
-        payload: data
-    };
-};
-
 export const playerUpdate = data => {
     return {
         type: "PLAYER_UPDATE",

@@ -1,6 +1,5 @@
 import { feedMessage } from "../game/Feed/feed.actions";
 import {
-    gameError,
     gameInit,
     gameOver,
     gameStarted,
@@ -97,9 +96,6 @@ export default store => {
                     break;
                 case "gameOver":
                     store.dispatch(gameOver(message.data.winner));
-                    break;
-                case "gameError":
-                    store.dispatch(gameError(message.data));
                     break;
                 case "playerUpdate":
                     store.dispatch(playerUpdate(message.data));

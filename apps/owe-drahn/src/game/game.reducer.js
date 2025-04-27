@@ -8,7 +8,6 @@ const initialState = {
     ui_players: [],
     started: false,
     over: false,
-    error: undefined,
     gameInfo: { message: "" }
 };
 
@@ -42,11 +41,6 @@ const gameReducer = (state = initialState, action) => {
             };
         case "GAME_OVER":
             return { ...state, over: true, started: false };
-        case "GAME_ERROR":
-            return {
-                ...state,
-                error: action.payload // Store the error in Redux state
-            };
         case "PLAYER_UPDATE":
             if (action.payload.updateUI) {
                 return {

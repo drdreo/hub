@@ -123,29 +123,6 @@ const Game = () => {
         }
     }, [isPlayersTurn, isChoosing, animatingDice, settings.sound.enabled]);
 
-    // TODO: this no longer works with new gameserver
-    useEffect(() => {
-        if (!error) {
-            return;
-        }
-        console.error(error);
-        switch (error.code) {
-            case "NO_GAME": {
-                const timer = setTimeout(() => {
-                    navigate("/");
-                }, 2000);
-                return () => clearTimeout(timer);
-            }
-
-            case "NOT_ALLOWED":
-            case "NOT_YOUR_TURN":
-                console.warn(error.message);
-                break;
-            default:
-                console.warn(`gameError: ${error.message} isn't handled!`);
-        }
-    }, [error, navigate]);
-
     const handleReady = () => {
         const isReady = !player.ready;
         dispatch(ready(isReady));
