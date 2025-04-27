@@ -27,9 +27,7 @@ const runExecutor = async (options: ReleaseNotificationExecutorSchema, context: 
 
         if (url) payload.url = url;
 
-        const authToken =
-            process.env.SENTRY_AUTH_TOKEN ||
-            "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";
+        const authToken = process.env.SENTRY_AUTH_TOKEN;
         if (!authToken) {
             throw new Error("Sentry credentials not found");
         }
