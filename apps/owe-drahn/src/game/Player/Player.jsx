@@ -1,4 +1,5 @@
-import { Dice1, Dice2, Dice3, Dice4, Dice5, Dice6, Skull } from "lucide-react";
+import { Dice1, Dice2, Dice3, Dice4, Dice5, Dice6, Skull, Unplug } from "lucide-react";
+import React from "react";
 import { useSelector } from "react-redux";
 import rank10 from "../../assets/images/ranks/rank10.png";
 import rank15 from "../../assets/images/ranks/rank15.png";
@@ -16,7 +17,7 @@ import "./Player.scss";
 import PlayerStats from "./PlayerStats/PlayerStats.jsx";
 import { Tooltip } from "react-tooltip";
 
-const Player = ({ player, isPlayersTurn, started, choosing, onClick, style }) => {
+const Player = ({ player, isPlayersTurn, started, connected, choosing, onClick, style }) => {
     const clientId = useSelector(state => state.socket.clientId);
     const getRankIcon = rank => {
         switch (true) {
@@ -94,6 +95,13 @@ const Player = ({ player, isPlayersTurn, started, choosing, onClick, style }) =>
                     title={player.username.length > 20 ? player.username : ""}>
                     <span>{player.username}</span>
                 </div>
+
+
+                {connected && (
+                    <div className="disconnected">
+                        <Unplug size={15}/>
+                    </div>
+                )}
             </div>
 
             {player.stats && !choosing && (

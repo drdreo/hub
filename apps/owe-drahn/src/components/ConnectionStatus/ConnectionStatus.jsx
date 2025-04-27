@@ -1,4 +1,5 @@
 import React from "react";
+import { Signal, Unplug } from "lucide-react";
 import { useSelector } from "react-redux";
 import "./ConnectionStatus.scss";
 
@@ -19,7 +20,7 @@ const ConnectionStatus = () => {
                 return {
                     text: "Connected",
                     class: "connected",
-                    icon: "•" // Simple dot
+                    icon: <Signal size={15}/>
                 };
             case WebSocket.CLOSING:
                 return {
@@ -32,7 +33,7 @@ const ConnectionStatus = () => {
                 return {
                     text: "Disconnected",
                     class: "disconnected",
-                    icon: "•" // Simple dot
+                    icon: <Unplug size={15}/>
                 };
         }
     };

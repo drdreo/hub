@@ -252,6 +252,7 @@ const Game = () => {
                     <Player
                         player={player}
                         started={started}
+                        connected={player.connected}
                         isPlayersTurn={player.id === currentTurn}
                         choosing={isChoosing}
                         key={player.id}

@@ -17,15 +17,15 @@ import { toggleFeed, toggleSound, toggleStandings } from "./settings.actions";
 const Speaker = ({ disabled }) => (disabled ? <VolumeOff /> : <Volume2 />);
 const Feed = ({ disabled }) => (disabled ? <MessageSquareOff /> : <MessageSquareText />);
 const Standing = ({ disabled }) => (
-    <div style={{ position: 'relative' }}>
+    <div style={{ position: "relative" }}>
         <ListOrdered />
         {disabled && (
             <X
                 style={{
-                    position: 'absolute',
-                    top: '50%',
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)',
+                    position: "absolute",
+                    top: "50%",
+                    left: "50%",
+                    transform: "translate(-50%, -50%)"
                 }}
             />
         )}

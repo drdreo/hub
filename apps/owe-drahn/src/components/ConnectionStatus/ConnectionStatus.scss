@@ -28,22 +28,6 @@
         font-size: 10px;
         font-weight: normal;
     }
-
-    &.connected {
-        background-color: rgba(46, 204, 113, 0.5);
-        color: rgba(255, 255, 255, 0.9);
-    }
-
-    &.disconnected {
-        background-color: rgba(231, 76, 60, 0.5);
-        color: rgba(255, 255, 255, 0.9);
-    }
-
-    &.connecting,
-    &.closing {
-        background-color: rgba(243, 156, 18, 0.5);
-        color: rgba(255, 255, 255, 0.9);
-    }
 }
 
 .connection-tooltip {
