@@ -17,9 +17,11 @@ import (
 	"github.com/getsentry/sentry-go"
 	"github.com/rs/zerolog"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -30,7 +32,20 @@ var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 	CheckOrigin: func(r *http.Request) bool {
-		return true // Allow all origins for dev
+		origin := r.Header.Get("Origin")
+		if origin == "" {
+			return false // Reject requests with no origin
+		}
+
+		// Parse the origin URL
+		originURL, err := url.Parse(origin)
+		if err != nil {
+			log.Error().Err(err).Str("origin", origin).Msg("Failed to parse origin URL")
+			return false
+		}
+
+		// verify hostname
+		return strings.HasSuffix(originURL.Host, "drdreo.com")
 	},
 }
 
@@ -45,6 +60,11 @@ func main() {
 	stage := interfaces.Production
 	if os.Getenv("STAGE") == "development" {
 		stage = interfaces.Development
+
+		// Allow all origins in development
+		upgrader.CheckOrigin = func(r *http.Request) bool {
+			return true
+		}
 	}
 
 	log.Info().Str("env.STAGE", os.Getenv("STAGE")).Str("stage", string(stage)).Msg("checking environment")
