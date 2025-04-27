@@ -14,11 +14,13 @@ import (
 	"gameserver/internal/room"
 	"gameserver/internal/router"
 	"gameserver/internal/session"
+	"github.com/getsentry/sentry-go"
 	"github.com/rs/zerolog"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/rs/zerolog/log"
@@ -35,6 +37,8 @@ var upgrader = websocket.Upgrader{
 func main() {
 	rootCtx, rootCancel := context.WithCancel(context.Background())
 	defer rootCancel() // Safety net - cancels if main exits unexpectedly
+
+	defer initObservability()
 
 	initLogger()
 
@@ -85,6 +89,24 @@ func main() {
 
 	if err := http.ListenAndServe(addr, nil); err != nil {
 		log.Fatal().Err(err).Msg("Failed to start server")
+	}
+}
+
+func initObservability() func() {
+	log.Info().Msg("initializing observability")
+	err := sentry.Init(sentry.ClientOptions{
+		Dsn:            "https://1f3a7989593230de0b96d41d05b1f5b0@o528779.ingest.us.sentry.io/4508902216892416",
+		Debug:          true,
+		SendDefaultPII: true,
+	})
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to init sentry")
+	}
+	// Flush buffered events before the program terminates.
+	// Set the timeout to the maximum duration the program can afford to wait.
+	// Return a cleanup function that will flush sentry
+	return func() {
+		sentry.Flush(2 * time.Second)
 	}
 }
 
