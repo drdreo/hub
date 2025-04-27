@@ -1,14 +1,18 @@
-import { TOGGLE_FEED, TOGGLE_SOUND } from "./settings.actions";
+import { TOGGLE_FEED, TOGGLE_SOUND, TOGGLE_STANDINGS } from "./settings.actions";
 
 const storedSettings = JSON.parse(localStorage.getItem("settings"));
 
-const initialState = storedSettings ?? {
+const initialState = {
     feed: {
         enabled: true
     },
     sound: {
         enabled: true
-    }
+    },
+    standings: {
+        enabled: true
+    },
+    ...storedSettings
 };
 
 const settingsReducer = (state = initialState, action) => {
@@ -22,6 +26,11 @@ const settingsReducer = (state = initialState, action) => {
             return {
                 ...state,
                 sound: { ...state.sound, enabled: !state.sound.enabled }
+            };
+        case TOGGLE_STANDINGS:
+            return {
+                ...state,
+                standings: { ...state.standings, enabled: !state.standings.enabled }
             };
         default:
             return state;
