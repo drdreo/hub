@@ -16,7 +16,7 @@ type GameConfig struct {
 	CredentialsDir string
 }
 
-func NewGame(dbService *database.DatabaseService) *Game {
+func NewGame(dbService database.Database) *Game {
 	return &Game{
 		dbService: dbService,
 	}

@@ -10,6 +10,14 @@ import (
 	googlefirestore "cloud.google.com/go/firestore"
 )
 
+// Database defines the methods required for database operations
+type Database interface {
+	StoreGame(ctx context.Context, state models.DBGame) error
+	GetUserStats(ctx context.Context, uid string) (*models.PlayerStats, error)
+	GetAllGames(ctx context.Context) ([]models.DBGame, error)
+	GetUser(ctx context.Context, uid string) (*models.DBUser, error)
+}
+
 // DatabaseService handles database operations for the owe_drahn game
 type DatabaseService struct {
 	db firestore.Database

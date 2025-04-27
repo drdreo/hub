@@ -15,7 +15,7 @@ import (
 )
 
 type Game struct {
-	dbService *database.DatabaseService
+	dbService database.Database
 }
 
 type GameState struct {
