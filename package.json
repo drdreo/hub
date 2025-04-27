@@ -104,6 +104,7 @@
         "jiti": "2.4.2",
         "jsdom": "~22.1.0",
         "jsonc-eslint-parser": "^2.4.0",
+        "lint-staged": "^15.5.1",
         "nx": "20.7.0",
         "prettier": "^2.6.2",
         "sass": "^1.85.0",
@@ -130,6 +131,14 @@
             "last 1 chrome version",
             "last 1 firefox version",
             "last 1 safari version"
+        ]
+    },
+    "lint-staged": {
+        "*.{js,ts,jsx,tsx}": [
+            "nx affected:lint --quiet --fix --files"
+        ],
+        "*.{js,ts,jsx,tsx,html,json,yml}": [
+            "nx format:write --files"
         ]
     }
 }

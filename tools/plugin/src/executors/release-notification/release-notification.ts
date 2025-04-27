@@ -8,10 +8,7 @@ import { ReleaseNotificationExecutorSchema } from "./schema.js";
  */
 const runExecutor = async (options: ReleaseNotificationExecutorSchema, context: ExecutorContext) => {
     try {
-        const {
-            project,
-            url
-        } = options;
+        const { project, url } = options;
 
         let version: string | undefined = options.version;
         if (!version) {
@@ -30,7 +27,9 @@ const runExecutor = async (options: ReleaseNotificationExecutorSchema, context: 
 
         if (url) payload.url = url;
 
-        const authToken = process.env.SENTRY_AUTH_TOKEN || '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';
+        const authToken =
+            process.env.SENTRY_AUTH_TOKEN ||
+            "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";
         if (!authToken) {
             throw new Error("Sentry credentials not found");
         }
@@ -41,7 +40,7 @@ const runExecutor = async (options: ReleaseNotificationExecutorSchema, context: 
             method: "POST",
             url: `https://sentry.io/api/0/organizations/drdreo/releases/`,
             headers: {
-                "Authorization": `Bearer ${authToken}`,
+                Authorization: `Bearer ${authToken}`,
                 "Content-Type": "application/json"
             },
             data: payload
@@ -60,7 +59,11 @@ const runExecutor = async (options: ReleaseNotificationExecutorSchema, context: 
         if (axios.isAxiosError(error)) {
             const statusCode = error.response?.status;
             const responseData = error.response?.data;
-            logger.error(`❌ Release Notification failed with status ${statusCode}: ${JSON.stringify(responseData)}`);
+            logger.error(
+                `❌ Release Notification failed with status ${statusCode}: ${JSON.stringify(
+                    responseData
+                )}`
+            );
         } else {
             logger.error(`❌ Release Notification failed:` + error);
         }
