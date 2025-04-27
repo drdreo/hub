@@ -1,4 +1,6 @@
-import { Dice1, Dice2, Dice3, Dice4, Dice5, Dice6, Skull } from "lucide-react";
+import { Dice1, Dice2, Dice3, Dice4, Dice5, Dice6, Skull, Unplug } from "lucide-react";
+import React from "react";
+import { useSelector } from "react-redux";
 import rank10 from "../../assets/images/ranks/rank10.png";
 import rank15 from "../../assets/images/ranks/rank15.png";
 import rank20 from "../../assets/images/ranks/rank20.png";
@@ -15,7 +17,8 @@ import "./Player.scss";
 import PlayerStats from "./PlayerStats/PlayerStats.jsx";
 import { Tooltip } from "react-tooltip";
 
-const Player = ({ player, started, choosing, onClick, style }) => {
+const Player = ({ player, isPlayersTurn, started, connected, choosing, onClick, style }) => {
+    const clientId = useSelector(state => state.socket.clientId);
     const getRankIcon = rank => {
         switch (true) {
             case 5 <= rank && rank < 10:
@@ -69,10 +72,10 @@ const Player = ({ player, started, choosing, onClick, style }) => {
                 onClick={onClick}
                 style={style}
                 data-tooltip-id={`player-tooltip-${player.id}`}
-                className={`player ${localStorage.getItem("playerId") === player.id ? "me" : ""} 
+                className={`player ${clientId === player.id ? "me" : ""} 
             ${started ? "started" : ""} 
             ${player.ready ? "ready" : ""} 
-            ${player.isPlayersTurn ? "turn" : ""}
+            ${isPlayersTurn ? "turn" : ""}
             ${player.life <= 0 ? "lost" : ""}               
             ${choosing ? "choosing" : ""} 
             ${player.rank > 0 ? "has-rank" : ""}`}>
@@ -92,6 +95,12 @@ const Player = ({ player, started, choosing, onClick, style }) => {
                     title={player.username.length > 20 ? player.username : ""}>
                     <span>{player.username}</span>
                 </div>
+
+                {!connected && (
+                    <div className="disconnected">
+                        <Unplug size={15} />
+                    </div>
+                )}
             </div>
 
             {player.stats && !choosing && (

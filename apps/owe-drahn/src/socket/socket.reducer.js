@@ -1,44 +1,102 @@
-import socketIOClient from "socket.io-client";
 import {
     CONNECTION_HANDSHAKE,
+    eventMap,
+    GET_ROOM_LIST,
+    JOIN_ROOM,
+    JOINED_ROOM,
     PLAYER_CHOOSE_NEXT,
     PLAYER_LOSE_LIFE,
     PLAYER_READY,
-    PLAYER_ROLL_DICE
+    PLAYER_ROLL_DICE,
+    RECONNECT,
+    RECONNECTED,
+    RESET_RECONNECTED
 } from "./socket.actions";
 
-const SERVER_URL = import.meta.env.VITE_DOMAIN;
+import { connectWebSocket, getWebSocket } from "./websocket";
 
-const io = socketIOClient(SERVER_URL, {
-    transports: ["websocket"],
-    withCredentials: true
-});
+const initialState = {
+    socket: connectWebSocket(),
+    clientId: sessionStorage.getItem("clientId"),
+    roomId: sessionStorage.getItem("roomId"),
+    connectionStatus: WebSocket.CLOSED
+};
 
-const initialState = { socket: io };
+const sendMessage = (socket, type, payload) => {
+    if (socket.readyState !== WebSocket.OPEN) {
+        console.error("WebSocket is not connected");
+        return;
+    }
+    const message = {
+        type: type,
+        data: payload
+    };
+    socket.send(JSON.stringify(message));
+};
+
 const socketReducer = (state = initialState, action) => {
+    const socket = getWebSocket();
+    if (!socket) {
+        console.error("WebSocket not initialized!");
+        return state;
+    }
+
     switch (action.type) {
-        case "GAME_RESET":
-            state.socket.emit("leave");
+        case "CONNECTION_STATUS":
+            return {
+                ...state,
+                connectionStatus: action.data.status
+            };
+        case "GAME_LEAVE":
+            sendMessage(socket, "leave_room");
             return state;
         case CONNECTION_HANDSHAKE:
-            state.socket.emit("handshake", {
-                playerId: localStorage.getItem("playerId"),
-                room: action.payload.room,
-                uid: action.payload.uid
+            sendMessage(socket, eventMap[CONNECTION_HANDSHAKE], {
+                clientId: sessionStorage.getItem("clientId"),
+                room: action.data.room,
+                uid: action.data.uid
             });
             return state;
         case PLAYER_READY:
-            state.socket.emit("ready", action.payload);
+            sendMessage(socket, eventMap[PLAYER_READY], action.data);
             return state;
         case PLAYER_ROLL_DICE:
-            state.socket.emit("rollDice");
+            sendMessage(socket, eventMap[PLAYER_ROLL_DICE]);
             return state;
         case PLAYER_LOSE_LIFE:
-            state.socket.emit("loseLife");
+            sendMessage(socket, eventMap[PLAYER_LOSE_LIFE]);
             return state;
         case PLAYER_CHOOSE_NEXT:
-            state.socket.emit("chooseNextPlayer", action.payload);
+            sendMessage(socket, eventMap[PLAYER_CHOOSE_NEXT], action.data);
             return state;
+        case GET_ROOM_LIST:
+            sendMessage(socket, eventMap[GET_ROOM_LIST], action.data);
+            return state;
+        case JOIN_ROOM:
+            sendMessage(socket, eventMap[JOIN_ROOM], action.data);
+            return state;
+        case JOINED_ROOM:
+            return {
+                ...state,
+                joinedRoom: true,
+                clientId: action.data.clientId,
+                roomId: action.data.roomId
+            };
+        case RECONNECT:
+            sendMessage(socket, eventMap[RECONNECT], action.data);
+            return state;
+        case RESET_RECONNECTED:
+            return {
+                ...state,
+                reconnected: false
+            };
+        case RECONNECTED:
+            return {
+                ...state,
+                reconnected: true,
+                clientId: action.data.clientId,
+                roomId: action.data.roomId
+            };
         default:
             return state;
     }

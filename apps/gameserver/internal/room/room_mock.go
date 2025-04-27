@@ -1,12 +1,15 @@
 package room
 
-import "gameserver/internal/interfaces"
+import (
+	"context"
+	"gameserver/internal/interfaces"
+)
 
 // RoomManagerMock is a simple mock implementation of RoomManager for testing
 type RoomManagerMock struct{}
 
 // CreateRoom mocks the room creation
-func (m *RoomManagerMock) CreateRoom(options interfaces.CreateRoomOptions) (interfaces.Room, error) {
+func (m *RoomManagerMock) CreateRoom(ctx context.Context, options interfaces.CreateRoomOptions) (interfaces.Room, error) {
 	return nil, nil
 }
 

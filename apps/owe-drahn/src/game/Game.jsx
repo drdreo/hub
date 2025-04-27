@@ -1,24 +1,30 @@
-import { useEffect, useRef, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
-
 import diceRoller from "dice-roller-3d";
 import { Howl } from "howler";
+import { useEffect, useRef, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useNavigate, useParams } from "react-router-dom";
 import yourTurnAudio from "../assets/sounds/your_turn.mp3";
-
-import Player from "./Player/Player";
-import LifeLoseBtn from "./LifeLoseBtn/LifeLoseBtn";
-import Feed from "./Feed/Feed";
 import Settings from "../settings/Settings";
-import RolledDice from "./RolledDice/RolledDice.jsx";
 
-import { chooseNextPlayer, loseLife, ready, rollDice } from "../socket/socket.actions";
-import { animatedDice } from "./game.actions";
+import {
+    chooseNextPlayer,
+    loseLife,
+    ready,
+    resetReconnected,
+    rollDice
+} from "../socket/socket.actions";
+import Feed from "./Feed/Feed";
 import { feedMessage } from "./Feed/feed.actions";
 
 import "./Game.scss";
-import RollButton from "./RollButton/RollButton";
+import { animatedDice, patchUIState } from "./game.actions";
 import GameInfo from "./GameInfo/GameInfo";
-import { useNavigate, useParams } from "react-router-dom";
+import LifeLoseBtn from "./LifeLoseBtn/LifeLoseBtn";
+
+import Player from "./Player/Player";
+import PlayerStandings from "./PlayerStandings/PlayerStandings";
+import RollButton from "./RollButton/RollButton";
+import RolledDice from "./RolledDice/RolledDice.jsx";
 import { useGameConnection } from "./useGameConnection.js";
 
 const MIN_VAL_TO_OWE_DRAHN = 10;
@@ -27,11 +33,22 @@ const Game = () => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
     const { room } = useParams();
+    const clientId = useSelector(state => state.socket.clientId);
     useGameConnection(room);
 
     const settings = useSelector(state => state.settings);
-    const { diceRoll, currentValue, ui_currentValue, ui_players, players, started, over, error } =
-        useSelector(state => state.game);
+    const {
+        diceRoll,
+        currentValue,
+        currentTurn,
+        ui_currentValue,
+        ui_players,
+        players,
+        started,
+        over,
+        error
+    } = useSelector(state => state.game);
+    const reconnected = useSelector(state => state.socket.reconnected);
 
     const [animatingDice, setAnimatingDice] = useState(false);
     const [animatingHeart, setAnimatingHeart] = useState(false);
@@ -44,13 +61,20 @@ const Game = () => {
         }
     };
 
+    useEffect(() => {
+        if (reconnected) {
+            dispatch(patchUIState({ currentValue }));
+            dispatch(resetReconnected());
+        }
+    }, [reconnected, currentValue]);
+
     const getPlayer = () => {
-        const currentPlayerId = localStorage.getItem("playerId");
-        return players.find(player => player.id === currentPlayerId);
+        return players.find(player => player.id === clientId);
     };
 
     const player = getPlayer();
-    const isChoosing = player && player.isPlayersTurn && player.choosing;
+    const isPlayersTurn = player?.id === currentTurn;
+    const isChoosing = isPlayersTurn && player?.choosing;
 
     useEffect(() => {
         if (!diceRoll || animatingDice) return;
@@ -73,7 +97,9 @@ const Game = () => {
                 };
             }
 
-            dispatch(feedMessage(msg));
+            if (msg) {
+                dispatch(feedMessage(msg));
+            }
         });
     }, [diceRoll]);
 
@@ -85,52 +111,25 @@ const Game = () => {
 
         if (!animatingDice) {
             // If it's the player's turn and the sound hasn't played yet, play it
-            if (player.isPlayersTurn && !player.choosing && !sfx.yourTurn.played) {
+            if (isPlayersTurn && !isChoosing && !sfx.yourTurn.played) {
                 sfx.yourTurn.played = true;
                 sfx.yourTurn.audio.play();
             }
 
             // If it's not the player's turn, reset the sound played flag
-            if (!player.isPlayersTurn && sfx.yourTurn.played) {
+            if (!isPlayersTurn && sfx.yourTurn.played) {
                 sfx.yourTurn.played = false;
             }
         }
-    }, [player, animatingDice, settings.sound.enabled]);
-
-    useEffect(() => {
-        if (!error) {
-            return;
-        }
-        console.error(error);
-        switch (error.code) {
-            case "NO_GAME": {
-                const timer = setTimeout(() => {
-                    navigate("/");
-                }, 2000);
-                return () => clearTimeout(timer);
-            }
-
-            case "NOT_ALLOWED":
-            case "NOT_YOUR_TURN":
-                console.warn(error.message);
-                break;
-            default:
-                console.warn(`gameError: ${error.message} isn't handled!`);
-        }
-    }, [error, navigate]);
-
-    // getCurrentPlayer() {
-    //     return players.find(player => player.isPlayersTurn);
-    // }
+    }, [isPlayersTurn, isChoosing, animatingDice, settings.sound.enabled]);
 
     const handleReady = () => {
-        const isReady = !getPlayer().ready;
+        const isReady = !player.ready;
         dispatch(ready(isReady));
     };
 
     const handleRollDice = () => {
-        const player = getPlayer();
-        if (player.isPlayersTurn && !animatingDice) {
+        if (isPlayersTurn && !animatingDice) {
             if (!isRolling) {
                 setIsRolling(true);
                 setTimeout(() => {
@@ -143,7 +142,7 @@ const Game = () => {
 
     const handleLoseLife = () => {
         const player = getPlayer();
-        if (player.isPlayersTurn && player.life > 1 && currentValue >= MIN_VAL_TO_OWE_DRAHN) {
+        if (isPlayersTurn && player.life > 1 && currentValue >= MIN_VAL_TO_OWE_DRAHN) {
             if (!animatingHeart) {
                 setAnimatingHeart(true);
                 // remove the animation class after some arbitrary time. Player won't trigger this again soon
@@ -157,7 +156,7 @@ const Game = () => {
 
     const handleChooseNextPlayer = playerId => {
         const player = getPlayer();
-        if (player.isPlayersTurn && player.choosing) {
+        if (isPlayersTurn && player.choosing) {
             dispatch(chooseNextPlayer(playerId));
         }
     };
@@ -217,7 +216,7 @@ const Game = () => {
             }
 
             if (started || animatingDice) {
-                const isWaiting = !player.isPlayersTurn || animatingDice;
+                const isWaiting = !isPlayersTurn || animatingDice;
 
                 controlButton = (
                     <div
@@ -253,6 +252,8 @@ const Game = () => {
                     <Player
                         player={player}
                         started={started}
+                        connected={player.connected}
+                        isPlayersTurn={player.id === currentTurn}
                         choosing={isChoosing}
                         key={player.id}
                         style={getPlayerPosition(index, players.length)}
@@ -268,6 +269,7 @@ const Game = () => {
             <Feed />
             <Settings className="settings" />
             <GameInfo />
+            <PlayerStandings />
         </div>
     );
 };

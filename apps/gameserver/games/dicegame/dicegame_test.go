@@ -1,12 +1,8 @@
 package dicegame
 
 import (
-	"encoding/json"
-	"fmt"
-	"gameserver/internal/client"
-	"gameserver/internal/game"
-	"gameserver/internal/room"
-	"gameserver/internal/router"
+	"gameserver/internal/interfaces"
+	"gameserver/internal/testicles"
 	"testing"
 )
 
@@ -21,114 +17,47 @@ type TestMessage struct {
 }
 
 func TestDiceGameIntegration(t *testing.T) {
-	// Set up the complete system with real components
-	registry := game.NewRegistry()
-	RegisterDiceGame(registry)
-	clientManager := client.NewManager()
-	roomManager := room.NewRoomManager(registry)
-	testRouter := router.NewRouter(clientManager, roomManager, registry)
+	// Set up the test helper with all components
+	helper := testicles.NewTestHelper(t)
+	RegisterDiceGame(helper.Registry)
 
-	// Create mock clients
-	client1 := client.NewClientMock("player1")
-	client2 := client.NewClientMock("player2")
+	// Setup the game room with two players
+	playerIds := helper.SetupGameRoom("dicegame", 2)
+	player1ID := playerIds[0]
+	player2ID := playerIds[1]
 
-	// Client1 creating a room
-	testRouter.HandleMessage(client1, []byte(`{"type":"join_room","data":{"gameType":"dicegame","playerName":"tester-1"}}`))
-
-	messages := client1.GetSentMessages()
-	if len(messages) == 0 {
-		t.Fatalf("No messages received after room creation")
-	}
-
-	// Extract room ID from response
-	createResponse := messages[len(messages)-1]
-	if createResponse.Success != true {
-		t.Fatalf("createResponse was not successful")
-	}
-
-	if createResponse.Type != "join_room_result" {
-		t.Fatalf("Expected 'join_room_result' message, got: %v", createResponse.Type)
-	}
-
-	data, ok := createResponse.Data.(map[string]interface{})
-	if !ok {
-		t.Fatalf("Invalid data in response")
-	}
-
-	roomID, ok := data["roomId"].(string)
-	if !ok || roomID == "" {
-		t.Fatalf("Invalid or missing roomId in response")
-	}
-
-	// Clear messages before next step
-	client1.ClearMessages()
-	client2.ClearMessages()
-
-	// Second player joins the room
-	joinMessage := fmt.Sprintf(`{"type":"join_room","data":{"roomId":"%s", "playerName":"tester-2"}}`, roomID)
-	testRouter.HandleMessage(client2, []byte(joinMessage))
-
-	// Verify both clients received appropriate messages
-	client1Messages := client1.GetSentMessages()
-	if len(client1Messages) == 0 {
-		t.Errorf("Player 1 didn't receive notification about player 2 joining")
-	}
-
-	client2Messages := client2.GetSentMessages()
-	if len(client2Messages) == 0 {
-		t.Errorf("Player 2 didn't receive join confirmation")
-	}
-
-	// Clear messages before game actions
-	client1.ClearMessages()
-	client2.ClearMessages()
-
-	// Get the game room
-	testRoom, err := roomManager.GetRoom(roomID)
+	testRoom, err := helper.GetRoom()
 	if err != nil {
 		t.Fatalf("Failed to get room: %v", err)
 	}
 
 	// Set Player 1 as the current turn
 	state := testRoom.State().(*GameState)
-	state.CurrentTurn = client1.ID()
+	state.CurrentTurn = player1ID
 	testRoom.SetState(state)
 
 	// Test rolling dice
-	msg := TestMessage{Type: "roll"}
-	msgBytes, _ := json.Marshal(msg)
-	testRouter.HandleMessage(client1, msgBytes)
+	helper.SendMessage(player1ID, "roll", nil)
 
 	// Verify both players received game update
-	client1Messages = client1.GetSentMessages()
-	if len(client1Messages) == 0 {
-		t.Errorf("Player 1 didn't receive game state update after rolling")
-	}
+	helper.AssertClientsReceivedMessages([]string{player1ID, player2ID})
 
-	client2Messages = client2.GetSentMessages()
-	if len(client2Messages) == 0 {
-		t.Errorf("Player 2 didn't receive game state update after rolling")
-	}
-
-	// Clear messages
-	client1.ClearMessages()
-	client2.ClearMessages()
+	helper.ClearAllMessages()
 
 	// Test setting aside dice
 	// We'll use a fixed set of dice for testing
 	state = testRoom.State().(*GameState)
-	state.Dice = []int{1, 2, 3, 4, 5, 6} // Set specific dice values
+	state.Dice = []int{1, 1, 3, 3, 5, 5} // Set specific dice values
 	testRoom.SetState(state)
 
-	msg = TestMessage{Type: "select"}
-	msg.Data.DiceIndex = 0
-	msgBytes, _ = json.Marshal(msg)
-	testRouter.HandleMessage(client1, msgBytes)
+	helper.SendMessage(player1ID, "select", interfaces.M{
+		"diceIndex": 0,
+	})
 
 	// Set aside the currently selected dice - first die (index 0)
-	msg = TestMessage{Type: "set_aside"}
-	msgBytes, _ = json.Marshal(msg)
-	testRouter.HandleMessage(client1, msgBytes)
+	helper.SendMessage(player1ID, "set_aside", interfaces.M{
+		"endTurn": false,
+	})
 
 	// Verify state update
 	state = testRoom.State().(*GameState)
@@ -140,18 +69,26 @@ func TestDiceGameIntegration(t *testing.T) {
 		t.Errorf("Expected 5 dice remaining, got %d", len(state.Dice))
 	}
 
-	// End turn and verify turn switches to second player
-	msg = TestMessage{Type: "end_turn"}
-	msgBytes, _ = json.Marshal(msg)
-	testRouter.HandleMessage(client1, msgBytes)
+	state.Dice = []int{1, 3, 3, 5, 5} // Set specific dice values
+	testRoom.SetState(state)
+
+	helper.SendMessage(player1ID, "select", interfaces.M{
+		"diceIndex": 0,
+	})
+
+	// Set aside the currently selected dice - first die (index 0)
+	helper.SendMessage(player1ID, "set_aside", interfaces.M{
+		"endTurn": true,
+	})
 
 	state = testRoom.State().(*GameState)
-	if state.CurrentTurn != client2.ID() {
+
+	if state.CurrentTurn != player2ID {
 		t.Errorf("Expected turn to switch to player 2, still on %s", state.CurrentTurn)
 	}
 
 	// Verify player score was updated
-	if player1Score := state.Players[client1.ID()].Score; player1Score != 100 {
-		t.Errorf("Expected player 1 to have 100 points (for setting aside a 1), got %d", player1Score)
+	if player1Score := state.Players[player1ID].Score; player1Score != 200 {
+		t.Errorf("Expected player 1 to have 200 points (for setting aside a 2x 1), got %d", player1Score)
 	}
 }

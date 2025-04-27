@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"gameserver/games/tictactoe"
 	"gameserver/internal/client"
@@ -12,11 +13,12 @@ import (
 
 func TestGameFlowIntegration(t *testing.T) {
 	// Set up the complete system with real components
+	testCtx := context.Background()
 	registry := game.NewRegistry()
 	tictactoe.RegisterTicTacToeGame(registry)
 	clientManager := client.NewManager()
 	roomManager := room.NewRoomManager(registry)
-	testRouter := router.NewRouter(clientManager, roomManager, registry)
+	testRouter := router.NewRouter(testCtx, clientManager, roomManager, registry)
 
 	// Create mock clients
 	client1 := client.NewClientMock("player1")
@@ -44,15 +46,12 @@ func TestGameFlowIntegration(t *testing.T) {
 		t.Fatalf("Expected 'join_room_result' message, got: %v", createResponse.Type)
 	}
 
-	data, ok := createResponse.Data.(map[string]interface{})
+	data, ok := createResponse.Data.(*router.JoinResponse)
 	if !ok {
 		t.Fatalf("Invalid data in response")
 	}
 
-	roomID, ok := data["roomId"].(string)
-	if !ok || roomID == "" {
-		t.Fatalf("Invalid or missing roomId in response")
-	}
+	roomID := data.RoomID
 
 	// Clear messages before next step
 	client1.ClearMessages()

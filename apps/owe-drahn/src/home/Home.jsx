@@ -1,16 +1,14 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom"; // Use this hook for navigation
 import { useFirebase } from "../auth/Firebase"; // Custom hook for Firebase context
-import { gameReset } from "../game/game.actions";
 import SignInGoogle from "../auth/SignIn/SignIn";
+import { gameLeave } from "../game/game.actions";
+import { getRoomList, joinRoom } from "../socket/socket.actions";
+import { getWebSocket } from "../socket/websocket";
 import { debounce } from "../utils/helpers";
 
 import "./Home.scss";
-import { gameOverview } from "./home.actions.js";
-
-const API_URL = import.meta.env.VITE_API_URL;
 
 const Home = () => {
     const [room, setRoom] = useState("");
@@ -18,6 +16,7 @@ const Home = () => {
     const [usernameSetFromDB, setUsernameSetFromDB] = useState(false);
     const overview = useSelector(state => state.home.overview);
     const [formError, setFormError] = useState("");
+    const reconnected = useSelector(state => state.socket.reconnected);
 
     const navigate = useNavigate();
     const firebase = useFirebase();
@@ -26,9 +25,8 @@ const Home = () => {
 
     useEffect(() => {
         console.log("Home mounted");
-        localStorage.removeItem("playerId");
-        fetchOverview();
-        dispatch(gameReset());
+        dispatch(getRoomList());
+        // dispatch(gameLeave());
     }, [dispatch]);
 
     useEffect(() => {
@@ -39,6 +37,25 @@ const Home = () => {
             setUsernameSetFromDB(false);
         }
     }, [authUser, usernameSetFromDB, username]);
+
+    useEffect(() => {
+        if (reconnected) {
+            const roomId = sessionStorage.getItem("roomId");
+            if (roomId) {
+                // show notification and offer to rejoin game
+                const shouldRejoin = window.confirm(
+                    `Game still in progress. Rejoin '${roomId}'? Cancel to leave room`
+                );
+                if (shouldRejoin) {
+                    navigate(`/game/${roomId}`);
+                } else {
+                    dispatch(gameLeave());
+                }
+            } else {
+                console.warn("No roomId found in sessionStorage after reconnection.");
+            }
+        }
+    }, [reconnected, navigate]);
 
     const updateRoom = room => {
         setRoom(room);
@@ -66,38 +83,35 @@ const Home = () => {
     };
 
     const joinGame = () => {
-        const roomEncoded = encodeURIComponent(room);
+        // Set up socket listener for join_room_result
+        const socket = getWebSocket();
 
-        axios
-            .get(`${API_URL}/join?room=${roomEncoded}&username=${username}`, {
-                withCredentials: true
-            })
-            .then(response => {
-                if (response.data.error) {
-                    const { error } = response.data;
-                    if (error.code === "GAME_STARTED") {
-                        setFormError(error.message);
+        // Create a one-time event listener for the join_room_result
+        const messageHandler = event => {
+            const messages = JSON.parse(event.data);
+            messages.forEach(message => {
+                if (message.type === "join_room_result") {
+                    // Remove this listener since we only need it once
+                    socket.removeEventListener("message", messageHandler);
+
+                    if (message.success) {
+                        const { clientId, roomId } = message.data;
+                        sessionStorage.setItem("playerId", clientId);
+                        navigate(`/game/${roomId}`);
+                    } else {
+                        let errMsg = message.error || "Failed to join game";
+                        if (message.error?.includes("has started")) {
+                            errMsg = `Game "${room}" has already started!`;
+                        }
+                        setFormError(errMsg);
                     }
-                } else {
-                    localStorage.setItem("playerId", response.data.playerId);
-                    navigate(`/game/${room}`);
                 }
-            })
-            .catch(console.error);
-    };
-
-    const fetchOverview = () => {
-        axios
-            .get(`${API_URL}/games/overview`, { withCredentials: true })
-            .then(response => {
-                if (response.data) {
-                    dispatch(gameOverview(response.data));
-                }
-            })
-            .catch(error => {
-                console.error("Error fetching overview:", error);
-                setFormError("Failed to connect to game server. Please try again later.");
             });
+        };
+
+        socket.addEventListener("message", messageHandler);
+
+        dispatch(joinRoom(room, username));
     };
 
     return (

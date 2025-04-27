@@ -1,6 +1,7 @@
 package game
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"gameserver/internal/interfaces"
@@ -75,14 +76,14 @@ func (r *Registry) HandleMessage(client interfaces.Client, msgType string, data 
 }
 
 // InitializeRoom initializes a room with game-specific state
-func (r *Registry) InitializeRoom(room interfaces.Room, options json.RawMessage) error {
+func (r *Registry) InitializeRoom(ctx context.Context, room interfaces.Room, options json.RawMessage) error {
 	gameType := room.GameType()
 	game, err := r.GetGame(gameType)
 	if err != nil {
 		return err
 	}
 
-	return game.InitializeRoom(room, options)
+	return game.InitializeRoom(ctx, room, options)
 }
 
 // HandleClientJoin notifies the game when a client joins

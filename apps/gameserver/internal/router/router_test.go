@@ -1,24 +1,25 @@
 package router
 
 import (
+	"context"
 	testgame "gameserver/games/test"
 	"gameserver/internal/client"
 	"gameserver/internal/game"
 	"gameserver/internal/protocol"
 	"gameserver/internal/room"
 	"gameserver/internal/session"
-	"gameserver/internal/testicles"
 	"testing"
 )
 
 func TestRouter(t *testing.T) {
 	session.InitGlobalStore(2)
 
+	testCtx := context.Background()
 	registry := game.NewRegistry()
 	testgame.RegisterTestGame(registry)
 	clientManager := client.NewManager()
 	roomManager := room.NewRoomManager(registry)
-	router := NewRouter(clientManager, roomManager, registry)
+	router := NewRouter(testCtx, clientManager, roomManager, registry)
 
 	t.Run("invalid message format", func(t *testing.T) {
 		client1 := client.NewClientMock("test1")
@@ -35,7 +36,7 @@ func TestRouter(t *testing.T) {
 
 	t.Run("create room with invalid options", func(t *testing.T) {
 		client1 := client.NewClientMock("test1")
-		msgData := testicles.CreateMessage("create_room", map[string]interface{}{
+		msgData := CreateMessage("create_room", map[string]interface{}{
 			"invalid": "json",
 		})
 		router.HandleMessage(client1, msgData)
@@ -55,7 +56,7 @@ func TestRouter(t *testing.T) {
 
 	t.Run("create room with missing game type", func(t *testing.T) {
 		client1 := client.NewClientMock("test1")
-		msgData := testicles.CreateMessage("join_room", nil)
+		msgData := CreateMessage("join_room", nil)
 		router.HandleMessage(client1, msgData)
 
 		messages := client1.GetSentMessages()
@@ -73,7 +74,7 @@ func TestRouter(t *testing.T) {
 
 	t.Run("create and join room flow", func(t *testing.T) {
 		client1 := client.NewClientMock("client1")
-		msg := testicles.CreateMessage("join_room", map[string]interface{}{
+		msg := CreateMessage("join_room", map[string]interface{}{
 			"gameType":   "testGame",
 			"playerName": "tester-1",
 		})
@@ -88,12 +89,12 @@ func TestRouter(t *testing.T) {
 		}
 
 		// Get room ID from response
-		response := messages[0].Data.(map[string]interface{})
-		roomID := response["roomId"].(string)
+		response := messages[0].Data.(*JoinResponse)
+		roomID := response.RoomID
 
 		// Create second client and join room
 		client2 := client.NewClientMock("client2")
-		msg = testicles.CreateMessage("join_room", map[string]interface{}{
+		msg = CreateMessage("join_room", map[string]interface{}{
 			"roomId":     roomID,
 			"playerName": "tester-2",
 		})
@@ -111,14 +112,14 @@ func TestRouter(t *testing.T) {
 
 	t.Run("leave room flow", func(t *testing.T) {
 		client1 := client.NewClientMock("client3")
-		msg := testicles.CreateMessage("create_room", map[string]interface{}{
+		msg := CreateMessage("create_room", map[string]interface{}{
 			"gameType": "testGame",
 		})
 		router.HandleMessage(client1, msg)
 
 		client1.ClearMessages()
 
-		msg = testicles.CreateMessage("leave_room", nil)
+		msg = CreateMessage("leave_room", nil)
 		router.HandleMessage(client1, msg)
 
 		// Verify leave room response
@@ -134,7 +135,7 @@ func TestRouter(t *testing.T) {
 	t.Run("successful reconnect flow", func(t *testing.T) {
 		client1 := client.NewClientMock("client6")
 
-		msg := testicles.CreateMessage("join_room", map[string]interface{}{
+		msg := CreateMessage("join_room", map[string]interface{}{
 			"gameType":   "testGame",
 			"playerName": "tester-1",
 		})
@@ -142,9 +143,9 @@ func TestRouter(t *testing.T) {
 
 		// Get client1's response to extract room ID
 		joinResponse := client1.GetSentMessages()[0]
-		respData := joinResponse.Data.(map[string]interface{})
-		roomID := respData["roomId"].(string)
-		client1ID := respData["clientId"].(string)
+		respData := joinResponse.Data.(*JoinResponse)
+		roomID := respData.RoomID
+		client1ID := respData.ClientID
 
 		// Simulate client1 closing its connection, which triggers session storage
 		client1.Close()
@@ -153,7 +154,7 @@ func TestRouter(t *testing.T) {
 
 		// Create a new client for reconnection
 		client2 := client.NewClientMock("client7")
-		reconnectMsg := testicles.CreateMessage("reconnect", map[string]interface{}{
+		reconnectMsg := CreateMessage("reconnect", map[string]interface{}{
 			"clientId": client1ID,
 			"roomID":   roomID,
 		})
@@ -174,18 +175,18 @@ func TestRouter(t *testing.T) {
 		}
 
 		// Verify the response data contains expected fields
-		respData = reconnectResponse.Data.(map[string]interface{})
-		if respData["roomId"] != roomID {
-			t.Errorf("reconnect response has wrong roomId, got %v, expected %s", respData["roomId"], roomID)
+		reconResp := reconnectResponse.Data.(*ReconnectResponse)
+		if reconResp.RoomID != roomID {
+			t.Errorf("reconnect response has wrong roomId, got %v, expected %s", reconResp.RoomID, roomID)
 		}
-		if respData["gameType"] != "testGame" {
-			t.Errorf("reconnect response has wrong gameType, got %v, expected %s", respData["gameType"], "testGame")
+		if reconResp.GameType != "testGame" {
+			t.Errorf("reconnect response has wrong gameType, got %v, expected %s", reconResp.GameType, "testGame")
 		}
 	})
 
 	t.Run("reconnect flow of foreign client should fail", func(t *testing.T) {
 		client1 := client.NewClientMock("client4")
-		msg := testicles.CreateMessage("join_room", map[string]interface{}{
+		msg := CreateMessage("join_room", map[string]interface{}{
 			"gameType":   "testGame",
 			"playerName": "tester-1",
 		})
@@ -193,12 +194,12 @@ func TestRouter(t *testing.T) {
 		router.HandleMessage(client1, msg)
 
 		// Get room ID from response
-		response := client1.GetSentMessages()[0].Data.(map[string]interface{})
-		roomID := response["roomId"].(string)
+		joinResp := client1.GetSentMessages()[0].Data.(*JoinResponse)
+		roomID := joinResp.RoomID
 
 		// Create new client for reconnection
 		client2 := client.NewClientMock("client5")
-		reconnectMsg := testicles.CreateMessage("reconnect", map[string]interface{}{
+		reconnectMsg := CreateMessage("reconnect", map[string]interface{}{
 			"clientId": client1.ID(),
 			"roomID":   roomID,
 		})
@@ -219,7 +220,7 @@ func TestRouter(t *testing.T) {
 
 	t.Run("add bot flow", func(t *testing.T) {
 		client1 := client.NewClientMock("client9")
-		joinMsg := testicles.CreateMessage("join_room", map[string]interface{}{
+		joinMsg := CreateMessage("join_room", map[string]interface{}{
 			"gameType":   "testGame",
 			"playerName": "tester-1",
 		})
@@ -228,7 +229,7 @@ func TestRouter(t *testing.T) {
 		// Clear messages from join
 		client1.ClearMessages()
 
-		addBotMsg := testicles.CreateMessage("add_bot", nil)
+		addBotMsg := CreateMessage("add_bot", nil)
 		router.HandleMessage(client1, addBotMsg)
 
 		// Check the response
@@ -260,7 +261,7 @@ func TestRouter(t *testing.T) {
 	t.Run("game action without room should fail", func(t *testing.T) {
 		clientF := client.NewClientMock("client_no_room")
 
-		msg := testicles.CreateMessage("game_action", map[string]interface{}{
+		msg := CreateMessage("game_action", map[string]interface{}{
 			"action": "test_action",
 		})
 		router.HandleMessage(clientF, msg)
@@ -282,7 +283,7 @@ func TestRouter(t *testing.T) {
 	t.Run("add bot without room should fail", func(t *testing.T) {
 		clientF := client.NewClientMock("client_no_room_bot")
 
-		msg := testicles.CreateMessage("add_bot", nil)
+		msg := CreateMessage("add_bot", nil)
 		router.HandleMessage(clientF, msg)
 
 		messages := clientF.GetSentMessages()

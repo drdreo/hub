@@ -1,4 +1,5 @@
 import { Route, Routes } from "react-router-dom";
+import ConnectionStatus from "./components/ConnectionStatus/ConnectionStatus";
 
 import Home from "./home/Home";
 import Game from "./game/Game";
@@ -10,16 +11,19 @@ const App = () => {
     useAuth();
 
     return (
-        <Routes>
-            <Route
-                path="/"
-                element={<Home />}
-            />
-            <Route
-                path="/game/:room"
-                element={<Game />}
-            />
-        </Routes>
+        <>
+            <Routes>
+                <Route
+                    path="/"
+                    element={<Home />}
+                />
+                <Route
+                    path="/game/:room"
+                    element={<Game />}
+                />
+            </Routes>
+            <ConnectionStatus />
+        </>
     );
 };
 

@@ -1,8 +1,8 @@
 export const ROLLED_DICE = "ROLLED_DICE";
 
-export const gameReset = () => {
+export const gameLeave = () => {
     return {
-        type: "GAME_RESET"
+        type: "GAME_LEAVE"
     };
 };
 
@@ -30,13 +30,6 @@ export const gameOver = winner => {
     return {
         type: "GAME_OVER",
         payload: winner
-    };
-};
-
-export const gameError = data => {
-    return {
-        type: "GAME_ERROR",
-        payload: data
     };
 };
 
@@ -77,6 +70,13 @@ export const rolledDice = data => {
 export const animatedDice = data => {
     return {
         type: "ANIMATED_DICE",
+        payload: data
+    };
+};
+
+export const patchUIState = data => {
+    return {
+        type: "PATCH_UI_STATE",
         payload: data
     };
 };

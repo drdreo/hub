@@ -81,7 +81,7 @@ func (s *Store) RemoveSession(clientID string) {
 }
 
 func (s *Store) cleanupRoutine() {
-	ticker := time.NewTicker(60 * time.Second)
+	ticker := time.NewTicker(5 * time.Minute)
 	defer ticker.Stop()
 
 	for range ticker.C {

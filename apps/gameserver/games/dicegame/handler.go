@@ -1,6 +1,7 @@
 package dicegame
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"gameserver/internal/interfaces"
@@ -29,7 +30,7 @@ func (g *DiceGame) Type() string {
 }
 
 // InitializeRoom sets up a new room with the initial game state
-func (g *DiceGame) InitializeRoom(room interfaces.Room, options json.RawMessage) error {
+func (g *DiceGame) InitializeRoom(ctx context.Context, room interfaces.Room, options json.RawMessage) error {
 	// Create initial game state
 	state := GameState{
 		Players:      make(map[string]*Player),
@@ -119,7 +120,7 @@ func (g *DiceGame) HandleMessage(client interfaces.Client, room interfaces.Room,
 		return ErrNotYourTurn
 	}
 
-	log.Debug().Str("type", msgType).Str("payload", string(payload)).Msg("handling message")
+	log.Debug().Str("type", msgType).Bytes("payload", payload).Msg("handling message")
 
 	switch msgType {
 	case "roll":
