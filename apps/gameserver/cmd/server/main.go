@@ -93,9 +93,15 @@ func main() {
 }
 
 func initObservability() func() {
-	log.Info().Msg("initializing observability")
+	log.Info().Msg("initializing observability") // Get DSN from environment variable
+	dsn := os.Getenv("SENTRY_DSN")
+	if dsn == "" {
+		log.Warn().Msg("SENTRY_DSN environment variable not set - skipping Sentry initialization")
+		return func() {}
+	}
+
 	err := sentry.Init(sentry.ClientOptions{
-		Dsn:            "https://1f3a7989593230de0b96d41d05b1f5b0@o528779.ingest.us.sentry.io/4508902216892416",
+		Dsn:            dsn,
 		Debug:          true,
 		SendDefaultPII: true,
 	})
