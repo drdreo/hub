@@ -96,7 +96,7 @@ const Player = ({ player, isPlayersTurn, started, connected, choosing, onClick, 
                     <span>{player.username}</span>
                 </div>
 
-                {connected && (
+                {!connected && (
                     <div className="disconnected">
                         <Unplug size={15} />
                     </div>
