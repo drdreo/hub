@@ -90,8 +90,8 @@ func TestRouter(t *testing.T) {
 		}
 
 		// Get room ID from response
-		response := messages[0].Data.(map[string]interface{})
-		roomID := response["roomId"].(string)
+		response := messages[0].Data.(*JoinResponse)
+		roomID := response.RoomID
 
 		// Create second client and join room
 		client2 := client.NewClientMock("client2")
@@ -144,9 +144,9 @@ func TestRouter(t *testing.T) {
 
 		// Get client1's response to extract room ID
 		joinResponse := client1.GetSentMessages()[0]
-		respData := joinResponse.Data.(map[string]interface{})
-		roomID := respData["roomId"].(string)
-		client1ID := respData["clientId"].(string)
+		respData := joinResponse.Data.(*JoinResponse)
+		roomID := respData.RoomID
+		client1ID := respData.ClientID
 
 		// Simulate client1 closing its connection, which triggers session storage
 		client1.Close()
@@ -176,12 +176,12 @@ func TestRouter(t *testing.T) {
 		}
 
 		// Verify the response data contains expected fields
-		respData = reconnectResponse.Data.(map[string]interface{})
-		if respData["roomId"] != roomID {
-			t.Errorf("reconnect response has wrong roomId, got %v, expected %s", respData["roomId"], roomID)
+		reconResp := reconnectResponse.Data.(*ReconnectResponse)
+		if reconResp.RoomID != roomID {
+			t.Errorf("reconnect response has wrong roomId, got %v, expected %s", reconResp.RoomID, roomID)
 		}
-		if respData["gameType"] != "testGame" {
-			t.Errorf("reconnect response has wrong gameType, got %v, expected %s", respData["gameType"], "testGame")
+		if reconResp.GameType != "testGame" {
+			t.Errorf("reconnect response has wrong gameType, got %v, expected %s", reconResp.GameType, "testGame")
 		}
 	})
 
@@ -195,8 +195,8 @@ func TestRouter(t *testing.T) {
 		router.HandleMessage(client1, msg)
 
 		// Get room ID from response
-		response := client1.GetSentMessages()[0].Data.(map[string]interface{})
-		roomID := response["roomId"].(string)
+		joinResp := client1.GetSentMessages()[0].Data.(*JoinResponse)
+		roomID := joinResp.RoomID
 
 		// Create new client for reconnection
 		client2 := client.NewClientMock("client5")

@@ -1,6 +1,7 @@
 package dicegame
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"gameserver/internal/client"
@@ -21,12 +22,14 @@ type TestMessage struct {
 }
 
 func TestDiceGameIntegration(t *testing.T) {
+	testCtx := context.Background()
+
 	// Set up the complete system with real components
 	registry := game.NewRegistry()
 	RegisterDiceGame(registry)
 	clientManager := client.NewManager()
 	roomManager := room.NewRoomManager(registry)
-	testRouter := router.NewRouter(clientManager, roomManager, registry)
+	testRouter := router.NewRouter(testCtx, clientManager, roomManager, registry)
 
 	// Create mock clients
 	client1 := client.NewClientMock("player1")
@@ -50,15 +53,12 @@ func TestDiceGameIntegration(t *testing.T) {
 		t.Fatalf("Expected 'join_room_result' message, got: %v", createResponse.Type)
 	}
 
-	data, ok := createResponse.Data.(map[string]interface{})
+	data, ok := createResponse.Data.(*router.JoinResponse)
 	if !ok {
 		t.Fatalf("Invalid data in response")
 	}
 
-	roomID, ok := data["roomId"].(string)
-	if !ok || roomID == "" {
-		t.Fatalf("Invalid or missing roomId in response")
-	}
+	roomID := data.RoomID
 
 	// Clear messages before next step
 	client1.ClearMessages()
@@ -117,7 +117,7 @@ func TestDiceGameIntegration(t *testing.T) {
 	// Test setting aside dice
 	// We'll use a fixed set of dice for testing
 	state = testRoom.State().(*GameState)
-	state.Dice = []int{1, 2, 3, 4, 5, 6} // Set specific dice values
+	state.Dice = []int{1, 1, 3, 3, 5, 5} // Set specific dice values
 	testRoom.SetState(state)
 
 	msg = TestMessage{Type: "select"}
@@ -127,6 +127,7 @@ func TestDiceGameIntegration(t *testing.T) {
 
 	// Set aside the currently selected dice - first die (index 0)
 	msg = TestMessage{Type: "set_aside"}
+	msg.Data.EndTurn = false
 	msgBytes, _ = json.Marshal(msg)
 	testRouter.HandleMessage(client1, msgBytes)
 
@@ -140,18 +141,28 @@ func TestDiceGameIntegration(t *testing.T) {
 		t.Errorf("Expected 5 dice remaining, got %d", len(state.Dice))
 	}
 
-	// End turn and verify turn switches to second player
-	msg = TestMessage{Type: "end_turn"}
+	state.Dice = []int{1, 3, 3, 5, 5} // Set specific dice values
+	testRoom.SetState(state)
+
+	msg = TestMessage{Type: "select"}
+	msg.Data.DiceIndex = 0 // select the 1 die again
+	msgBytes, _ = json.Marshal(msg)
+	testRouter.HandleMessage(client1, msgBytes)
+
+	// Set aside the currently selected dice - first die (index 0)
+	msg = TestMessage{Type: "set_aside"}
+	msg.Data.EndTurn = true
 	msgBytes, _ = json.Marshal(msg)
 	testRouter.HandleMessage(client1, msgBytes)
 
 	state = testRoom.State().(*GameState)
+
 	if state.CurrentTurn != client2.ID() {
 		t.Errorf("Expected turn to switch to player 2, still on %s", state.CurrentTurn)
 	}
 
 	// Verify player score was updated
-	if player1Score := state.Players[client1.ID()].Score; player1Score != 100 {
-		t.Errorf("Expected player 1 to have 100 points (for setting aside a 1), got %d", player1Score)
+	if player1Score := state.Players[client1.ID()].Score; player1Score != 200 {
+		t.Errorf("Expected player 1 to have 200 points (for setting aside a 2x 1), got %d", player1Score)
 	}
 }
