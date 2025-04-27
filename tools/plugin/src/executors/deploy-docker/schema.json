@@ -5,13 +5,17 @@
     "description": "",
     "type": "object",
     "properties": {
+        "projectId": {
+            "type": "string",
+            "description": "Project ID to deploy"
+        },
         "dockerFile": {
             "type": "string",
             "description": "Path to the docker file to use"
         },
-        "serviceName": {
-            "type": "string",
-            "description": "Name of the service to deploy"
+        "redeploy": {
+            "type": "boolean",
+            "description": "If the service should be redeployed"
         }
     },
     "required": []

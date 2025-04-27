@@ -1,0 +1,22 @@
+{
+    "$schema": "https://json-schema.org/schema",
+    "version": 2,
+    "title": "ReleaseNotification executor",
+    "description": "Notify Sentry about a new release deployment",
+    "type": "object",
+    "properties": {
+        "version": {
+            "type": "string",
+            "description": "The version identifier of the release"
+        },
+        "project": {
+            "type": "string",
+            "description": "The project you're deploying"
+        },
+        "url": {
+            "type": "string",
+            "description": "The deployment URL"
+        }
+    },
+    "required": ["project"]
+}

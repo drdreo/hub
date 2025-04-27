@@ -1,9 +1,14 @@
 {
     "executors": {
         "deploy-docker": {
-            "implementation": "./dist/executors/deploy-docker",
-            "schema": "./dist/executors/schema.json",
+            "implementation": "./dist/executors/deploy-docker/deploy-docker",
+            "schema": "./dist/executors/deploy-docker/schema.json",
             "description": "deploy-docker executor"
+        },
+        "release-notification": {
+            "implementation": "./dist/executors/release-notification/release-notification",
+            "schema": "./dist/executors/release-notification/schema.json",
+            "description": "release-notification executor"
         }
     }
 }
