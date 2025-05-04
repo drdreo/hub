@@ -15,6 +15,11 @@ import (
 
 const BustedAnimationDelay = 4 * time.Second // (~3-4 seconds)
 
+type BustedResponse struct {
+	ClientID string `json:"clientId"`
+	Name     string `json:"name"`
+}
+
 func NewDiceGame() *DiceGame {
 	return &DiceGame{}
 }
@@ -127,8 +132,11 @@ func (g *DiceGame) HandleMessage(client interfaces.Client, room interfaces.Room,
 		if busted := g.handleRoll(room); busted {
 			log.Info().Msgf("%s busted on roll", state.Players[state.CurrentTurn].Name)
 
-			// using `clientId + busted message` since bot filters if it was its bust or not
-			bustedMsg := protocol.NewErrorResponse("error", client.ID()+ErrBusted.Error())
+			// bot filters if it was its bust or not
+			bustedMsg := protocol.NewSuccessResponse("busted", &BustedResponse{
+				ClientID: client.ID(),
+				Name:     state.Players[state.CurrentTurn].Name,
+			})
 
 			// if the bot busted, tell them immediately
 			if client.IsBot() {

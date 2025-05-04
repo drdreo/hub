@@ -7,7 +7,6 @@ import (
 	"gameserver/internal/interfaces"
 	"gameserver/internal/protocol"
 	"slices"
-	"strings"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -64,12 +63,15 @@ func (b *DiceGameBot) handleMessage(message *protocol.Response) {
 
 		b.makeNextMove(gameState)
 
-	case "error":
-		// Check for bust error and if it includes the bots ID
-		if b.myTurn && strings.Contains(message.Error, ErrBusted.Error()) && strings.Contains(message.Error, b.ID()) {
+	case "busted":
+		data, _ := message.Data.(*BustedResponse)
+
+		// Check for bust and if it includes the bots ID
+		if b.myTurn && data.ClientID == b.ID() {
 			log.Warn().Msg("Bot detected bust and will wait for turn to end")
 			b.busted = true
 		}
+	case "error":
 
 	default:
 		log.Warn().Str("type", message.Type).Str("botId", b.ID()).Msg("bot did not handle message")

@@ -115,6 +115,8 @@ func (m *RoomManager) Cleanup() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
+	log.Info().Msg("checking for cleanup")
+
 	for id, room := range m.rooms {
 		if len(room.Clients()) == 0 {
 			room.Close()
