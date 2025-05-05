@@ -73,8 +73,8 @@ func (g *Game) OnClientJoin(client interfaces.Client, room interfaces.Room, opti
 	g.broadcastGameState(room)
 }
 
-func (g *Game) OnBotAdd(client interfaces.Client, room interfaces.Room, reg interfaces.GameRegistry) (interfaces.Client, error) {
-	return nil, errors.New("game does not support bots")
+func (g *Game) OnBotAdd(client interfaces.Client, room interfaces.Room, reg interfaces.GameRegistry) (interfaces.Client, string, error) {
+	return nil, "", errors.New("game does not support bots")
 }
 
 func (g *Game) OnClientLeave(client interfaces.Client, room interfaces.Room) {
@@ -95,14 +95,13 @@ func (g *Game) OnClientLeave(client interfaces.Client, room interfaces.Room) {
 }
 
 // OnClientReconnect handles reconnecting a client to the game
-func (g *Game) OnClientReconnect(client interfaces.Client, room interfaces.Room, oldClientID string) {
+func (g *Game) OnClientReconnect(client interfaces.Client, room interfaces.Room, oldClientID string) error {
 	state := room.State().(*GameState)
 
 	// Check if the old client ID was a player in this game
 	oldPlayer, exists := state.Players[oldClientID]
 	if !exists {
-		client.Send(protocol.NewErrorResponse("error", "No player found with the provided ID"))
-		return
+		return errors.New("no player found with provided ID")
 	}
 
 	// Update player ID and state map references
@@ -125,6 +124,7 @@ func (g *Game) OnClientReconnect(client interfaces.Client, room interfaces.Room,
 
 	room.SetState(state)
 	g.broadcastGameState(room)
+	return nil
 }
 
 func (g *Game) HandleMessage(client interfaces.Client, room interfaces.Room, msgType string, payload []byte) error {

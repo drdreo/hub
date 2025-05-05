@@ -36,15 +36,18 @@ func (g *TestGame) InitializeRoom(ctx context.Context, room interfaces.Room, opt
 func (g *TestGame) OnClientJoin(client interfaces.Client, room interfaces.Room, _ interfaces.CreateRoomOptions) {
 }
 
-func (g *TestGame) OnBotAdd(client interfaces.Client, room interfaces.Room, reg interfaces.GameRegistry) (interfaces.Client, error) {
-	bot := NewBot("bot-1", g, reg)
-	return bot.BotClient, nil
+func (g *TestGame) OnBotAdd(client interfaces.Client, room interfaces.Room, reg interfaces.GameRegistry) (interfaces.Client, string, error) {
+	id := "bot-1"
+	name := "Bot 1"
+	bot := NewBot(id, g, reg)
+	return bot.BotClient, name, nil
 }
 
 func (g *TestGame) OnClientLeave(client interfaces.Client, room interfaces.Room) {
 }
 
-func (g *TestGame) OnClientReconnect(client interfaces.Client, room interfaces.Room, oldClientId string) {
+func (g *TestGame) OnClientReconnect(client interfaces.Client, room interfaces.Room, oldClientId string) error {
+	return nil
 }
 
 func NewTestGame() *TestGame {

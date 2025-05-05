@@ -6,6 +6,7 @@ import (
 	"gameserver/internal/protocol"
 	"maps"
 	"sync"
+	"time"
 
 	"github.com/rs/zerolog/log"
 
@@ -21,6 +22,8 @@ type GameRoom struct {
 	state    interface{}
 	closed   bool
 	mu       sync.RWMutex
+
+	closeTimer *time.Timer // handling delayed room closure
 }
 
 // NewRoom creates a new game room
@@ -77,8 +80,15 @@ func (room *GameRoom) Join(client interfaces.Client) error {
 
 	room.clients[client.ID()] = client
 
+	// If this is a human client and we have a pending close timer, cancel it
+	if !client.IsBot() && room.closeTimer != nil {
+		log.Debug().Str("roomId", room.ID()).Msg("stoping room close timer")
+		room.closeTimer.Stop()
+		room.closeTimer = nil
+	}
+
 	// Notify other clients about the new joiner
-	joinMessage := protocol.NewSuccessResponse("client_joined", map[string]interface{}{
+	joinMessage := protocol.NewSuccessResponse("client_joined", interfaces.M{
 		"clientId": client.ID(),
 	})
 
@@ -93,28 +103,17 @@ func (room *GameRoom) Leave(client interfaces.Client) {
 		delete(room.clients, client.ID())
 
 		// Notify other clients about the departure
-		leaveMessage := protocol.NewSuccessResponse("client_left", map[string]interface{}{
+		leaveMessage := protocol.NewSuccessResponse("client_left", interfaces.M{
 			"clientId": client.ID(),
 		})
 
 		room.Broadcast(leaveMessage)
 	}
 
+	humanClientExists := room.hasHumanClients()
 	// Close room if no human clients remain
-	humanClientExists := false
-	for _, c := range room.clients {
-		if !c.IsBot() {
-			humanClientExists = true
-			break
-		}
-	}
-
 	if !humanClientExists {
-		room.Close()
-		// auto-remove from manager if manager exists
-		if room.manager != nil {
-			room.manager.RemoveRoom(room.ID())
-		}
+		room.ScheduleClose()
 	}
 }
 
@@ -161,6 +160,39 @@ func (room *GameRoom) SetState(state interface{}) {
 	room.state = state
 }
 
+func (room *GameRoom) ScheduleClose() {
+	log.Debug().Str("roomId", room.ID()).Msg("room scheduled for closing")
+	// If we're already pending closure, don't reset
+	if room.closeTimer != nil {
+		return
+	}
+
+	// Set a timer to close the room after the timeout (e.g., 30 seconds)
+	room.closeTimer = time.AfterFunc(30*time.Second, func() {
+		log.Debug().Str("roomId", room.ID()).Msg("room checking for closure after timeout")
+
+		room.mu.Lock()
+		defer room.mu.Unlock()
+
+		// Check again if a human player has reconnected
+		humanExists := room.hasHumanClients()
+
+		// Only close if still no humans
+		if !humanExists {
+			log.Debug().Str("roomId", room.ID()).Msg("nobody in room")
+			room.Close()
+			// auto-remove from manager if manager exists
+			if room.manager != nil {
+				room.manager.RemoveRoom(room.ID())
+				// TODO: broadcast new game room list update
+			}
+		} else {
+			log.Debug().Str("roomId", room.ID()).Msg("room had humans again")
+		}
+		room.closeTimer = nil
+	})
+}
+
 // Close terminates the room and disconnects all clients
 func (room *GameRoom) Close() {
 	if room.closed {
@@ -184,6 +216,15 @@ func (room *GameRoom) Close() {
 			client.Close()
 		}
 	}
+}
+
+func (room *GameRoom) hasHumanClients() bool {
+	for _, c := range room.clients {
+		if !c.IsBot() {
+			return true
+		}
+	}
+	return false
 }
 
 // Error definitions

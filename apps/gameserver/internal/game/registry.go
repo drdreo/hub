@@ -111,13 +111,13 @@ func (r *Registry) HandleAddBot(client interfaces.Client, room interfaces.Room) 
 		return err
 	}
 
-	botClient, err := game.OnBotAdd(client, client.Room(), r)
+	botClient, botName, err := game.OnBotAdd(client, client.Room(), r)
 	if err != nil {
 		return err
 	}
 
 	return r.HandleClientJoin(botClient, client.Room(), interfaces.CreateRoomOptions{
-		PlayerName: "Bot-1",
+		PlayerName: botName,
 	})
 }
 
@@ -141,8 +141,7 @@ func (r *Registry) HandleClientReconnect(client interfaces.Client, room interfac
 		return err
 	}
 
-	game.OnClientReconnect(client, room, oldClientId)
-	return nil
+	return game.OnClientReconnect(client, room, oldClientId)
 }
 
 // ListGames returns a list of all registered game types

@@ -65,8 +65,8 @@ type Game interface {
 	InitializeRoom(ctx context.Context, room Room, options json.RawMessage) error
 	OnClientJoin(client Client, room Room, options CreateRoomOptions)
 	OnClientLeave(client Client, room Room)
-	OnClientReconnect(client Client, room Room, oldClientId string)
-	OnBotAdd(client Client, room Room, registry GameRegistry) (Client, error)
+	OnClientReconnect(client Client, room Room, oldClientId string) error
+	OnBotAdd(client Client, room Room, registry GameRegistry) (Client, string, error)
 }
 
 type GameRegistry interface {

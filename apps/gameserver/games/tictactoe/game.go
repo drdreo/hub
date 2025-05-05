@@ -115,8 +115,8 @@ func (g *TicTacToe) OnClientJoin(client interfaces.Client, room interfaces.Room,
 	}))
 }
 
-func (g *TicTacToe) OnBotAdd(client interfaces.Client, room interfaces.Room, reg interfaces.GameRegistry) (interfaces.Client, error) {
-	return nil, errors.New("game does not support bots")
+func (g *TicTacToe) OnBotAdd(client interfaces.Client, room interfaces.Room, reg interfaces.GameRegistry) (interfaces.Client, string, error) {
+	return nil, "", errors.New("game does not support bots")
 }
 
 // OnClientLeave handles a client leaving the room
@@ -139,14 +139,13 @@ func (g *TicTacToe) OnClientLeave(client interfaces.Client, room interfaces.Room
 }
 
 // OnClientReconnect handles reconnecting a client to the game
-func (g *TicTacToe) OnClientReconnect(client interfaces.Client, room interfaces.Room, oldClientID string) {
+func (g *TicTacToe) OnClientReconnect(client interfaces.Client, room interfaces.Room, oldClientID string) error {
 	state := room.State().(GameState)
 
 	// Check if the old client ID was a player in this game
 	playerInfo, exists := state.Players[oldClientID]
 	if !exists {
-		client.Send(protocol.NewErrorResponse("error", "No player found with the provided ID"))
-		return
+		return errors.New("no player found with provided ID")
 	}
 
 	// Replace the old client ID with the new one, maintaining the same player info
@@ -175,6 +174,8 @@ func (g *TicTacToe) OnClientReconnect(client interfaces.Client, room interfaces.
 		"symbol":   playerInfo.Symbol,
 		"roomId":   room.ID(),
 	}))
+
+	return nil
 }
 
 // HandleMessage processes game-specific messages

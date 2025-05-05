@@ -6,6 +6,7 @@ import (
 	"gameserver/internal/client"
 	"gameserver/internal/interfaces"
 	"gameserver/internal/protocol"
+	"github.com/google/uuid"
 	"slices"
 	"time"
 
@@ -22,7 +23,8 @@ type DiceGameBot struct {
 	combinationToSelect []int
 }
 
-func NewDiceGameBot(id string, game *DiceGame, reg interfaces.GameRegistry) *DiceGameBot {
+func NewDiceGameBot(game *DiceGame, reg interfaces.GameRegistry) *DiceGameBot {
+	id := uuid.New().String() // create random id
 	bot := &DiceGameBot{
 		BotClient:           client.NewBotClient(id, reg),
 		game:                game,
@@ -71,7 +73,12 @@ func (b *DiceGameBot) handleMessage(message *protocol.Response) {
 			log.Warn().Msg("Bot detected bust and will wait for turn to end")
 			b.busted = true
 		}
+
+	// ignore these events
 	case "error":
+	case "client_join":
+	case "client_joined":
+	case "client_left":
 
 	default:
 		log.Warn().Str("type", message.Type).Str("botId", b.ID()).Msg("bot did not handle message")

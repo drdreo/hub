@@ -6,6 +6,7 @@ import (
 	"errors"
 	"gameserver/internal/interfaces"
 	"gameserver/internal/protocol"
+	"math/rand"
 	"time"
 
 	// 	"math/rand"
@@ -74,10 +75,14 @@ func (g *DiceGame) OnClientJoin(client interfaces.Client, room interfaces.Room, 
 	broadcastGameState(room)
 }
 
-func (g *DiceGame) OnBotAdd(client interfaces.Client, room interfaces.Room, reg interfaces.GameRegistry) (interfaces.Client, error) {
-	bot := NewDiceGameBot("bot-1", g, reg)
+func (g *DiceGame) OnBotAdd(client interfaces.Client, room interfaces.Room, reg interfaces.GameRegistry) (interfaces.Client, string, error) {
+	state := room.State().(*GameState)
+	if state.Started {
+		return nil, "", errors.New("game already started")
+	}
+	bot := NewDiceGameBot(g, reg)
 
-	return bot.BotClient, nil
+	return bot.BotClient, getBotName(), nil
 }
 
 func (g *DiceGame) OnClientLeave(client interfaces.Client, room interfaces.Room) {
@@ -90,14 +95,17 @@ func (g *DiceGame) OnClientLeave(client interfaces.Client, room interfaces.Room)
 }
 
 // OnClientReconnect handles reconnecting a client to the game
-func (g *DiceGame) OnClientReconnect(client interfaces.Client, room interfaces.Room, oldClientID string) {
+func (g *DiceGame) OnClientReconnect(client interfaces.Client, room interfaces.Room, oldClientID string) error {
 	state := room.State().(*GameState)
 
 	// Check if the old client ID was a player in this game
 	playerInfo, exists := state.Players[oldClientID]
 	if !exists {
-		client.Send(protocol.NewErrorResponse("error", "No player found with the provided ID"))
-		return
+		return errors.New("no player found with provided ID")
+	}
+
+	if state.Winner != "" {
+		return errors.New("game already ended")
 	}
 
 	// Replace the old client ID with the new one, maintaining the same player info
@@ -115,6 +123,7 @@ func (g *DiceGame) OnClientReconnect(client interfaces.Client, room interfaces.R
 	// tell the new client the game state
 	msg := protocol.NewSuccessResponse("game_state", state)
 	client.Send(msg)
+	return nil
 }
 
 func (g *DiceGame) HandleMessage(client interfaces.Client, room interfaces.Room, msgType string, payload []byte) error {
@@ -200,6 +209,29 @@ func broadcastGameState(room interfaces.Room) {
 
 	msg := protocol.NewSuccessResponse("game_state", state)
 	room.Broadcast(msg)
+}
+
+func getBotName() string {
+	botNames := []string{
+		"Andrew",
+		"Hans",
+		"Henry",
+		"Katherine",
+		"Janek",
+		"Bartholomew",
+		"Archibald",
+		"Gul Asch",
+		"Friedrich",
+		"Fritz",
+		"Esther",
+		"Konrad",
+		"Bara",
+		"Ignatius",
+		"Pavlena",
+	}
+
+	randomIndex := rand.Intn(len(botNames))
+	return botNames[randomIndex]
 }
 
 var (
