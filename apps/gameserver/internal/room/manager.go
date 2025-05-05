@@ -3,6 +3,7 @@ package room
 import (
 	"context"
 	"errors"
+	"gameserver/internal/events"
 	"gameserver/internal/interfaces"
 	"maps"
 	"slices"
@@ -17,13 +18,15 @@ type RoomManager struct {
 	rooms        map[string]interfaces.Room
 	mu           sync.RWMutex
 	gameRegistry interfaces.GameRegistry
+	eventBus     *events.EventBus // can be nil in tests
 }
 
 // NewRoomManager creates a new room manager
-func NewRoomManager(registry interfaces.GameRegistry) *RoomManager {
+func NewRoomManager(registry interfaces.GameRegistry, eventBus *events.EventBus) *RoomManager {
 	rm := &RoomManager{
 		rooms:        make(map[string]interfaces.Room),
 		gameRegistry: registry,
+		eventBus:     eventBus,
 	}
 
 	// Run cleanup every 5 minutes as a safety net
@@ -97,8 +100,18 @@ func (m *RoomManager) RemoveRoom(roomID string) {
 	log.Info().Str("roomId", roomID).Msg("removing room")
 
 	if room, exists := m.rooms[roomID]; exists {
+		gameType := room.GameType()
 		room.Close()
 		delete(m.rooms, roomID)
+
+		// Publish room removed event
+		if m.eventBus != nil {
+			m.eventBus.Publish(events.Event{
+				Type:     events.RoomRemoved,
+				RoomID:   roomID,
+				GameType: gameType,
+			})
+		}
 	}
 }
 

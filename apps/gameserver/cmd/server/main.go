@@ -8,6 +8,7 @@ import (
 	"gameserver/games/owe_drahn"
 	"gameserver/games/tictactoe"
 	"gameserver/internal/client"
+	"gameserver/internal/events"
 	"gameserver/internal/game"
 	"gameserver/internal/interfaces"
 	"gameserver/internal/protocol"
@@ -71,11 +72,12 @@ func main() {
 
 	// Initialize the global session store with 5 minute expiry
 	session.InitGlobalStore(300)
+	eventBus := events.NewEventBus()
 
 	gameRegistry := game.NewRegistry()
 	clientManager := client.NewManager()
-	roomManager := room.NewRoomManager(gameRegistry)
-	messageRouter := router.NewRouter(rootCtx, clientManager, roomManager, gameRegistry)
+	roomManager := room.NewRoomManager(gameRegistry, eventBus)
+	messageRouter := router.NewRouter(rootCtx, clientManager, roomManager, gameRegistry, eventBus)
 
 	// Register all games
 	tictactoe.RegisterTicTacToeGame(gameRegistry)

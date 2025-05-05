@@ -12,7 +12,7 @@ import (
 func TestRoomManager(t *testing.T) {
 	registry := game.NewRegistry()
 	testgame.RegisterTestGame(registry)
-	manager := NewRoomManager(registry)
+	manager := NewRoomManager(registry, nil)
 
 	testCtx := context.Background()
 	t.Run("create and get room by ID", func(t *testing.T) {

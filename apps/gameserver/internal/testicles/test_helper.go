@@ -30,8 +30,8 @@ func NewTestHelper(t *testing.T) *TestHelper {
 	// Set up the complete system with real components
 	registry := game.NewRegistry()
 	clientManager := client.NewManager()
-	roomManager := room.NewRoomManager(registry)
-	testRouter := router.NewRouter(testCtx, clientManager, roomManager, registry)
+	roomManager := room.NewRoomManager(registry, nil)
+	testRouter := router.NewRouter(testCtx, clientManager, roomManager, registry, nil)
 
 	return &TestHelper{
 		Ctx:           testCtx,

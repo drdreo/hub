@@ -17,8 +17,8 @@ func TestGameFlowIntegration(t *testing.T) {
 	registry := game.NewRegistry()
 	tictactoe.RegisterTicTacToeGame(registry)
 	clientManager := client.NewManager()
-	roomManager := room.NewRoomManager(registry)
-	testRouter := router.NewRouter(testCtx, clientManager, roomManager, registry)
+	roomManager := room.NewRoomManager(registry, nil)
+	testRouter := router.NewRouter(testCtx, clientManager, roomManager, registry, nil)
 
 	// Create mock clients
 	client1 := client.NewClientMock("player1")

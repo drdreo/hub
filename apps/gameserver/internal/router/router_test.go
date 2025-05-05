@@ -18,8 +18,8 @@ func TestRouter(t *testing.T) {
 	registry := game.NewRegistry()
 	testgame.RegisterTestGame(registry)
 	clientManager := client.NewManager()
-	roomManager := room.NewRoomManager(registry)
-	router := NewRouter(testCtx, clientManager, roomManager, registry)
+	roomManager := room.NewRoomManager(registry, nil)
+	router := NewRouter(testCtx, clientManager, roomManager, registry, nil)
 
 	t.Run("invalid message format", func(t *testing.T) {
 		client1 := client.NewClientMock("test1")

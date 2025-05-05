@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"gameserver/internal/events"
 	"gameserver/internal/interfaces"
 	"gameserver/internal/protocol"
 	"gameserver/internal/session"
@@ -42,15 +43,24 @@ type RoomListInfo struct {
 }
 
 // NewRouter creates a new message router
-func NewRouter(ctx context.Context, clientManager interfaces.ClientManager, roomManager interfaces.RoomManager, gameRegistry interfaces.GameRegistry) *Router {
+func NewRouter(ctx context.Context, clientManager interfaces.ClientManager, roomManager interfaces.RoomManager, gameRegistry interfaces.GameRegistry, eventBus *events.EventBus) *Router {
 	log.Debug().Msg("creating new router")
 
-	return &Router{
+	router := &Router{
 		ctx:           ctx,
 		clientManager: clientManager,
 		roomManager:   roomManager,
 		gameRegistry:  gameRegistry,
 	}
+
+	if eventBus != nil {
+		// Subscribe to room events
+		eventBus.Subscribe(events.RoomCreated, router.handleRoomEvent)
+		eventBus.Subscribe(events.RoomRemoved, router.handleRoomEvent)
+		eventBus.Subscribe(events.RoomUpdated, router.handleRoomEvent)
+	}
+
+	return router
 }
 
 // HandleMessage processes an incoming message from a client
@@ -333,6 +343,12 @@ func (r *Router) getRoomList(gameType string) []RoomListInfo {
 	}
 
 	return roomList
+}
+
+// Handle room events
+func (r *Router) handleRoomEvent(event events.Event) {
+	// Broadcast room list update when a room event occurs
+	r.broadCastRoomListChange(event.GameType)
 }
 
 func (r *Router) broadCastRoomListChange(gameType string) {
