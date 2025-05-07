@@ -2,6 +2,7 @@ package room
 
 import (
 	"gameserver/internal/client"
+	"gameserver/internal/interfaces"
 	"gameserver/internal/protocol"
 	"testing"
 )
@@ -51,7 +52,7 @@ func TestRoom(t *testing.T) {
 			}
 
 			// Check client ID
-			if data, ok := msg.Data.(map[string]interface{}); !ok || data["clientId"] != "client2" {
+			if data, ok := msg.Data.(interfaces.M); !ok || data["clientId"] != "client2" {
 				t.Errorf("expected clientId 'client2', got '%v'", data["clientId"])
 			}
 		}
@@ -135,7 +136,7 @@ func TestRoom(t *testing.T) {
 			}
 
 			// Check client ID
-			if data, ok := msg.Data.(map[string]interface{}); !ok || data["clientId"] != "client2" {
+			if data, ok := msg.Data.(interfaces.M); !ok || data["clientId"] != "client2" {
 				t.Errorf("expected clientId 'client2', got '%v'", data["clientId"])
 			}
 		}
