@@ -27,7 +27,7 @@ const configuration = () => {
         }),
         TypeOrmModule.forRootAsync({
             useFactory: (configService: ConfigService) => {
-                return configService.get("typeOrm")!;
+                return configService.getOrThrow("typeOrm");
             },
             inject: [ConfigService]
         }),

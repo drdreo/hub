@@ -5,6 +5,9 @@
     "type": "module",
     "main": "main.cjs",
     "moduleResolution": "bundler",
+    "dependencies": {
+        "pg": "^8.14.1"
+    },
     "devDependencies": {
         "@tell-it-api/data-access": "workspace:*",
         "@tell-it-api/game": "workspace:*",
