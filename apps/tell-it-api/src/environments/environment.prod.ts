@@ -6,6 +6,9 @@ export function getProdConfig() {
         throw new Error("DATABASE_URL not set");
     }
 
+    // Use this for initial setup: TYPEORM_SYNCHRONIZE=true
+    const synchronize = process.env.TYPEORM_SYNCHRONIZE === "true";
+
     return {
         production: true,
         allowList: ["https://tell-it.pages.dev", "https://tell-it.drdreo.com"],
@@ -13,6 +16,7 @@ export function getProdConfig() {
             type: "postgres",
             url: dbUrl,
             autoLoadEntities: true,
+            synchronize,
             ssl: { rejectUnauthorized: false }
         } as TypeOrmModuleOptions
     };
