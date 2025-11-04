@@ -8,7 +8,7 @@ export function getDevConfig() {
             "http://10.0.0.42:4200" // local IP
         ],
         typeOrm: {
-            type: "sqlite",
+            type: "better-sqlite3",
             database: "apps/tell-it-api/db.sqlite",
             autoLoadEntities: true,
             synchronize: true

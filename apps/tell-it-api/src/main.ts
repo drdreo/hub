@@ -7,10 +7,9 @@ async function bootstrap() {
     const app = await NestFactory.create(AppModule);
     const configService = app.get(ConfigService);
     const allowList = configService.get("allowList");
-    console.log(allowList);
+
     app.enableCors({
         origin: (origin: string, callback: (err: Error | null, origin?: any) => void) => {
-            console.log({ origin });
             // undefined if localhost
             if (allowList.indexOf(origin) !== -1 || !origin) {
                 callback(null, { origin: true });

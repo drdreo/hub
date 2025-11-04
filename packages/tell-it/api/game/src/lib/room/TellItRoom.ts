@@ -129,6 +129,8 @@ export class TellItRoom extends BaseRoom {
             return;
         }
 
+        this.logger.log(`User[${userName}] voted to finish the game`);
+
         if (this.finishVotes.has(userName)) {
             // user already voted, toggle it
             this.finishVotes.delete(userName);
@@ -152,6 +154,7 @@ export class TellItRoom extends BaseRoom {
             return;
         }
 
+        this.logger.log(`User[${userName}] voted to restart the game`);
         if (this.restartVotes.has(userName)) {
             // user already voted, toggle it
             this.restartVotes.delete(userName);
