@@ -10,7 +10,6 @@ async function bootstrap() {
 
     app.enableCors({
         origin: (origin: string, callback: (err: Error | null, origin?: any) => void) => {
-            console.log({ origin });
             // undefined if localhost
             if (allowList.indexOf(origin) !== -1 || !origin) {
                 callback(null, { origin: true });
