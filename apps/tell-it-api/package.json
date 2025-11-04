@@ -5,6 +5,10 @@
     "type": "module",
     "main": "main.cjs",
     "moduleResolution": "bundler",
+    "scripts": {
+        "db:migration:create": "typeorm migration:create ./src/app/migrations/<migration-name>",
+        "db:migration:run": "typeorm migration:run -d ./src/app/migrations/1669146694911-CreateDB.ts"
+    },
     "dependencies": {
         "pg": "^8.14.1"
     },

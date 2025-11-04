@@ -7,4 +7,19 @@ packages:
 catalog:
     "@angular/forms": ^19.2.0
 onlyBuiltDependencies:
+    - "@nestjs/core"
+    - "@parcel/watcher"
+    - "@railway/cli"
+    - "@sentry-internal/node-cpu-profiler"
+    - "@sentry/cli"
+    - "@swc/core"
+    - better-sqlite3
+    - esbuild
     - nx
+    - protobufjs
+    - sharp
+ignoredBuiltDependencies:
+    - "@firebase/util"
+    - sqlite3
+    - unrs-resolver
+    - workerd

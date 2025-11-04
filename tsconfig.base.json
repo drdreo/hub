@@ -14,7 +14,7 @@
         "moduleResolution": "nodenext",
         "noEmitOnError": true,
         "noFallthroughCasesInSwitch": true,
-        "noImplicitOverride": true,
+        "noImplicitOverride": false,
         "noImplicitReturns": true,
         "noUnusedLocals": true,
         "resolveJsonModule": true,
