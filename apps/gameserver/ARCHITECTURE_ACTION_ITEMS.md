@@ -24,6 +24,7 @@ The game server has a solid foundation with excellent separation of concerns and
 **Risk:** Data corruption, crashes under concurrent access
 
 **Fix:**
+
 ```go
 // Implement immutable state pattern
 // Games MUST call SetState() with new state, never mutate returned state
@@ -49,6 +50,7 @@ func (room *GameRoom) State() interface{} {
 **Risk:** Cannot scale beyond single server, single point of failure
 
 **Fix:**
+
 ```go
 // 1. Create interface
 type SessionStore interface {
@@ -78,6 +80,7 @@ type RedisSessionStore struct {
 **Risk:** Game state desynchronization, poor player experience
 
 **Fix:**
+
 ```go
 default:
     metrics.IncrementDroppedMessages(c.ID())
@@ -102,6 +105,7 @@ default:
 **Benefits:** Better client error handling, i18n support, debugging
 
 **Fix:**
+
 ```go
 type ErrorDetail struct {
     Code    string `json:"code"`    // "ROOM_FULL", "INVALID_MOVE"
@@ -128,6 +132,7 @@ type Response struct {
 **Problem:** Global write lock during cleanup blocks all operations
 
 **Fix:**
+
 ```go
 func (m *RoomManager) Cleanup() {
     // 1. Collect under read lock
@@ -139,7 +144,7 @@ func (m *RoomManager) Cleanup() {
         }
     }
     m.mu.RUnlock()
-    
+
     // 2. Delete under write lock (one at a time)
     for _, id := range roomsToCleanup {
         m.RemoveRoom(id)
@@ -158,9 +163,10 @@ func (m *RoomManager) Cleanup() {
 **Problem:** Limited monitoring capabilities
 
 **Add:**
-- Prometheus metrics for games, rooms, connections
-- Health check endpoint with dependency checks
-- Request tracing
+
+-   Prometheus metrics for games, rooms, connections
+-   Health check endpoint with dependency checks
+-   Request tracing
 
 **Estimated Effort:** 1 day
 
@@ -205,10 +211,11 @@ Add game loop abstraction for frame-based games
 ### 11. REST API Enhancements
 
 Add endpoints:
-- `POST /api/v1/rooms`
-- `GET /api/v1/rooms/:id`
-- `GET /health`
-- `GET /metrics`
+
+-   `POST /api/v1/rooms`
+-   `GET /api/v1/rooms/:id`
+-   `GET /health`
+-   `GET /metrics`
 
 **Estimated Effort:** 1-2 days
 
@@ -225,22 +232,25 @@ Split large `Router.HandleMessage` into separate handler functions
 ## Implementation Roadmap
 
 ### Sprint 1 (Week 1-2): Critical Fixes
-- [ ] Fix state management race condition
-- [ ] Implement SessionStore interface
-- [ ] Handle message drops properly
-- [ ] Add basic metrics
+
+-   [ ] Fix state management race condition
+-   [ ] Implement SessionStore interface
+-   [ ] Handle message drops properly
+-   [ ] Add basic metrics
 
 ### Sprint 2 (Week 3-4): Scalability
-- [ ] Implement Redis session store
-- [ ] Optimize cleanup routines
-- [ ] Add health check endpoints
-- [ ] Load testing
+
+-   [ ] Implement Redis session store
+-   [ ] Optimize cleanup routines
+-   [ ] Add health check endpoints
+-   [ ] Load testing
 
 ### Sprint 3 (Week 5-6): Polish
-- [ ] Structured error responses
-- [ ] Request validation
-- [ ] Router refactoring
-- [ ] Documentation updates
+
+-   [ ] Structured error responses
+-   [ ] Request validation
+-   [ ] Router refactoring
+-   [ ] Documentation updates
 
 ---
 
@@ -249,32 +259,34 @@ Split large `Router.HandleMessage` into separate handler functions
 Before considering fixes complete:
 
 1. **Concurrency Tests**
-   ```bash
-   go test -race ./...  # Must pass with no warnings
-   ```
+
+    ```bash
+    go test -race ./...  # Must pass with no warnings
+    ```
 
 2. **Load Tests**
-   - 1000+ concurrent connections
-   - Sustained message rate of 10k/sec
-   - Memory usage under 2GB at peak
+
+    - 1000+ concurrent connections
+    - Sustained message rate of 10k/sec
+    - Memory usage under 2GB at peak
 
 3. **Integration Tests**
-   - Full game flow with reconnections
-   - Multi-room scenarios
-   - Bot integration
+    - Full game flow with reconnections
+    - Multi-room scenarios
+    - Bot integration
 
 ---
 
 ## Risk Assessment
 
-| Issue | Risk Level | Impact | Effort | Priority |
-|-------|-----------|---------|--------|----------|
-| Race Conditions | 🔴 High | Crashes/corruption | Low | P0 |
-| No Horizontal Scaling | 🔴 High | Can't scale | Medium | P0 |
-| Message Drops | 🟡 Medium | Bad UX | Low | P1 |
-| Error Responses | 🟡 Medium | Poor DX | Medium | P1 |
-| Cleanup Lock | 🟡 Medium | Brief lag spikes | Low | P1 |
-| No Observability | 🟡 Medium | Can't debug prod | Medium | P1 |
+| Issue                 | Risk Level | Impact             | Effort | Priority |
+| --------------------- | ---------- | ------------------ | ------ | -------- |
+| Race Conditions       | 🔴 High    | Crashes/corruption | Low    | P0       |
+| No Horizontal Scaling | 🔴 High    | Can't scale        | Medium | P0       |
+| Message Drops         | 🟡 Medium  | Bad UX             | Low    | P1       |
+| Error Responses       | 🟡 Medium  | Poor DX            | Medium | P1       |
+| Cleanup Lock          | 🟡 Medium  | Brief lag spikes   | Low    | P1       |
+| No Observability      | 🟡 Medium  | Can't debug prod   | Medium | P1       |
 
 ---
 
@@ -283,24 +295,27 @@ Before considering fixes complete:
 Before starting implementation:
 
 1. **Target Scale**
-   - How many concurrent users?
-   - How many games running simultaneously?
-   - Expected message rate?
+
+    - How many concurrent users?
+    - How many games running simultaneously?
+    - Expected message rate?
 
 2. **Deployment**
-   - Single server or cluster?
-   - Cloud provider? (AWS, GCP, Azure)
-   - Budget for Redis/managed services?
+
+    - Single server or cluster?
+    - Cloud provider? (AWS, GCP, Azure)
+    - Budget for Redis/managed services?
 
 3. **Games Roadmap**
-   - What games are planned?
-   - Real-time or turn-based?
-   - Need for persistent state?
+
+    - What games are planned?
+    - Real-time or turn-based?
+    - Need for persistent state?
 
 4. **Timeline**
-   - When is production launch?
-   - Can we do phased rollout?
-   - Testing period available?
+    - When is production launch?
+    - Can we do phased rollout?
+    - Testing period available?
 
 ---
 
@@ -319,12 +334,12 @@ If you need assistance implementing these fixes:
 
 After implementing fixes, measure:
 
-- ✅ Zero race condition warnings in `go test -race`
-- ✅ Successful deployment of 3+ server instances
-- ✅ 99.9% message delivery rate
-- ✅ Sub-50ms p99 message latency
-- ✅ Graceful handling of 10k concurrent connections
-- ✅ Zero data corruption incidents
+-   ✅ Zero race condition warnings in `go test -race`
+-   ✅ Successful deployment of 3+ server instances
+-   ✅ 99.9% message delivery rate
+-   ✅ Sub-50ms p99 message latency
+-   ✅ Graceful handling of 10k concurrent connections
+-   ✅ Zero data corruption incidents
 
 ---
 

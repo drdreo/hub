@@ -10,6 +10,7 @@
 ### ✅ Current Good Patterns
 
 #### 1. **Strategy Pattern** (Game Interface)
+
 ```go
 // Allows pluggable game implementations
 type Game interface {
@@ -26,13 +27,15 @@ dicegame.RegisterDiceGame(gameRegistry)
 ```
 
 **Benefits:**
-- Easy to add new games
-- No modification to core server code
-- Clean separation of concerns
+
+-   Easy to add new games
+-   No modification to core server code
+-   Clean separation of concerns
 
 ---
 
 #### 2. **Interface Segregation Principle**
+
 ```go
 // Small, focused interfaces
 type Client interface {
@@ -52,13 +55,15 @@ type Room interface {
 ```
 
 **Benefits:**
-- Testability (easy to mock)
-- Flexibility (multiple implementations)
-- Clear contracts
+
+-   Testability (easy to mock)
+-   Flexibility (multiple implementations)
+-   Clear contracts
 
 ---
 
 #### 3. **Dependency Injection**
+
 ```go
 // Dependencies passed through constructor
 func NewRouter(
@@ -77,13 +82,15 @@ func NewRouter(
 ```
 
 **Benefits:**
-- Testable without globals
-- Configurable dependencies
-- Clear dependency graph
+
+-   Testable without globals
+-   Configurable dependencies
+-   Clear dependency graph
 
 ---
 
 #### 4. **Command Pattern** (Message Routing)
+
 ```go
 // Messages as commands
 switch message.Type {
@@ -98,15 +105,17 @@ case "reconnect":
 ```
 
 **Benefits:**
-- Extensible message types
-- Centralized routing logic
-- Easy to add new commands
+
+-   Extensible message types
+-   Centralized routing logic
+-   Easy to add new commands
 
 ---
 
 ### 🔄 Recommended Pattern Improvements
 
 #### 5. **Immutable State Pattern** (Recommended)
+
 ```go
 // CURRENT (mutable, unsafe):
 func (room *GameRoom) State() interface{} {
@@ -136,14 +145,16 @@ room.SetState(newState)
 ```
 
 **Benefits:**
-- Thread-safe by design
-- No race conditions
-- Easier to reason about
-- Time-travel debugging possible
+
+-   Thread-safe by design
+-   No race conditions
+-   Easier to reason about
+-   Time-travel debugging possible
 
 ---
 
 #### 6. **Repository Pattern** (Recommended for Games)
+
 ```go
 // Current: Each game implements own storage
 // Recommended: Shared repository interface
@@ -174,6 +185,7 @@ func (g *PersistentGame) OnClientLeave(client Client, room Room) {
 ---
 
 #### 7. **Observer Pattern** (For Game Events)
+
 ```go
 // Recommended: Allow external systems to observe game events
 
@@ -206,6 +218,7 @@ type GameObserver interface {
 ---
 
 #### 8. **Builder Pattern** (For Complex Creation)
+
 ```go
 // Current: Many parameters in CreateRoom
 type CreateRoomOptions struct {
@@ -271,6 +284,7 @@ room, err := NewRoomBuilder("tictactoe").
 ### ✅ Currently Implemented
 
 #### Read-Write Mutex for State
+
 ```go
 type GameRoom struct {
     mu sync.RWMutex
@@ -295,6 +309,7 @@ func (room *GameRoom) Join(client Client) error {
 ---
 
 #### Worker Goroutines
+
 ```go
 // WebSocket read/write pumps
 func (c *WebSocketClient) StartPumps() {
@@ -310,6 +325,7 @@ func (c *WebSocketClient) StartPumps() {
 ### 🔄 Recommended Additions
 
 #### Fan-Out/Fan-In for Broadcasting
+
 ```go
 // Current: Sequential broadcast
 func (room *GameRoom) Broadcast(message *protocol.Response, exclude ...Client) {
@@ -324,7 +340,7 @@ func (room *GameRoom) BroadcastParallel(message *protocol.Response, exclude ...C
     for _, c := range exclude {
         excludeMap[c.ID()] = true
     }
-    
+
     var wg sync.WaitGroup
     for _, client := range room.clients {
         if !excludeMap[client.ID()] {
@@ -344,6 +360,7 @@ func (room *GameRoom) BroadcastParallel(message *protocol.Response, exclude ...C
 ---
 
 #### Context for Cancellation
+
 ```go
 // Recommended: Use context for graceful shutdown
 
@@ -361,7 +378,7 @@ func (r *Router) Shutdown() {
 func (s *Store) cleanupRoutine() {
     ticker := time.NewTicker(5 * time.Minute)
     defer ticker.Stop()
-    
+
     for {
         select {
         case <-ticker.C:
@@ -379,6 +396,7 @@ func (s *Store) cleanupRoutine() {
 ## Error Handling Patterns
 
 ### ✅ Current Approach
+
 ```go
 // Errors sent to client
 client.Send(protocol.NewErrorResponse("error", "Room not found"))
@@ -451,12 +469,12 @@ func TestCalculateScore(t *testing.T) {
         {"single_1", []int{1}, 100, true},
         {"triple_ones", []int{1, 1, 1}, 1000, true},
     }
-    
+
     for _, tt := range tests {
         t.Run(tt.name, func(t *testing.T) {
             score, valid := calculateScore(tt.dice)
             if score != tt.expected || valid != tt.valid {
-                t.Errorf("got %d, %v; want %d, %v", 
+                t.Errorf("got %d, %v; want %d, %v",
                     score, valid, tt.expected, tt.valid)
             }
         })
@@ -465,6 +483,7 @@ func TestCalculateScore(t *testing.T) {
 ```
 
 ### Mock Interfaces
+
 ```go
 // Mock client for testing
 type MockClient struct {
@@ -482,13 +501,13 @@ func (m *MockClient) Send(msg *protocol.Response) error {
 func TestRoomBroadcast(t *testing.T) {
     client1 := &MockClient{id: "c1"}
     client2 := &MockClient{id: "c2"}
-    
+
     room := NewRoom(nil, "test", nil)
     room.Join(client1)
     room.Join(client2)
-    
+
     room.Broadcast(protocol.NewSuccessResponse("test", nil))
-    
+
     if len(client1.messages) != 1 {
         t.Error("Expected 1 message")
     }
@@ -500,6 +519,7 @@ func TestRoomBroadcast(t *testing.T) {
 ## Performance Patterns
 
 ### Message Batching (Already Implemented!)
+
 ```go
 // apps/gameserver/internal/client/socket_client.go:201-211
 w.Write([]byte("["))
@@ -519,6 +539,7 @@ w.Write([]byte("]"))
 ---
 
 ### Object Pooling (Recommended for High Load)
+
 ```go
 // For frequently allocated objects
 var messagePool = sync.Pool{
@@ -554,6 +575,7 @@ PutResponse(resp)
 ## Security Patterns
 
 ### Input Validation
+
 ```go
 // Always validate and sanitize
 type JoinRoomRequest struct {
@@ -568,6 +590,7 @@ if err := validate.Struct(request); err != nil {
 ```
 
 ### Rate Limiting (Recommended)
+
 ```go
 // Per-client rate limiter
 type RateLimiter struct {
@@ -578,14 +601,14 @@ type RateLimiter struct {
 func (rl *RateLimiter) Allow(clientID string) bool {
     rl.mu.Lock()
     defer rl.mu.Unlock()
-    
+
     limiter, exists := rl.clients[clientID]
     if !exists {
         // 10 messages per second per client
         limiter = rate.NewLimiter(10, 20)
         rl.clients[clientID] = limiter
     }
-    
+
     return limiter.Allow()
 }
 
@@ -601,6 +624,7 @@ if !rateLimiter.Allow(client.ID()) {
 ## Documentation Patterns
 
 ### Code Documentation
+
 ```go
 // Good: Clear purpose and usage
 // HandleMessage routes incoming WebSocket messages to appropriate handlers.
@@ -615,7 +639,9 @@ func (r *Router) HandleMessage(client interfaces.Client, messageData []byte) {
 ```
 
 ### Architecture Decision Records (ADRs)
+
 Create `docs/adr/` folder with decisions:
+
 ```
 docs/adr/
   001-websocket-over-http-polling.md
@@ -628,22 +654,25 @@ docs/adr/
 ## Recommended Go Packages
 
 ### Already Using ✅
-- `github.com/gorilla/websocket` - WebSocket support
-- `github.com/rs/zerolog` - Structured logging
-- `github.com/google/uuid` - UUID generation
+
+-   `github.com/gorilla/websocket` - WebSocket support
+-   `github.com/rs/zerolog` - Structured logging
+-   `github.com/google/uuid` - UUID generation
 
 ### Recommended Additions 🔄
-- `github.com/go-playground/validator/v10` - Input validation
-- `github.com/prometheus/client_golang` - Metrics
-- `github.com/go-redis/redis/v8` - Redis client
-- `golang.org/x/time/rate` - Rate limiting
-- `go.opentelemetry.io/otel` - Distributed tracing
+
+-   `github.com/go-playground/validator/v10` - Input validation
+-   `github.com/prometheus/client_golang` - Metrics
+-   `github.com/go-redis/redis/v8` - Redis client
+-   `golang.org/x/time/rate` - Rate limiting
+-   `go.opentelemetry.io/otel` - Distributed tracing
 
 ---
 
 ## Summary
 
 **Excellent patterns already in use:**
+
 1. Interface-driven design
 2. Dependency injection
 3. Strategy pattern for games
@@ -651,6 +680,7 @@ docs/adr/
 5. Proper concurrency primitives
 
 **Recommended additions:**
+
 1. Immutable state pattern
 2. Repository pattern for storage
 3. Observer pattern for events
@@ -659,6 +689,7 @@ docs/adr/
 6. Rate limiting
 
 **Next Steps:**
+
 1. Review the HIGH PRIORITY items in [ACTION_ITEMS.md](./ARCHITECTURE_ACTION_ITEMS.md)
 2. Implement immutable state pattern first
 3. Add observability (metrics + tracing)

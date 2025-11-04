@@ -44,6 +44,7 @@
 ## Message Flow
 
 ### 1. Client Connection
+
 ```
 Browser                 Server
   │                       │
@@ -55,6 +56,7 @@ Browser                 Server
 ```
 
 ### 2. Join Room
+
 ```
 Browser                 Server
   │                       │
@@ -69,6 +71,7 @@ Browser                 Server
 ```
 
 ### 3. Game Action
+
 ```
 Browser                 Server
   │                       │
@@ -82,6 +85,7 @@ Browser                 Server
 ```
 
 ### 4. Reconnection
+
 ```
 Browser                 Server
   │                       │
@@ -98,6 +102,7 @@ Browser                 Server
 ## Data Structures
 
 ### Room State
+
 ```go
 Room {
     id:       string
@@ -110,6 +115,7 @@ Room {
 ```
 
 ### Session Data
+
 ```go
 SessionData {
     ClientID:  string
@@ -126,6 +132,7 @@ SessionStore {
 ```
 
 ### Message Protocol
+
 ```go
 // Client → Server
 Message {
@@ -147,6 +154,7 @@ Response {
 ## Concurrency Model
 
 ### WebSocket Client Goroutines
+
 ```
 ┌─────────────────────────────────────┐
 │          WebSocket Client           │
@@ -168,6 +176,7 @@ Response {
 ```
 
 ### Room Broadcast
+
 ```
 Room.Broadcast(msg)
     │
@@ -183,6 +192,7 @@ Room.Broadcast(msg)
 ## Scalability Concerns
 
 ### Current: Single Instance
+
 ```
                  ┌─────────────┐
                  │   Clients   │
@@ -199,11 +209,13 @@ Room.Broadcast(msg)
                  │  Sessions   │
                  └─────────────┘
 ```
+
 ✅ Works well  
 ❌ Cannot scale horizontally  
-❌ Single point of failure  
+❌ Single point of failure
 
 ### Recommended: Multi-Instance with Redis
+
 ```
                  ┌─────────────┐
                  │   Clients   │
@@ -227,13 +239,15 @@ Room.Broadcast(msg)
                  │  (Sessions) │
                  └─────────────┘
 ```
+
 ✅ Horizontal scaling  
 ✅ High availability  
-✅ Session persistence  
+✅ Session persistence
 
 ## Thread Safety Issues
 
 ### Issue #1: State Race Condition
+
 ```go
 // ❌ CURRENT (Unsafe)
 func (room *GameRoom) State() interface{} {
@@ -263,6 +277,7 @@ room.SetState(newState)  // Atomic update with lock
 ## Performance Characteristics
 
 ### Message Batching (Implemented ✅)
+
 ```
 Without Batching:
 ┌────┐ ┌────┐ ┌────┐
@@ -278,6 +293,7 @@ Result: 3x reduction in frame overhead
 ```
 
 ### Room Cleanup Lock Contention (Issue #5)
+
 ```
 Every 5 minutes:
 
@@ -304,6 +320,7 @@ For each empty room:
 ## Security Model
 
 ### CORS Protection
+
 ```
 Production:
   Origin: *.drdreo.com ✅
@@ -313,12 +330,14 @@ Development:
 ```
 
 ### Message Size Limits
+
 ```
 Max WebSocket Message: 2048 bytes ✅
 Max Send Buffer: 256 messages ✅
 ```
 
 ### Missing Protections
+
 ```
 ❌ No rate limiting per client
 ❌ No authentication/authorization
@@ -329,16 +348,17 @@ Max Send Buffer: 256 messages ✅
 ## Testing Strategy
 
 ### Current Test Coverage
+
 ```
 ✅ Unit Tests:
    - Game logic (TicTacToe, Dice)
    - Session store
    - Room management
-   
+
 ✅ Integration Tests:
    - Full game flow
    - Router message handling
-   
+
 ❌ Missing:
    - Load tests (1000+ concurrent)
    - Concurrency tests (go test -race)
@@ -351,18 +371,20 @@ Max Send Buffer: 256 messages ✅
 **Architecture Quality: 7.5/10**
 
 ✅ **Strengths:**
-- Clean interface design
-- Plugin-based extensibility
-- Good WebSocket implementation
-- Working concurrency primitives
+
+-   Clean interface design
+-   Plugin-based extensibility
+-   Good WebSocket implementation
+-   Working concurrency primitives
 
 ⚠️ **Needs Improvement:**
-- Fix race conditions (#1)
-- Add horizontal scaling (#2)
-- Handle message drops (#3)
-- Structure error responses (#4)
-- Optimize cleanup (#5)
 
-**Recommendation:** 
+-   Fix race conditions (#1)
+-   Add horizontal scaling (#2)
+-   Handle message drops (#3)
+-   Structure error responses (#4)
+-   Optimize cleanup (#5)
+
+**Recommendation:**
 Fix critical issues (#1, #2) before production scale deployment.
 The architecture is sound but needs specific improvements for reliability and scalability.
