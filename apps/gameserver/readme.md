@@ -1,5 +1,16 @@
 # Game Server Integration Guide
 
+## 📚 Documentation
+
+**Start Here:** [Architecture Review Summary](../../ARCHITECTURE_REVIEW_SUMMARY.md) (Repository Root)
+
+### Architecture Documentation
+
+-   **[Architecture Review](./documentation/ARCHITECTURE_REVIEW.md)** (21KB) - Comprehensive architectural analysis with detailed findings
+-   **[Action Items](./documentation/ARCHITECTURE_ACTION_ITEMS.md)** (8KB) - Prioritized list of improvements with effort estimates
+-   **[Design Patterns](./documentation/DESIGN_PATTERNS.md)** (15KB) - Best practices and design patterns with code examples
+-   **[Architecture Diagram](./documentation/ARCHITECTURE_DIAGRAM.md)** (13KB) - Visual diagrams, flow charts, and data structures
+
 ## Data Flow
 
 -   Store client ID and room ID for reconnect in session storage, not local storage to avoid shared data issues between
