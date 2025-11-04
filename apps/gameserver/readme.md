@@ -1,5 +1,11 @@
 # Game Server Integration Guide
 
+## 📚 Documentation
+
+- **[Architecture Review](./ARCHITECTURE_REVIEW.md)** - Comprehensive architectural analysis and recommendations
+- **[Action Items](./ARCHITECTURE_ACTION_ITEMS.md)** - Prioritized list of improvements and fixes
+- **[Design Patterns](./DESIGN_PATTERNS.md)** - Best practices and design patterns reference
+
 ## Data Flow
 
 -   Store client ID and room ID for reconnect in session storage, not local storage to avoid shared data issues between
