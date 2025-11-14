@@ -46,7 +46,6 @@ tx.Create(ctx, "users", user)
 tx.Commit() // or tx.Rollback()
 ```
 
-
 ## Environment Variables
 
 Use `DATABASE_URL` to provide the connection string:
