@@ -34,7 +34,7 @@
                     ]
                 }
             },
-            "goformat": {
+            "fmt": {
                 "executor": "nx:run-commands",
                 "options": {
                     "cwd": "{projectRoot}",
