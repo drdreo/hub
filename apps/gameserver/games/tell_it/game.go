@@ -1,0 +1,311 @@
+package tell_it
+
+import (
+	"context"
+	"errors"
+	"gameserver/games/tell_it/database"
+	"gameserver/games/tell_it/models"
+	"gameserver/internal/interfaces"
+	"gameserver/internal/protocol"
+	"github.com/rs/zerolog/log"
+	"time"
+)
+
+type GameStatus string
+
+const (
+	GameStatusWaiting GameStatus = "waiting"
+	GameStatusStarted GameStatus = "started"
+	GameStatusEnded   GameStatus = "ended"
+)
+
+func (gs GameStatus) String() string {
+	return string(gs)
+}
+
+type Game struct {
+	dbService *database.DatabaseService
+}
+
+type GameState struct {
+	Ctx          context.Context
+	RoomName     string            `json:"roomName"`
+	Users        map[string]*User  `json:"users"`
+	UserOrder    []string          `json:"userOrder"`
+	Started      bool              `json:"started"`
+	StartTime    time.Time         `json:"startTime"`
+	GameStatus   GameStatus        `json:"gameStatus"`
+	Stories      []*Story          `json:"stories"`
+	FinishVotes  map[string]bool   `json:"finishVotes"`
+	RestartVotes map[string]bool   `json:"restartVotes"`
+	Config       models.RoomConfig `json:"config"`
+}
+
+func (s *GameState) ToMap() interfaces.M {
+	users := make([]*models.UserDTO, 0, len(s.UserOrder))
+	for _, uid := range s.UserOrder {
+		if user, ok := s.Users[uid]; ok {
+			users = append(users, user.ToDTO())
+		}
+	}
+
+	return interfaces.M{
+		"roomName":   s.RoomName,
+		"users":      users,
+		"started":    s.Started,
+		"gameStatus": s.GameStatus.String(),
+	}
+}
+
+func (g *Game) AddUser(clientId string, name string, state *GameState) {
+	state.Users[clientId] = NewUser(clientId, name)
+	state.UserOrder = append(state.UserOrder, clientId)
+}
+
+func (g *Game) GetUser(clientId string, state *GameState) *User {
+	return state.Users[clientId]
+}
+
+func (g *Game) RemoveUser(clientID string, state *GameState) {
+	user, exists := state.Users[clientID]
+	if !exists {
+		return
+	}
+
+	userName := user.Name
+	delete(state.Users, clientID)
+
+	for i, id := range state.UserOrder {
+		if id == clientID {
+			state.UserOrder = append(state.UserOrder[:i], state.UserOrder[i+1:]...)
+			break
+		}
+	}
+
+	log.Info().Str("user", userName).Str("room", state.RoomName).Msg("User removed from room")
+}
+
+func (g *Game) StartGame(state *GameState) {
+	state.Started = true
+	state.GameStatus = GameStatusStarted
+	state.StartTime = time.Now()
+	state.FinishVotes = make(map[string]bool)
+	state.RestartVotes = make(map[string]bool)
+	log.Info().Str("room", state.RoomName).Msg("Game started")
+}
+
+func (g *Game) GetStories(state *GameState) []models.StoryDTO {
+	stories := make([]models.StoryDTO, 0, len(state.Stories))
+	for _, story := range state.Stories {
+		// Find the author name
+		author := "Unknown"
+		if user, ok := state.Users[story.OwnerID]; ok {
+			author = user.Name
+		}
+
+		stories = append(stories, models.StoryDTO{
+			Text:   story.Serialize(),
+			Author: author,
+		})
+	}
+	return stories
+}
+
+func (g *Game) SubmitText(userID string, text string, state *GameState, room interfaces.Room) error {
+	// Find new user to continue
+	currentIndex := -1
+	for i, uid := range state.UserOrder {
+		if uid == userID {
+			currentIndex = i
+			break
+		}
+	}
+
+	if currentIndex == -1 {
+		return errors.New("user not found")
+	}
+
+	nextIndex := (currentIndex + 1) % len(state.UserOrder)
+	nextUserID := state.UserOrder[nextIndex]
+	nextUser := state.Users[nextUserID]
+
+	var story *Story
+
+	// Check if this user already owns a story
+	user := state.Users[userID]
+	isOwner := false
+	for _, s := range state.Stories {
+		if s.OwnerID == userID {
+			isOwner = true
+			break
+		}
+	}
+
+	if isOwner {
+		// Try to dequeue the user's current story
+		var err error
+		story, err = user.DequeueStory()
+		if err != nil {
+			return errors.New("can't wait - no story to continue")
+		}
+	} else {
+		// Create a new story
+		story = NewStory(userID)
+		state.Stories = append(state.Stories, story)
+	}
+
+	story.AddText(text)
+	nextUser.EnqueueStory(story)
+
+	// Send story update to the next user
+	g.SendStoryUpdate(nextUserID, state, room)
+	g.SendUsersUpdate(state, room)
+
+	return nil
+}
+
+func (g *Game) SendStoryUpdate(userID string, state *GameState, room interfaces.Room) {
+	user := state.Users[userID]
+	if user == nil {
+		return
+	}
+
+	story := user.GetCurrentStory()
+	if story == nil {
+		return
+	}
+
+	// Find the author name
+	author := "Unknown"
+	if authorUser, ok := state.Users[story.OwnerID]; ok {
+		author = authorUser.Name
+	}
+
+	storyData := models.StoryDTO{
+		Text:   story.GetLatestText(),
+		Author: author,
+	}
+
+	msg := protocol.NewSuccessResponse("story_update", storyData)
+
+	// Send to specific user
+	clients := room.Clients()
+	if client, ok := clients[userID]; ok {
+		client.Send(msg)
+	}
+}
+
+func (g *Game) SendUsersUpdate(state *GameState, room interfaces.Room) {
+	users := make([]models.UserDTO, 0, len(state.UserOrder))
+	for _, uid := range state.UserOrder {
+		if user, ok := state.Users[uid]; ok {
+			users = append(users, models.UserDTO{
+				ID:            user.ID,
+				Name:          user.Name,
+				Disconnected:  user.Disconnected,
+				AFK:           user.AFK,
+				KickVotes:     user.KickVotes,
+				QueuedStories: len(user.StoryQueue),
+			})
+		}
+	}
+
+	msg := protocol.NewSuccessResponse("users_update", map[string]interface{}{"users": users})
+	room.Broadcast(msg)
+}
+
+func (g *Game) VoteFinish(userID string, state *GameState, room interfaces.Room) {
+	user := state.Users[userID]
+	if user == nil {
+		log.Error().Str("userID", userID).Msg("User not found for finish vote")
+		return
+	}
+
+	log.Info().Str("user", user.Name).Msg("User voted to finish the game")
+
+	// Toggle vote
+	if state.FinishVotes[user.ID] {
+		delete(state.FinishVotes, user.ID)
+	} else {
+		state.FinishVotes[user.ID] = true
+	}
+
+	// Send vote update
+	votedIDs := make([]string, 0, len(state.FinishVotes))
+	for id := range state.FinishVotes {
+		votedIDs = append(votedIDs, id)
+	}
+
+	msg := protocol.NewSuccessResponse("finish_vote_update", map[string]interface{}{"votes": votedIDs})
+	room.Broadcast(msg)
+
+	// Check if all users voted
+	if len(state.FinishVotes) >= len(state.Users) {
+		g.EndGame(state, room)
+	}
+}
+
+func (g *Game) VoteRestart(userID string, state *GameState, room interfaces.Room) {
+	user := state.Users[userID]
+	if user == nil {
+		log.Error().Str("userID", userID).Msg("User not found for restart vote")
+		return
+	}
+
+	log.Info().Str("user", user.Name).Msg("User voted to restart the game")
+
+	// Toggle vote
+	if state.RestartVotes[user.ID] {
+		delete(state.RestartVotes, user.ID)
+	} else {
+		state.RestartVotes[user.ID] = true
+	}
+
+	// Check if all users voted
+	if len(state.RestartVotes) >= len(state.Users) {
+		g.RestartGame(state, room)
+	}
+}
+
+func (g *Game) EndGame(state *GameState, room interfaces.Room) {
+	state.GameStatus = GameStatusEnded
+	log.Info().Str("room", state.RoomName).Msg("Game ended")
+
+	stories := g.GetStories(state)
+	msg := protocol.NewSuccessResponse("final_stories", map[string]interface{}{
+		"stories": stories,
+	})
+	room.Broadcast(msg)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if g.dbService == nil {
+		log.Warn().Str("room", state.RoomName).Msg("dbService is nil; stories not persisted")
+		return
+	}
+	if err := g.dbService.StoreStories(ctx, state.RoomName, stories); err != nil {
+		log.Error().Err(err).Msg("Failed to persist stories")
+	}
+}
+
+func (g *Game) RestartGame(state *GameState, room interfaces.Room) {
+	state.Started = false
+	state.GameStatus = GameStatusWaiting
+	state.Stories = make([]*Story, 0)
+	state.FinishVotes = make(map[string]bool)
+	state.RestartVotes = make(map[string]bool)
+
+	for _, user := range state.Users {
+		user.Reset()
+	}
+
+	g.SendUsersUpdate(state, room)
+
+	msg := protocol.NewSuccessResponse("story_update", map[string]interface{}{
+		"story": nil,
+	})
+	room.Broadcast(msg)
+
+	log.Info().Str("room", state.RoomName).Msg("Game restarted")
+}
