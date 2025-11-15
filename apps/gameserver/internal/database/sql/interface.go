@@ -50,4 +50,3 @@ type Database interface {
 	// Driver returns the name of the database driver (e.g., "postgres", "sqlite")
 	Driver() string
 }
-
