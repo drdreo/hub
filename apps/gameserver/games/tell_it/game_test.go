@@ -6,27 +6,27 @@ import (
 	"testing"
 )
 
-// MockDatabase implements the database.Database interface for testing
-type MockDatabase struct {
-	StoredStories map[string][]models.StoryData
+// DatabaseMock implements the database.Database interface for testing
+type DatabaseMock struct {
+	StoredStories map[string][]models.StoryDTO
 }
 
-func NewMockDatabase() *MockDatabase {
-	return &MockDatabase{
-		StoredStories: make(map[string][]models.StoryData),
+func NewDatabaseMock() *DatabaseMock {
+	return &DatabaseMock{
+		StoredStories: make(map[string][]models.StoryDTO),
 	}
 }
 
-func (m *MockDatabase) StoreStories(ctx context.Context, roomName string, stories []models.StoryData) error {
+func (m *DatabaseMock) StoreStories(ctx context.Context, roomName string, stories []models.StoryDTO) error {
 	m.StoredStories[roomName] = stories
 	return nil
 }
 
-func (m *MockDatabase) GetStories(ctx context.Context, roomName string) ([]models.DBStory, error) {
+func (m *DatabaseMock) GetStories(ctx context.Context, roomName string) ([]models.DBStory, error) {
 	return nil, nil
 }
 
-func (m *MockDatabase) Close() error {
+func (m *DatabaseMock) Close() error {
 	return nil
 }
 
@@ -167,9 +167,7 @@ func TestUser_GetCurrentStory(t *testing.T) {
 	current := user.GetCurrentStory()
 	if current == nil {
 		t.Error("Expected story, got nil")
-	}
-
-	if current.OwnerID != "user2" {
+	} else if current.OwnerID != "user2" {
 		t.Errorf("Expected current story to be from user2, got '%s'", current.OwnerID)
 	}
 }
@@ -196,7 +194,7 @@ func TestUser_Reset(t *testing.T) {
 }
 
 func TestGame_AddUser(t *testing.T) {
-	game := NewGame(NewMockDatabase())
+	game := NewGame(NewDatabaseMock())
 	state := &GameState{
 		Users:     make(map[string]*User),
 		UserOrder: make([]string, 0),
@@ -223,7 +221,7 @@ func TestGame_AddUser(t *testing.T) {
 }
 
 func TestGame_GetStories(t *testing.T) {
-	game := NewGame(NewMockDatabase())
+	game := NewGame(NewDatabaseMock())
 	state := &GameState{
 		Users:     make(map[string]*User),
 		UserOrder: make([]string, 0),
@@ -265,7 +263,7 @@ func TestGame_GetStories(t *testing.T) {
 }
 
 func TestGame_StartGame(t *testing.T) {
-	game := NewGame(NewMockDatabase())
+	game := NewGame(NewDatabaseMock())
 	state := &GameState{
 		Users:        make(map[string]*User),
 		UserOrder:    make([]string, 0),

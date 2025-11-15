@@ -138,10 +138,18 @@ func extractDBColumns(data interface{}) []string {
 	for i := 0; i < typ.NumField(); i++ {
 		field := typ.Field(i)
 		dbTag := field.Tag.Get("db")
-		// Skip the 'id' field
-		if dbTag != "" && dbTag != "-" {
-			columns = append(columns, dbTag)
+		// Skip empty tags and "-"
+		if dbTag == "" || dbTag == "-" {
+			continue
 		}
+
+		// Skip nil pointer fields
+		fieldVal := val.Field(i)
+		if fieldVal.Kind() == reflect.Ptr && fieldVal.IsNil() {
+			continue
+		}
+
+		columns = append(columns, dbTag)
 	}
 
 	return columns

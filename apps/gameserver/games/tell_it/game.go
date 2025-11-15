@@ -12,7 +12,7 @@ import (
 )
 
 type Game struct {
-	dbService database.Database
+	dbService *database.DatabaseService
 }
 
 type GameState struct {
@@ -21,41 +21,19 @@ type GameState struct {
 	Users        map[string]*User  `json:"users"`
 	UserOrder    []string          `json:"userOrder"`
 	Started      bool              `json:"started"`
+	StartTime    time.Time         `json:"startTime"`
 	GameStatus   string            `json:"gameStatus"` // "waiting", "started", "ended"
 	Stories      []*Story          `json:"stories"`
 	FinishVotes  map[string]bool   `json:"finishVotes"`
 	RestartVotes map[string]bool   `json:"restartVotes"`
 	Config       models.RoomConfig `json:"config"`
-	StartTime    time.Time         `json:"startTime"`
-}
-
-type User struct {
-	ID           string   `json:"id"`
-	Name         string   `json:"name"`
-	Disconnected bool     `json:"disconnected"`
-	AFK          bool     `json:"afk"`
-	KickVotes    []string `json:"kickVotes"`
-	StoryQueue   []*Story `json:"storyQueue"`
-}
-
-type Story struct {
-	ID      string   `json:"id"`
-	OwnerID string   `json:"ownerId"`
-	Texts   []string `json:"texts"`
 }
 
 func (s *GameState) ToMap() interfaces.M {
-	users := make([]models.UserOverview, 0, len(s.UserOrder))
+	users := make([]*models.UserDTO, 0, len(s.UserOrder))
 	for _, uid := range s.UserOrder {
 		if user, ok := s.Users[uid]; ok {
-			users = append(users, models.UserOverview{
-				ID:            user.ID,
-				Name:          user.Name,
-				Disconnected:  user.Disconnected,
-				AFK:           user.AFK,
-				KickVotes:     user.KickVotes,
-				QueuedStories: len(user.StoryQueue),
-			})
+			users = append(users, user.ToDTO())
 		}
 	}
 
@@ -67,79 +45,13 @@ func (s *GameState) ToMap() interfaces.M {
 	}
 }
 
-func NewUser(id, name string) *User {
-	return &User{
-		ID:           id,
-		Name:         name,
-		Disconnected: false,
-		AFK:          false,
-		KickVotes:    make([]string, 0),
-		StoryQueue:   make([]*Story, 0),
-	}
+func (g *Game) AddUser(clientId string, name string, state *GameState) {
+	state.Users[clientId] = NewUser(clientId, name)
+	state.UserOrder = append(state.UserOrder, clientId)
 }
 
-func NewStory(ownerID string) *Story {
-	return &Story{
-		OwnerID: ownerID,
-		Texts:   make([]string, 0),
-	}
-}
-
-func (s *Story) AddText(text string) {
-	s.Texts = append(s.Texts, text)
-}
-
-func (s *Story) GetLatestText() string {
-	if len(s.Texts) == 0 {
-		return ""
-	}
-	return s.Texts[len(s.Texts)-1]
-}
-
-func (s *Story) Serialize() string {
-	result := ""
-	for i, text := range s.Texts {
-		if i > 0 {
-			result += ". "
-		}
-		result += text
-	}
-	return result
-}
-
-func (u *User) EnqueueStory(story *Story) {
-	u.StoryQueue = append(u.StoryQueue, story)
-}
-
-func (u *User) DequeueStory() (*Story, error) {
-	if len(u.StoryQueue) == 0 {
-		return nil, errors.New("no stories in queue")
-	}
-	story := u.StoryQueue[0]
-	u.StoryQueue = u.StoryQueue[1:]
-	return story, nil
-}
-
-func (u *User) GetCurrentStory() *Story {
-	if len(u.StoryQueue) == 0 {
-		return nil
-	}
-	return u.StoryQueue[0]
-}
-
-func (u *User) Reset() {
-	u.AFK = false
-	u.KickVotes = make([]string, 0)
-	u.StoryQueue = make([]*Story, 0)
-}
-
-func (g *Game) AddUser(id string, name string, state *GameState) {
-	state.Users[id] = NewUser(id, name)
-	state.UserOrder = append(state.UserOrder, id)
-}
-
-func (g *Game) GetUser(id string, state *GameState) *User {
-	return state.Users[id]
+func (g *Game) GetUser(clientId string, state *GameState) *User {
+	return state.Users[clientId]
 }
 
 func (g *Game) RemoveUser(clientId string, room interfaces.Room) {
@@ -167,8 +79,8 @@ func (g *Game) StartGame(state *GameState) {
 	log.Info().Str("room", state.RoomName).Msg("Game started")
 }
 
-func (g *Game) GetStories(state *GameState) []models.StoryData {
-	stories := make([]models.StoryData, 0, len(state.Stories))
+func (g *Game) GetStories(state *GameState) []models.StoryDTO {
+	stories := make([]models.StoryDTO, 0, len(state.Stories))
 	for _, story := range state.Stories {
 		// Find the author name
 		author := "Unknown"
@@ -176,7 +88,7 @@ func (g *Game) GetStories(state *GameState) []models.StoryData {
 			author = user.Name
 		}
 
-		stories = append(stories, models.StoryData{
+		stories = append(stories, models.StoryDTO{
 			Text:   story.Serialize(),
 			Author: author,
 		})
@@ -254,7 +166,7 @@ func (g *Game) SendStoryUpdate(userID string, state *GameState, room interfaces.
 		author = authorUser.Name
 	}
 
-	storyData := models.StoryData{
+	storyData := models.StoryDTO{
 		Text:   story.GetLatestText(),
 		Author: author,
 	}
@@ -269,10 +181,10 @@ func (g *Game) SendStoryUpdate(userID string, state *GameState, room interfaces.
 }
 
 func (g *Game) SendUsersUpdate(state *GameState, room interfaces.Room) {
-	users := make([]models.UserOverview, 0, len(state.UserOrder))
+	users := make([]models.UserDTO, 0, len(state.UserOrder))
 	for _, uid := range state.UserOrder {
 		if user, ok := state.Users[uid]; ok {
-			users = append(users, models.UserOverview{
+			users = append(users, models.UserDTO{
 				ID:            user.ID,
 				Name:          user.Name,
 				Disconnected:  user.Disconnected,
@@ -297,19 +209,19 @@ func (g *Game) VoteFinish(userID string, state *GameState, room interfaces.Room)
 	log.Info().Str("user", user.Name).Msg("User voted to finish the game")
 
 	// Toggle vote
-	if state.FinishVotes[user.Name] {
-		delete(state.FinishVotes, user.Name)
+	if state.FinishVotes[user.ID] {
+		delete(state.FinishVotes, user.ID)
 	} else {
-		state.FinishVotes[user.Name] = true
+		state.FinishVotes[user.ID] = true
 	}
 
 	// Send vote update
-	votes := make([]string, 0, len(state.FinishVotes))
-	for name := range state.FinishVotes {
-		votes = append(votes, name)
+	votedIDs := make([]string, 0, len(state.FinishVotes))
+	for id := range state.FinishVotes {
+		votedIDs = append(votedIDs, id)
 	}
 
-	msg := protocol.NewSuccessResponse("finish_vote_update", map[string]interface{}{"votes": votes})
+	msg := protocol.NewSuccessResponse("finish_vote_update", map[string]interface{}{"votes": votedIDs})
 	room.Broadcast(msg)
 
 	// Check if all users voted
@@ -328,10 +240,10 @@ func (g *Game) VoteRestart(userID string, state *GameState, room interfaces.Room
 	log.Info().Str("user", user.Name).Msg("User voted to restart the game")
 
 	// Toggle vote
-	if state.RestartVotes[user.Name] {
-		delete(state.RestartVotes, user.Name)
+	if state.RestartVotes[user.ID] {
+		delete(state.RestartVotes, user.ID)
 	} else {
-		state.RestartVotes[user.Name] = true
+		state.RestartVotes[user.ID] = true
 	}
 
 	// Check if all users voted

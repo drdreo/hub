@@ -11,18 +11,18 @@ import (
 
 // DatabaseService handles database operations for the tell_it game
 type DatabaseService struct {
-	db *sql.Client
+	db sql.Database
 }
 
 // NewDatabaseService creates a new instance of the database service
-func NewDatabaseService(db *sql.Client) *DatabaseService {
+func NewDatabaseService(db sql.Database) *DatabaseService {
 	return &DatabaseService{
 		db: db,
 	}
 }
 
 // StoreStories stores multiple stories in the database using a transaction
-func (s *DatabaseService) StoreStories(ctx context.Context, roomName string, stories []models.StoryData) error {
+func (s *DatabaseService) StoreStories(ctx context.Context, roomName string, stories []models.StoryDTO) error {
 	log.Info().Str("room", roomName).Int("count", len(stories)).Msg("storing stories")
 
 	tx, err := s.db.BeginTx(ctx, nil)
@@ -34,8 +34,8 @@ func (s *DatabaseService) StoreStories(ctx context.Context, roomName string, sto
 
 	for _, story := range stories {
 		dbStory := models.DBStory{
-			Text:      story.Text,
 			Author:    story.Author,
+			Text:      story.Text,
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
 		}
@@ -61,7 +61,6 @@ func (s *DatabaseService) GetStories(ctx context.Context) ([]models.DBStory, err
 	log.Info().Msg("retrieving stories")
 
 	var stories []models.DBStory
-
 
 	err := s.db.Query(ctx, "SELECT * FROM stories", &stories)
 	if err != nil {

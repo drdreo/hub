@@ -7,7 +7,7 @@ import (
 
 // Database defines the methods required for database operations
 type Database interface {
-	StoreStories(ctx context.Context, roomName string, stories []models.StoryData) error
+	StoreStories(ctx context.Context, roomName string, stories []models.StoryDTO) error
 	GetStories(ctx context.Context, roomName string) ([]models.DBStory, error)
 	Close() error
 }

@@ -37,14 +37,14 @@ User A receives Story 1 → continues...
 
 ### Configuration
 
-Set the `DATABASE_URL` environment variable:
+Set the `TELLIT_DATABASE_URL` environment variable:
 
 ```bash
 # SQLite (development)
-DATABASE_URL=file:./db.sqlite
+TELLIT_DATABASE_URL=file:./db.sqlite
 
 # PostgreSQL (production)
-DATABASE_URL=postgres://user:password@host:port/dbname
+TELLIT_DATABASE_URL=postgres://user:password@host:port/dbname
 ```
 
 If not set, defaults to SQLite in development mode.

@@ -10,8 +10,8 @@ import (
 
 func TestDatabaseService_StoreAndGetStories(t *testing.T) {
 	// Use in-memory SQLite for testing
-	os.Setenv("DATABASE_URL", "file::memory:?cache=shared")
-	defer os.Unsetenv("DATABASE_URL")
+	os.Setenv("TELLIT_DATABASE_URL", "file::memory:?cache=shared")
+	defer os.Unsetenv("TELLIT_DATABASE_URL")
 
 	ctx := context.Background()
 	factory := NewDatabaseFactory("development")
@@ -24,7 +24,7 @@ func TestDatabaseService_StoreAndGetStories(t *testing.T) {
 
 	// Test data
 	roomName := "test-room-" + time.Now().Format("20060102150405")
-	stories := []models.StoryData{
+	stories := []models.StoryDTO{
 		{
 			Text:   "Once upon a time there was a brave knight",
 			Author: "Alice",

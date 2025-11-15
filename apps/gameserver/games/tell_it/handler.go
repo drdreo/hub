@@ -6,7 +6,6 @@ import (
 	"errors"
 	"gameserver/games/tell_it/database"
 	"gameserver/games/tell_it/models"
-	"gameserver/internal/database/sql"
 	"gameserver/internal/interfaces"
 	"gameserver/internal/protocol"
 	"github.com/rs/zerolog/log"
@@ -17,7 +16,7 @@ type GameConfig struct {
 	Stage interfaces.Environment
 }
 
-func NewGame(dbService database.Database) *Game {
+func NewGame(dbService *database.DatabaseService) *Game {
 	return &Game{
 		dbService: dbService,
 	}
@@ -48,10 +47,10 @@ func (g *Game) Type() string {
 func (g *Game) InitializeRoom(ctx context.Context, room interfaces.Room, options json.RawMessage) error {
 	// Parse room config if provided
 	config := models.RoomConfig{
-		SpectatorsAllowed: false,
+		SpectatorsAllowed: true,
 		IsPublic:          true,
 		MinUsers:          2,
-		MaxUsers:          8,
+		MaxUsers:          30,
 		AFKDelay:          30000, // 30 seconds
 	}
 
@@ -85,20 +84,18 @@ func (g *Game) OnClientJoin(client interfaces.Client, room interfaces.Room, opti
 
 	// Add user to the game
 	userName := options.PlayerName
-	if userName == "" {
-		userName = "Player " + client.ID()[:6]
-	}
 
 	g.AddUser(client.ID(), userName, state)
 
 	log.Info().Str("user", userName).Str("room", room.ID()).Msg("User joined tell-it room")
 
-	// Send joined confirmation to the client
-	msg := protocol.NewSuccessResponse("joined", map[string]interface{}{
-		"userID": client.ID(),
-		"room":   room.ID(),
-	})
-	client.Send(msg)
+	// TODO: cleanup, i think this is handled by the socket framework already
+	//	// Send joined confirmation to the client
+	//	msg := protocol.NewSuccessResponse("joined", interfaces.M{
+	//		"userID": client.ID(),
+	//		"room":   room.ID(),
+	//	})
+	//	client.Send(msg)
 
 	// Broadcast updated user list to all clients
 	g.SendUsersUpdate(state, room)
@@ -115,13 +112,49 @@ func (g *Game) OnClientLeave(client interfaces.Client, room interfaces.Room) {
 		user.Disconnected = true
 
 		// Broadcast user left message
-		msg := protocol.NewSuccessResponse("user_left", map[string]interface{}{
+		msg := protocol.NewSuccessResponse("user_left", interfaces.M{
 			"userID": client.ID(),
 		})
 		room.Broadcast(msg)
 
 		g.SendUsersUpdate(state, room)
 	}
+}
+
+// OnClientReconnect handles when a client reconnects to the game
+func (g *Game) OnClientReconnect(client interfaces.Client, room interfaces.Room, oldClientId string) error {
+	state := room.State().(*GameState)
+
+	// Find the old user and update their ID
+	if oldUser, ok := state.Users[oldClientId]; ok {
+		// Remove old entry
+		delete(state.Users, oldClientId)
+
+		// Add with new ID
+		oldUser.ID = client.ID()
+		oldUser.Disconnected = false
+		state.Users[client.ID()] = oldUser
+
+		// Update user order
+		for i, uid := range state.UserOrder {
+			if uid == oldClientId {
+				state.UserOrder[i] = client.ID()
+				break
+			}
+		}
+
+		log.Info().Str("user", oldUser.Name).Str("oldID", oldClientId).Str("newID", client.ID()).Msg("User reconnected")
+
+		// Send latest state
+		g.handleRequestUpdate(client, state, room)
+	}
+
+	return nil
+}
+
+// OnBotAdd handles adding a bot to the game (not supported for tell-it)
+func (g *Game) OnBotAdd(client interfaces.Client, room interfaces.Room, registry interfaces.GameRegistry) (interfaces.Client, string, error) {
+	return nil, "", errors.New("bots are not supported for tell-it game")
 }
 
 func (g *Game) HandleMessage(client interfaces.Client, room interfaces.Room, msgType string, data []byte) error {
@@ -131,13 +164,13 @@ func (g *Game) HandleMessage(client interfaces.Client, room interfaces.Room, msg
 	case "start":
 		g.handleStart(client, state, room)
 	case "submit_text":
-		g.handleSubmitText(client, state, room, json.RawMessage(data))
+		g.handleSubmitText(client, state, room, data)
 	case "vote_finish":
 		g.handleVoteFinish(client, state, room)
 	case "vote_restart":
 		g.handleVoteRestart(client, state, room)
 	case "vote_kick":
-		g.handleVoteKick(client, state, room, json.RawMessage(data))
+		g.handleVoteKick(client, state, room, data)
 	case "request_stories":
 		g.handleRequestStories(client, state, room)
 	case "request_update":
@@ -162,7 +195,7 @@ func (g *Game) handleStart(client interfaces.Client, state *GameState, room inte
 	g.StartGame(state)
 
 	// Broadcast game status update
-	msg := protocol.NewSuccessResponse("game_status", map[string]interface{}{
+	msg := protocol.NewSuccessResponse("game_status", interfaces.M{
 		"status": state.GameStatus,
 	})
 	room.Broadcast(msg)
@@ -213,16 +246,16 @@ func (g *Game) handleVoteKick(client interfaces.Client, state *GameState, room i
 	}
 
 	// Toggle kick vote
-	found := false
+	alreadyVoted := false
 	for i, voterID := range targetUser.KickVotes {
 		if voterID == client.ID() {
 			targetUser.KickVotes = append(targetUser.KickVotes[:i], targetUser.KickVotes[i+1:]...)
-			found = true
+			alreadyVoted = true
 			break
 		}
 	}
 
-	if !found {
+	if !alreadyVoted {
 		targetUser.KickVotes = append(targetUser.KickVotes, client.ID())
 	}
 
@@ -236,7 +269,7 @@ func (g *Game) handleVoteKick(client interfaces.Client, state *GameState, room i
 		g.RemoveUser(data.KickUserID, room)
 
 		// Broadcast kick message
-		kickMsg := protocol.NewSuccessResponse("user_kicked", map[string]interface{}{
+		kickMsg := protocol.NewSuccessResponse("user_kicked", interfaces.M{
 			"kickedUser": targetUser.Name,
 		})
 		room.Broadcast(kickMsg)
@@ -253,7 +286,7 @@ func (g *Game) handleVoteKick(client interfaces.Client, state *GameState, room i
 
 func (g *Game) handleRequestStories(client interfaces.Client, state *GameState, room interfaces.Room) {
 	stories := g.GetStories(state)
-	msg := protocol.NewSuccessResponse("final_stories", map[string]interface{}{
+	msg := protocol.NewSuccessResponse("final_stories", interfaces.M{
 		"stories": stories,
 	})
 	client.Send(msg)
@@ -264,51 +297,19 @@ func (g *Game) handleRequestUpdate(client interfaces.Client, state *GameState, r
 	g.SendUsersUpdate(state, room)
 
 	// Send game status
-	msg := protocol.NewSuccessResponse("game_status", map[string]interface{}{
+	msg := protocol.NewSuccessResponse("game_status", interfaces.M{
 		"status": state.GameStatus,
 	})
 	client.Send(msg)
 
-	// If user has a story, send it
-	user := g.GetUser(client.ID(), state)
-	if user != nil && user.GetCurrentStory() != nil {
-		g.SendStoryUpdate(client.ID(), state, room)
-	}
-}
-
-// OnClientReconnect handles when a client reconnects to the game
-func (g *Game) OnClientReconnect(client interfaces.Client, room interfaces.Room, oldClientId string) error {
-	state := room.State().(*GameState)
-
-	// Find the old user and update their ID
-	if oldUser, ok := state.Users[oldClientId]; ok {
-		// Remove old entry
-		delete(state.Users, oldClientId)
-
-		// Add with new ID
-		oldUser.ID = client.ID()
-		oldUser.Disconnected = false
-		state.Users[client.ID()] = oldUser
-
-		// Update user order
-		for i, uid := range state.UserOrder {
-			if uid == oldClientId {
-				state.UserOrder[i] = client.ID()
-				break
-			}
+	if state.GameStatus == "ended" {
+		g.handleRequestStories(client, state, room)
+	} else {
+		// If user has a story, send it
+		user := g.GetUser(client.ID(), state)
+		if user != nil {
+			g.SendStoryUpdate(user.ID, state, room)
 		}
-
-		log.Info().Str("user", oldUser.Name).Str("oldID", oldClientId).Str("newID", client.ID()).Msg("User reconnected")
-
-		// Send updated state
-		g.SendUsersUpdate(state, room)
-		g.handleRequestUpdate(client, state, room)
 	}
 
-	return nil
-}
-
-// OnBotAdd handles adding a bot to the game (not supported for tell-it)
-func (g *Game) OnBotAdd(client interfaces.Client, room interfaces.Room, registry interfaces.GameRegistry) (interfaces.Client, string, error) {
-	return nil, "", errors.New("bots are not supported for tell-it game")
 }
