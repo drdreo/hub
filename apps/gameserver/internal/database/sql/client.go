@@ -25,15 +25,26 @@ var (
 var validTableNames = make(map[string]bool)
 
 type Client struct {
-	db *sqlx.DB
+	db              *sqlx.DB
+	validTableNames map[string]bool
+	maxOpenConns    int
+	maxIdleConns    int
+	connMaxLifetime time.Duration
+	connMaxIdleTime time.Duration
 }
 
 // Tx wraps a database transaction
-
 type transaction struct {
-	tx *sqlx.Tx
-	db *sqlx.DB
+	tx     *sqlx.Tx
+	db     *sqlx.DB
+	client *Client
 }
+
+// Compile-time interface assertions
+var (
+	_ Database    = (*Client)(nil)
+	_ Transaction = (*transaction)(nil)
+)
 
 // ClientOption allows for customization of the SQL client
 type ClientOption func(*Client)
@@ -44,6 +55,34 @@ func WithAllowedTables(tables []string) ClientOption {
 		for _, table := range tables {
 			validTableNames[table] = true
 		}
+	}
+}
+
+// WithMaxOpenConns sets the maximum number of open connections to the database
+func WithMaxOpenConns(n int) ClientOption {
+	return func(c *Client) {
+		c.maxOpenConns = n
+	}
+}
+
+// WithMaxIdleConns sets the maximum number of idle connections in the pool
+func WithMaxIdleConns(n int) ClientOption {
+	return func(c *Client) {
+		c.maxIdleConns = n
+	}
+}
+
+// WithConnMaxLifetime sets the maximum amount of time a connection may be reused
+func WithConnMaxLifetime(d time.Duration) ClientOption {
+	return func(c *Client) {
+		c.connMaxLifetime = d
+	}
+}
+
+// WithConnMaxIdleTime sets the maximum amount of time a connection may be idle
+func WithConnMaxIdleTime(d time.Duration) ClientOption {
+	return func(c *Client) {
+		c.connMaxIdleTime = d
 	}
 }
 
@@ -108,11 +147,11 @@ func extractDBColumns(data interface{}) []string {
 	return columns
 }
 
-// NewClient creates a new SQL client with the given connection string
+// newClient creates a new SQL client with the given connection string
 // connectionString format:
 // - PostgreSQL: "postgres://user:password@host:port/dbname?sslmode=disable"
 // - SQLite: "file:path/to/db.sqlite?cache=shared&mode=rwc"
-func NewClient(ctx context.Context, connectionString string, opts ...ClientOption) (*Client, error) {
+func newClient(ctx context.Context, connectionString string, opts ...ClientOption) (*Client, error) {
 	// Determine driver from connection string
 	var driver string
 	if strings.HasPrefix(connectionString, "postgres://") || strings.HasPrefix(connectionString, "postgresql://") {
@@ -132,21 +171,42 @@ func NewClient(ctx context.Context, connectionString string, opts ...ClientOptio
 		return nil, fmt.Errorf("failed to connect: %w", err)
 	}
 
-	db.SetMaxOpenConns(25)
-	db.SetMaxIdleConns(5)
-	db.SetConnMaxLifetime(5 * time.Minute)
-	db.SetConnMaxIdleTime(15 * time.Second)
-
-	log.Info().Str("driver", driver).Msg("database client created")
-
-	client := &Client{db: db}
+	client := &Client{
+		db:              db,
+		validTableNames: make(map[string]bool),
+		maxOpenConns:    25,
+		maxIdleConns:    5,
+		connMaxLifetime: 5 * time.Minute,
+		connMaxIdleTime: 15 * time.Second,
+	}
 
 	// Apply options
 	for _, opt := range opts {
 		opt(client)
 	}
 
+	// Apply connection pool settings
+	db.SetMaxOpenConns(client.maxOpenConns)
+	db.SetMaxIdleConns(client.maxIdleConns)
+	db.SetConnMaxLifetime(client.connMaxLifetime)
+	db.SetConnMaxIdleTime(client.connMaxIdleTime)
+
+	log.Info().Str("driver", driver).Msg("database client created")
+
 	return client, nil
+}
+
+// New creates a new SQL database client and returns it as a Database interface.
+// Example:
+//
+//	db, err := sql.New(ctx, "postgres://user:pass@localhost/mydb")
+//	if err != nil {
+//	    return err
+//	}
+//	defer db.Close()
+//	// db can be passed to functions expecting Database interface
+func New(ctx context.Context, connectionString string, opts ...ClientOption) (Database, error) {
+	return newClient(ctx, connectionString, opts...)
 }
 
 func (c *Client) Create(ctx context.Context, table string, data interface{}) error {
@@ -292,15 +352,16 @@ func (c *Client) Exec(ctx context.Context, query string, args ...interface{}) er
 }
 
 // BeginTx starts a new database transaction
-func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*transaction, error) {
+func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (Transaction, error) {
 	tx, err := c.db.BeginTxx(ctx, opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to begin transaction: %w", err)
 	}
 
 	return &transaction{
-		tx: tx,
-		db: c.db,
+		tx:     tx,
+		db:     c.db,
+		client: c,
 	}, nil
 }
 
@@ -346,6 +407,25 @@ func (t *transaction) Create(ctx context.Context, table string, data interface{}
 
 	_, err := t.tx.NamedExecContext(ctx, query, data)
 	return err
+}
+
+// Get retrieves a record by ID from the specified table within a transaction
+func (t *transaction) Get(ctx context.Context, table string, id string, dest interface{}) error {
+	if err := validateTableName(table); err != nil {
+		return err
+	}
+
+	query := fmt.Sprintf("SELECT * FROM %s WHERE id = ?", table)
+	query = t.db.Rebind(query)
+
+	err := t.tx.GetContext(ctx, dest, query, id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return fmt.Errorf("%w: id=%s in table %s", ErrRecordNotFound, id, table)
+		}
+		return fmt.Errorf("failed to get from %s: %w", table, err)
+	}
+	return nil
 }
 
 // Update updates a record in the specified table within a transaction
@@ -442,10 +522,12 @@ func (t *transaction) Exec(ctx context.Context, query string, args ...interface{
 	return nil
 }
 
+// Commit commits the transaction
 func (t *transaction) Commit() error {
 	return t.tx.Commit()
 }
 
+// Rollback rolls back the transaction
 func (t *transaction) Rollback() error {
 	return t.tx.Rollback()
 }
