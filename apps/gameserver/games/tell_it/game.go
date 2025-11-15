@@ -11,6 +11,19 @@ import (
 	"time"
 )
 
+type GameStatus string
+type GameStatus string
+
+const (
+	GameStatusWaiting GameStatus = "waiting"
+	GameStatusStarted GameStatus = "started"
+	GameStatusEnded   GameStatus = "ended"
+)
+
+func (gs GameStatus) String() string {
+	return string(gs)
+}
+
 type Game struct {
 	dbService *database.DatabaseService
 }
@@ -22,7 +35,7 @@ type GameState struct {
 	UserOrder    []string          `json:"userOrder"`
 	Started      bool              `json:"started"`
 	StartTime    time.Time         `json:"startTime"`
-	GameStatus   string            `json:"gameStatus"` // "waiting", "started", "ended"
+	GameStatus   GameStatus        `json:"gameStatus"`
 	Stories      []*Story          `json:"stories"`
 	FinishVotes  map[string]bool   `json:"finishVotes"`
 	RestartVotes map[string]bool   `json:"restartVotes"`
@@ -41,7 +54,7 @@ func (s *GameState) ToMap() interfaces.M {
 		"roomName":   s.RoomName,
 		"users":      users,
 		"started":    s.Started,
-		"gameStatus": s.GameStatus,
+		"gameStatus": s.GameStatus.String(),
 	}
 }
 
@@ -54,25 +67,28 @@ func (g *Game) GetUser(clientId string, state *GameState) *User {
 	return state.Users[clientId]
 }
 
-func (g *Game) RemoveUser(clientId string, room interfaces.Room) {
-	state := room.State().(*GameState)
-	userName := state.Users[clientId].Name
-	delete(state.Users, clientId)
+func (g *Game) RemoveUser(clientID string, state *GameState) {
+	user, exists := state.Users[clientID]
+	if !exists {
+		return
+	}
 
-	// Remove from user order
+	userName := user.Name
+	delete(state.Users, clientID)
+
 	for i, id := range state.UserOrder {
-		if id == clientId {
+		if id == clientID {
 			state.UserOrder = append(state.UserOrder[:i], state.UserOrder[i+1:]...)
 			break
 		}
 	}
 
-	log.Info().Str("user", userName).Str("room", room.ID()).Msg("User removed from room")
+	log.Info().Str("user", userName).Str("room", state.RoomName).Msg("User removed from room")
 }
 
 func (g *Game) StartGame(state *GameState) {
 	state.Started = true
-	state.GameStatus = "started"
+	state.GameStatus = GameStatusStarted
 	state.StartTime = time.Now()
 	state.FinishVotes = make(map[string]bool)
 	state.RestartVotes = make(map[string]bool)
@@ -253,37 +269,36 @@ func (g *Game) VoteRestart(userID string, state *GameState, room interfaces.Room
 }
 
 func (g *Game) EndGame(state *GameState, room interfaces.Room) {
-	state.GameStatus = "ended"
+	state.GameStatus = GameStatusEnded
 	log.Info().Str("room", state.RoomName).Msg("Game ended")
 
-	// Send final stories
 	stories := g.GetStories(state)
 	msg := protocol.NewSuccessResponse("final_stories", map[string]interface{}{
 		"stories": stories,
 	})
 	room.Broadcast(msg)
 
-	// Persist stories to database
-	if err := g.dbService.StoreStories(state.Ctx, state.RoomName, stories); err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := g.dbService.StoreStories(ctx, state.RoomName, stories); err != nil {
 		log.Error().Err(err).Msg("Failed to persist stories")
 	}
 }
 
 func (g *Game) RestartGame(state *GameState, room interfaces.Room) {
 	state.Started = false
-	state.GameStatus = "waiting"
+	state.GameStatus = GameStatusWaiting
 	state.Stories = make([]*Story, 0)
 	state.FinishVotes = make(map[string]bool)
 	state.RestartVotes = make(map[string]bool)
 
-	// Reset all users
 	for _, user := range state.Users {
 		user.Reset()
 	}
 
 	g.SendUsersUpdate(state, room)
 
-	// Send reset story update to all users
 	msg := protocol.NewSuccessResponse("story_update", map[string]interface{}{
 		"story": nil,
 	})

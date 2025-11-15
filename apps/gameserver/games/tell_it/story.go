@@ -2,7 +2,6 @@ package tell_it
 
 import "strings"
 
-// Story represents a single story in the game
 type Story struct {
 	ID      string   `json:"id"`
 	OwnerID string   `json:"ownerId"`

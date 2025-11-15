@@ -60,14 +60,12 @@ func (g *Game) InitializeRoom(ctx context.Context, room interfaces.Room, options
 		}
 	}
 
-	// Create initial game state
 	state := GameState{
-		Ctx:          ctx,
 		RoomName:     room.ID(),
 		Users:        make(map[string]*User),
 		UserOrder:    make([]string, 0),
 		Started:      false,
-		GameStatus:   "waiting",
+		GameStatus:   GameStatusWaiting,
 		Stories:      make([]*Story, 0),
 		FinishVotes:  make(map[string]bool),
 		RestartVotes: make(map[string]bool),
@@ -196,7 +194,7 @@ func (g *Game) handleStart(client interfaces.Client, state *GameState, room inte
 
 	// Broadcast game status update
 	msg := protocol.NewSuccessResponse("game_status", interfaces.M{
-		"status": state.GameStatus,
+		"status": state.GameStatus.String(),
 	})
 	room.Broadcast(msg)
 }
@@ -265,10 +263,8 @@ func (g *Game) handleVoteKick(client interfaces.Client, state *GameState, room i
 	if len(targetUser.KickVotes) > len(state.Users)/2 {
 		log.Info().Str("user", targetUser.Name).Msg("User kicked by vote")
 
-		// Remove the user
-		g.RemoveUser(data.KickUserID, room)
+		g.RemoveUser(data.KickUserID, state)
 
-		// Broadcast kick message
 		kickMsg := protocol.NewSuccessResponse("user_kicked", interfaces.M{
 			"kickedUser": targetUser.Name,
 		})
@@ -298,11 +294,11 @@ func (g *Game) handleRequestUpdate(client interfaces.Client, state *GameState, r
 
 	// Send game status
 	msg := protocol.NewSuccessResponse("game_status", interfaces.M{
-		"status": state.GameStatus,
+		"status": state.GameStatus.String(),
 	})
 	client.Send(msg)
 
-	if state.GameStatus == "ended" {
+	if state.GameStatus == GameStatusEnded {
 		g.handleRequestStories(client, state, room)
 	} else {
 		// If user has a story, send it

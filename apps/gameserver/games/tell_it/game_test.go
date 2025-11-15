@@ -251,7 +251,7 @@ func TestGame_StartGame(t *testing.T) {
 		Users:        make(map[string]*User),
 		UserOrder:    make([]string, 0),
 		Started:      false,
-		GameStatus:   "waiting",
+		GameStatus:   GameStatusWaiting,
 		FinishVotes:  nil,
 		RestartVotes: nil,
 	}
@@ -262,7 +262,7 @@ func TestGame_StartGame(t *testing.T) {
 		t.Error("Expected Started to be true")
 	}
 
-	if state.GameStatus != "started" {
+	if state.GameStatus != GameStatusStarted {
 		t.Errorf("Expected GameStatus to be 'started', got '%s'", state.GameStatus)
 	}
 

@@ -19,7 +19,7 @@ type Room struct {
 	Name              string    `json:"name"`
 	Started           bool      `json:"started"`
 	StartTime         time.Time `json:"startTime"`
-	GameStatus        string    `json:"gameStatus"` // "waiting", "started", "ended"
+	GameStatus        string    `json:"gameStatus"`
 	UserCount         int       `json:"userCount"`
 	IsPublic          bool      `json:"isPublic"`
 	SpectatorsAllowed bool      `json:"spectatorsAllowed"`
