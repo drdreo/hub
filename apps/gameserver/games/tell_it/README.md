@@ -53,12 +53,9 @@ If not set, defaults to SQLite in development mode.
 ```sql
 CREATE TABLE stories (
     id TEXT PRIMARY KEY,
-    room_name TEXT NOT NULL,
     text TEXT NOT NULL,
     author TEXT NOT NULL,
-    owner_id TEXT NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
-CREATE INDEX idx_stories_room ON stories(room_name);
 ```
