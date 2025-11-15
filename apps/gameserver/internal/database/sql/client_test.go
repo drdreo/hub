@@ -12,7 +12,7 @@ type TestUser struct {
 	Email string `db:"email"`
 }
 
-func setupTestDB(t *testing.T) *Client {
+func setupTestDB(t *testing.T) Database {
 	// Create temp database file
 	dbFile := "test_db.sqlite"
 
@@ -20,11 +20,10 @@ func setupTestDB(t *testing.T) *Client {
 	os.Remove(dbFile)
 
 	ctx := context.Background()
-	client, err := NewClient(ctx, dbFile, WithAllowedTables([]string{"test_users"}))
+	db, err := New(ctx, dbFile, WithAllowedTables([]string{"test_users"}))
 	if err != nil {
 		t.Fatalf("Failed to create client: %v", err)
 	}
-
 
 	// Create test table
 	createTableSQL := `
@@ -35,22 +34,22 @@ func setupTestDB(t *testing.T) *Client {
 		)
 	`
 
-	err = client.Exec(ctx, createTableSQL)
+	err = db.Exec(ctx, createTableSQL)
 	if err != nil {
 		t.Fatalf("Failed to create test table: %v", err)
 	}
 
-	return client
+	return db
 }
 
-func teardownTestDB(client *Client) {
-	client.Close()
+func teardownTestDB(db Database) {
+	db.Close()
 	os.Remove("test_db.sqlite")
 }
 
 func TestCreate(t *testing.T) {
-	client := setupTestDB(t)
-	defer teardownTestDB(client)
+	db := setupTestDB(t)
+	defer teardownTestDB(db)
 
 	ctx := context.Background()
 	user := TestUser{
@@ -59,7 +58,7 @@ func TestCreate(t *testing.T) {
 		Email: "john@example.com",
 	}
 
-	err := client.Create(ctx, "test_users", user)
+	err := db.Create(ctx, "test_users", user)
 	if err != nil {
 		t.Fatalf("Create failed: %v", err)
 	}
@@ -68,8 +67,8 @@ func TestCreate(t *testing.T) {
 }
 
 func TestGet(t *testing.T) {
-	client := setupTestDB(t)
-	defer teardownTestDB(client)
+	db := setupTestDB(t)
+	defer teardownTestDB(db)
 
 	ctx := context.Background()
 	user := TestUser{
@@ -79,14 +78,14 @@ func TestGet(t *testing.T) {
 	}
 
 	// Create user first
-	err := client.Create(ctx, "test_users", user)
+	err := db.Create(ctx, "test_users", user)
 	if err != nil {
 		t.Fatalf("Setup failed: %v", err)
 	}
 
 	// Get user
 	var retrieved TestUser
-	err = client.Get(ctx, "test_users", "user2", &retrieved)
+	err = db.Get(ctx, "test_users", "user2", &retrieved)
 	if err != nil {
 		t.Fatalf("Get failed: %v", err)
 	}
@@ -99,8 +98,8 @@ func TestGet(t *testing.T) {
 }
 
 func TestUpdate(t *testing.T) {
-	client := setupTestDB(t)
-	defer teardownTestDB(client)
+	db := setupTestDB(t)
+	defer teardownTestDB(db)
 
 	ctx := context.Background()
 	user := TestUser{
@@ -110,21 +109,21 @@ func TestUpdate(t *testing.T) {
 	}
 
 	// Create user
-	err := client.Create(ctx, "test_users", user)
+	err := db.Create(ctx, "test_users", user)
 	if err != nil {
 		t.Fatalf("Setup failed: %v", err)
 	}
 
 	// Update user
 	user.Email = "bob.jones@example.com"
-	err = client.Update(ctx, "test_users", "user3", user)
+	err = db.Update(ctx, "test_users", "user3", user)
 	if err != nil {
 		t.Fatalf("Update failed: %v", err)
 	}
 
 	// Verify update
 	var retrieved TestUser
-	err = client.Get(ctx, "test_users", "user3", &retrieved)
+	err = db.Get(ctx, "test_users", "user3", &retrieved)
 	if err != nil {
 		t.Fatalf("Get failed: %v", err)
 	}
@@ -137,8 +136,8 @@ func TestUpdate(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
-	client := setupTestDB(t)
-	defer teardownTestDB(client)
+	db := setupTestDB(t)
+	defer teardownTestDB(db)
 
 	ctx := context.Background()
 	user := TestUser{
@@ -148,20 +147,20 @@ func TestDelete(t *testing.T) {
 	}
 
 	// Create user
-	err := client.Create(ctx, "test_users", user)
+	err := db.Create(ctx, "test_users", user)
 	if err != nil {
 		t.Fatalf("Setup failed: %v", err)
 	}
 
 	// Delete user
-	err = client.Delete(ctx, "test_users", "user4")
+	err = db.Delete(ctx, "test_users", "user4")
 	if err != nil {
 		t.Fatalf("Delete failed: %v", err)
 	}
 
 	// Verify deletion
 	var retrieved TestUser
-	err = client.Get(ctx, "test_users", "user4", &retrieved)
+	err = db.Get(ctx, "test_users", "user4", &retrieved)
 	if err == nil {
 		t.Error("Expected error when getting deleted user, got nil")
 	}
@@ -170,8 +169,8 @@ func TestDelete(t *testing.T) {
 }
 
 func TestQuery(t *testing.T) {
-	client := setupTestDB(t)
-	defer teardownTestDB(client)
+	db := setupTestDB(t)
+	defer teardownTestDB(db)
 
 	ctx := context.Background()
 
@@ -183,7 +182,7 @@ func TestQuery(t *testing.T) {
 	}
 
 	for _, user := range users {
-		err := client.Create(ctx, "test_users", user)
+		err := db.Create(ctx, "test_users", user)
 		if err != nil {
 			t.Fatalf("Setup failed: %v", err)
 		}
@@ -191,7 +190,7 @@ func TestQuery(t *testing.T) {
 
 	// Query all users
 	var results []TestUser
-	err := client.Query(ctx, "SELECT * FROM test_users ORDER BY id", &results)
+	err := db.Query(ctx, "SELECT * FROM test_users ORDER BY id", &results)
 	if err != nil {
 		t.Fatalf("Query failed: %v", err)
 	}
@@ -204,13 +203,13 @@ func TestQuery(t *testing.T) {
 }
 
 func TestTransaction(t *testing.T) {
-	client := setupTestDB(t)
-	defer teardownTestDB(client)
+	db := setupTestDB(t)
+	defer teardownTestDB(db)
 
 	ctx := context.Background()
 
 	// Begin transaction
-	tx, err := client.BeginTx(ctx, nil)
+	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		t.Fatalf("BeginTx failed: %v", err)
 	}
@@ -236,7 +235,7 @@ func TestTransaction(t *testing.T) {
 
 	// Verify user exists
 	var retrieved TestUser
-	err = client.Get(ctx, "test_users", "user8", &retrieved)
+	err = db.Get(ctx, "test_users", "user8", &retrieved)
 	if err != nil {
 		t.Fatalf("Get failed: %v", err)
 	}
@@ -245,13 +244,13 @@ func TestTransaction(t *testing.T) {
 }
 
 func TestTransactionRollback(t *testing.T) {
-	client := setupTestDB(t)
-	defer teardownTestDB(client)
+	db := setupTestDB(t)
+	defer teardownTestDB(db)
 
 	ctx := context.Background()
 
 	// Begin transaction
-	tx, err := client.BeginTx(ctx, nil)
+	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		t.Fatalf("BeginTx failed: %v", err)
 	}
@@ -277,7 +276,7 @@ func TestTransactionRollback(t *testing.T) {
 
 	// Verify user does not exist
 	var retrieved TestUser
-	err = client.Get(ctx, "test_users", "user9", &retrieved)
+	err = db.Get(ctx, "test_users", "user9", &retrieved)
 	if err == nil {
 		t.Error("Expected error when getting rolled back user, got nil")
 	}
@@ -285,3 +284,245 @@ func TestTransactionRollback(t *testing.T) {
 	t.Log("✓ Transaction rollback successful")
 }
 
+func TestSQLInjectionInUsername(t *testing.T) {
+	db := setupTestDB(t)
+	defer teardownTestDB(db)
+
+	ctx := context.Background()
+
+	// Attempt SQL injection in username field
+	user := TestUser{
+		ID:    "user10",
+		Name:  "John'; DROP TABLE test_users; --",
+		Email: "john@example.com",
+	}
+
+	err := db.Create(ctx, "test_users", user)
+	if err != nil {
+		t.Fatalf("Create with injection attempt failed: %v", err)
+	}
+
+	// Verify table still exists and data was stored safely
+	var retrieved TestUser
+	err = db.Get(ctx, "test_users", "user10", &retrieved)
+	if err != nil {
+		t.Fatalf("Get failed: %v", err)
+	}
+
+	if retrieved.Name != "John'; DROP TABLE test_users; --" {
+		t.Errorf("Expected name with SQL, got '%s'", retrieved.Name)
+	}
+
+	t.Log("✓ SQL injection in username safely escaped")
+}
+
+func TestSQLInjectionWithQuotes(t *testing.T) {
+	db := setupTestDB(t)
+	defer teardownTestDB(db)
+
+	ctx := context.Background()
+
+	user := TestUser{
+		ID:    "user11",
+		Name:  "'; DELETE FROM test_users WHERE '1'='1",
+		Email: "test@example.com",
+	}
+
+	err := db.Create(ctx, "test_users", user)
+	if err != nil {
+		t.Fatalf("Create failed: %v", err)
+	}
+
+	// Verify no data was deleted
+	var results []TestUser
+	err = db.Query(ctx, "SELECT * FROM test_users", &results)
+	if err != nil {
+		t.Fatalf("Query failed: %v", err)
+	}
+
+	if len(results) != 1 {
+		t.Errorf("Expected 1 user (injection prevented), got %d", len(results))
+	}
+
+	t.Log("✓ SQL injection with quotes safely handled")
+}
+
+func TestSQLInjectionInEmail(t *testing.T) {
+	db := setupTestDB(t)
+	defer teardownTestDB(db)
+
+	ctx := context.Background()
+
+	user := TestUser{
+		ID:    "user12",
+		Name:  "Normal Name",
+		Email: "test@example.com' OR '1'='1",
+	}
+
+	err := db.Create(ctx, "test_users", user)
+	if err != nil {
+		t.Fatalf("Create failed: %v", err)
+	}
+
+	var retrieved TestUser
+	err = db.Get(ctx, "test_users", "user12", &retrieved)
+	if err != nil {
+		t.Fatalf("Get failed: %v", err)
+	}
+
+	if retrieved.Email != "test@example.com' OR '1'='1" {
+		t.Errorf("Expected email with injection payload, got '%s'", retrieved.Email)
+	}
+
+	t.Log("✓ SQL injection in email safely escaped")
+}
+
+func TestSQLInjectionInID(t *testing.T) {
+	db := setupTestDB(t)
+	defer teardownTestDB(db)
+
+	ctx := context.Background()
+
+	user := TestUser{
+		ID:    "user13' OR '1'='1",
+		Name:  "Test User",
+		Email: "test@example.com",
+	}
+
+	err := db.Create(ctx, "test_users", user)
+	if err != nil {
+		t.Fatalf("Create failed: %v", err)
+	}
+
+	var retrieved TestUser
+	err = db.Get(ctx, "test_users", "user13' OR '1'='1", &retrieved)
+	if err != nil {
+		t.Fatalf("Get failed: %v", err)
+	}
+
+	if retrieved.Name != "Test User" {
+		t.Errorf("Expected to retrieve correct user by injection ID, got '%s'", retrieved.Name)
+	}
+
+	t.Log("✓ SQL injection in ID safely handled")
+}
+
+func TestSQLInjectionWithBackslashes(t *testing.T) {
+	db := setupTestDB(t)
+	defer teardownTestDB(db)
+
+	ctx := context.Background()
+
+	user := TestUser{
+		ID:    "user14",
+		Name:  "Test\\'; DROP TABLE test_users; --",
+		Email: "test@example.com",
+	}
+
+	err := db.Create(ctx, "test_users", user)
+	if err != nil {
+		t.Fatalf("Create failed: %v", err)
+	}
+
+	var retrieved TestUser
+	err = db.Get(ctx, "test_users", "user14", &retrieved)
+	if err != nil {
+		t.Fatalf("Get failed: %v", err)
+	}
+
+	if retrieved.Name != "Test\\'; DROP TABLE test_users; --" {
+		t.Errorf("Expected name with backslashes, got '%s'", retrieved.Name)
+	}
+
+	t.Log("✓ SQL injection with backslashes safely escaped")
+}
+
+func TestSQLInjectionUnionBased(t *testing.T) {
+	db := setupTestDB(t)
+	defer teardownTestDB(db)
+
+	ctx := context.Background()
+
+	user := TestUser{
+		ID:    "user15",
+		Name:  "User Name",
+		Email: "test@example.com' UNION SELECT * FROM test_users --",
+	}
+
+	err := db.Create(ctx, "test_users", user)
+	if err != nil {
+		t.Fatalf("Create failed: %v", err)
+	}
+
+	var retrieved TestUser
+	err = db.Get(ctx, "test_users", "user15", &retrieved)
+	if err != nil {
+		t.Fatalf("Get failed: %v", err)
+	}
+
+	if retrieved.Email != "test@example.com' UNION SELECT * FROM test_users --" {
+		t.Errorf("Expected email with UNION injection, got '%s'", retrieved.Email)
+	}
+
+	t.Log("✓ UNION-based SQL injection safely escaped")
+}
+
+func TestSQLInjectionDoubleQuotes(t *testing.T) {
+	db := setupTestDB(t)
+	defer teardownTestDB(db)
+
+	ctx := context.Background()
+
+	user := TestUser{
+		ID:    "user16",
+		Name:  `Test" OR "1"="1`,
+		Email: "test@example.com",
+	}
+
+	err := db.Create(ctx, "test_users", user)
+	if err != nil {
+		t.Fatalf("Create failed: %v", err)
+	}
+
+	var retrieved TestUser
+	err = db.Get(ctx, "test_users", "user16", &retrieved)
+	if err != nil {
+		t.Fatalf("Get failed: %v", err)
+	}
+
+	if retrieved.Name != `Test" OR "1"="1` {
+		t.Errorf("Expected name with double quotes, got '%s'", retrieved.Name)
+	}
+
+	t.Log("✓ SQL injection with double quotes safely escaped")
+}
+
+func TestSQLInjectionDoubleQuotesDrop(t *testing.T) {
+	db := setupTestDB(t)
+	defer teardownTestDB(db)
+
+	ctx := context.Background()
+
+	user := TestUser{
+		ID:    "user17",
+		Name:  `Test"; DROP TABLE test_users; --`,
+		Email: "test@example.com",
+	}
+
+	err := db.Create(ctx, "test_users", user)
+	if err != nil {
+		t.Fatalf("Create failed: %v", err)
+	}
+
+	var retrieved TestUser
+	err = db.Get(ctx, "test_users", "user17", &retrieved)
+	if err != nil {
+		t.Fatalf("Get failed: %v", err)
+	}
+
+	if retrieved.Name != `Test"; DROP TABLE test_users; --` {
+		t.Errorf("Expected name with double quotes, got '%s'", retrieved.Name)
+	}
+
+	t.Log("✓ SQL injection with double quotes safely escaped")
+}
