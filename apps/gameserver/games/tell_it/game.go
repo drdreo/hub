@@ -12,7 +12,6 @@ import (
 )
 
 type GameStatus string
-type GameStatus string
 
 const (
 	GameStatusWaiting GameStatus = "waiting"
