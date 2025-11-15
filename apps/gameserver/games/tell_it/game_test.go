@@ -1,34 +1,16 @@
 package tell_it
 
 import (
-	"context"
-	"gameserver/games/tell_it/models"
 	"testing"
 )
 
-// DatabaseMock implements the database.Database interface for testing
-type DatabaseMock struct {
-	StoredStories map[string][]models.DBStory
-}
-
-func NewDatabaseMock() *DatabaseMock {
-	return &DatabaseMock{
-		StoredStories: make(map[string][]models.DBStory),
+// Helper function to create a Game instance for testing
+// Since NewGame requires a *database.DatabaseService and we can't easily mock it,
+// we create a Game directly for testing purposes
+func newTestGame() *Game {
+	return &Game{
+		dbService: nil, // For these tests, we don't need the database service
 	}
-}
-
-func (m *DatabaseMock) StoreStories(ctx context.Context, roomName string, stories []models.StoryDTO) error {
-	// FIX to convert DTO to DBStory
-	m.StoredStories[roomName] = stories
-	return nil
-}
-
-func (m *DatabaseMock) GetStories(ctx context.Context, roomName string) ([]models.DBStory, error) {
-	return m.StoredStories[roomName], nil
-}
-
-func (m *DatabaseMock) Close() error {
-	return nil
 }
 
 func TestNewStory(t *testing.T) {
@@ -195,7 +177,7 @@ func TestUser_Reset(t *testing.T) {
 }
 
 func TestGame_AddUser(t *testing.T) {
-	game := NewGame(NewDatabaseMock())
+	game := newTestGame()
 	state := &GameState{
 		Users:     make(map[string]*User),
 		UserOrder: make([]string, 0),
@@ -222,7 +204,7 @@ func TestGame_AddUser(t *testing.T) {
 }
 
 func TestGame_GetStories(t *testing.T) {
-	game := NewGame(NewDatabaseMock())
+	game := newTestGame()
 	state := &GameState{
 		Users:     make(map[string]*User),
 		UserOrder: make([]string, 0),
@@ -264,7 +246,7 @@ func TestGame_GetStories(t *testing.T) {
 }
 
 func TestGame_StartGame(t *testing.T) {
-	game := NewGame(NewDatabaseMock())
+	game := newTestGame()
 	state := &GameState{
 		Users:        make(map[string]*User),
 		UserOrder:    make([]string, 0),
