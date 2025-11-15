@@ -8,22 +8,23 @@ import (
 
 // DatabaseMock implements the database.Database interface for testing
 type DatabaseMock struct {
-	StoredStories map[string][]models.StoryDTO
+	StoredStories map[string][]models.DBStory
 }
 
 func NewDatabaseMock() *DatabaseMock {
 	return &DatabaseMock{
-		StoredStories: make(map[string][]models.StoryDTO),
+		StoredStories: make(map[string][]models.DBStory),
 	}
 }
 
 func (m *DatabaseMock) StoreStories(ctx context.Context, roomName string, stories []models.StoryDTO) error {
+	// FIX to convert DTO to DBStory
 	m.StoredStories[roomName] = stories
 	return nil
 }
 
 func (m *DatabaseMock) GetStories(ctx context.Context, roomName string) ([]models.DBStory, error) {
-	return nil, nil
+	return m.StoredStories[roomName], nil
 }
 
 func (m *DatabaseMock) Close() error {

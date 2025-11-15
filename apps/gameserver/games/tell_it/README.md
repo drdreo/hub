@@ -13,7 +13,6 @@ Tell-It is a real-time multiplayer game where players:
 5. Vote to finish the game when stories are complete
 6. View all completed stories at the end
 
-
 ## Game Flow
 
 1. **Room Creation**: Create room with game type "tellit"
@@ -33,7 +32,6 @@ User B receives Story 1 → submits text → Story 1 goes to User C
 User C receives Story 1 → submits text → Story 1 goes to User A
 User A receives Story 1 → continues...
 ```
-
 
 ### Configuration
 

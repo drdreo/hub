@@ -36,7 +36,7 @@ type RoomConfig struct {
 
 // DBStory represents a DB stored story
 type DBStory struct {
-	ID        *int64     `json:"id,omitempty" db:"id"`
+	ID        *int64    `json:"id,omitempty" db:"id"`
 	CreatedAt time.Time `json:"createdAt" db:"created_at"`
 	UpdatedAt time.Time `json:"updatedAt" db:"updated_at"`
 	Text      string    `json:"text" db:"text"` // Serialized story (all texts joined)
