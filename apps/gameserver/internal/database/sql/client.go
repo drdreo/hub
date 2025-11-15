@@ -59,7 +59,7 @@ func validateTableName(table string) error {
 func extractDBColumns(data interface{}) []string {
 	var columns []string
 
-	// Handle map
+	// 1. Handle map (fast path)
 	if dataMap, ok := data.(map[string]interface{}); ok {
 		for key := range dataMap {
 			columns = append(columns, key)
@@ -67,16 +67,34 @@ func extractDBColumns(data interface{}) []string {
 		return columns
 	}
 
-	// Handle struct with reflection
+	// 2. Handle struct/slice with reflection
 	val := reflect.ValueOf(data)
+	// De-reference pointers (e.g., *User or *[]User)
 	if val.Kind() == reflect.Ptr {
 		val = val.Elem()
 	}
 
+	// 3. Check for slice or array
+	if val.Kind() == reflect.Slice || val.Kind() == reflect.Array {
+		// Get the *type* of the elements in the slice (e.g., User or *User)
+		elemType := val.Type().Elem()
+
+		// If elements are pointers (e.g., []*User), get the base type
+		for elemType.Kind() == reflect.Ptr {
+			elemType = elemType.Elem()
+		}
+
+		// Create a new zero-value instance of the element type.
+		// This is the key: it's safe for empty slices.
+		val = reflect.New(elemType).Elem()
+	}
+
+	// 4. At this point, val *should* be a struct
 	if val.Kind() != reflect.Struct {
 		return columns
 	}
 
+	// 5. Extract tags from the struct
 	typ := val.Type()
 	for i := 0; i < typ.NumField(); i++ {
 		field := typ.Field(i)

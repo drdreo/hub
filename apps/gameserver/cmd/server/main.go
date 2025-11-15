@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"gameserver/games/dicegame"
 	"gameserver/games/owe_drahn"
+	"gameserver/games/tell_it"
 	"gameserver/games/tictactoe"
 	"gameserver/internal/client"
 	"gameserver/internal/game"
@@ -85,6 +86,11 @@ func main() {
 		CredentialsDir: "apps/gameserver/internal/database/firestore/credentials",
 	}); err != nil {
 		log.Fatal().Err(err).Msg("Failed to register owe_drahn")
+	}
+	if err := tell_it.RegisterGame(rootCtx, gameRegistry, tell_it.GameConfig{
+		Stage: stage,
+	}); err != nil {
+		log.Fatal().Err(err).Msg("Failed to register tell_it")
 	}
 
 	http.HandleFunc("/", homeHandler)
