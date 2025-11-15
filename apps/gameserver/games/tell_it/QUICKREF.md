@@ -161,7 +161,7 @@ wss://hub.drdreo.com/ws                   # Production
     "type": "finish_vote_update",
     "success": true,
     "data": {
-        "votes": ["Alice", "Bob"]
+        "votes": ["user123", "user456"]
     }
 }
 ```

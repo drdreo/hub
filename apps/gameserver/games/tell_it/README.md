@@ -16,7 +16,8 @@ Tell-It is a real-time multiplayer game where players:
 ## Game Flow
 
 1. **Room Creation**: Create room with game type "tellit"
-2. **Players Join**: 2-8 players join the room
+2. **Players Join**: 2-30 players can join the room
+   > **Note:** While up to 30 players are supported, the recommended range for best gameplay is 2-8 players.
 3. **Start Game**: Any player can start once min players reached
 4. **Submit Text**: Players take turns adding to stories
 5. **Story Circulation**: Stories rotate between players

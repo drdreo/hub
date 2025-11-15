@@ -280,6 +280,10 @@ func (g *Game) EndGame(state *GameState, room interfaces.Room) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
+	if g.dbService == nil {
+		log.Warn().Str("room", state.RoomName).Msg("dbService is nil; stories not persisted")
+		return
+	}
 	if err := g.dbService.StoreStories(ctx, state.RoomName, stories); err != nil {
 		log.Error().Err(err).Msg("Failed to persist stories")
 	}

@@ -46,5 +46,5 @@ type DBStory struct {
 // StoryDTO represents a story with author information
 type StoryDTO struct {
 	Text   string `json:"text"`
-	Author string `json:"author" `
+	Author string `json:"author"`
 }
