@@ -16,7 +16,7 @@ type GameConfig struct {
 	Stage interfaces.Environment
 }
 
-func NewGame(dbService *database.DatabaseService) *Game {
+func NewGame(dbService database.Database) *Game {
 	return &Game{
 		dbService: dbService,
 	}
@@ -108,7 +108,7 @@ func (g *Game) OnClientLeave(client interfaces.Client, room interfaces.Room) {
 
 		// Mark as disconnected instead of removing immediately
 		user.Disconnected = true
-	
+
 		g.SendUsersUpdate(state, room)
 	}
 }

@@ -30,7 +30,7 @@ func (m *ClientMock) Send(message *protocol.Response) error {
 
 	m.messages = append(m.messages, message)
 
-	log.Info().Fields(message).Str("clientId", m.id).Msg("Send()")
+	log.Debug().Fields(message).Str("clientId", m.id).Msg("Send()")
 	return nil
 }
 

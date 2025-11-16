@@ -19,6 +19,7 @@
 ### Client Events
 
 Client can send these events to the server:
+
 -   `join_room`: Joins an existing room by ID
     -   Payload: `{ gameType: string, roomId?: string, playerName: string, options?: any}`
     -   Response: `join_room_result`

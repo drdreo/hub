@@ -24,7 +24,7 @@ func (gs GameStatus) String() string {
 }
 
 type Game struct {
-	dbService *database.DatabaseService
+	dbService database.Database
 }
 
 type GameState struct {
@@ -133,15 +133,8 @@ func (g *Game) SubmitText(userID string, text string, state *GameState, room int
 
 	// Check if this user already owns a story
 	user := state.Users[userID]
-	isOwner := false
-	for _, s := range state.Stories {
-		if s.OwnerID == userID {
-			isOwner = true
-			break
-		}
-	}
 
-	if isOwner {
+	if g.isUserStoryOwner(userID, state) {
 		// Try to dequeue the user's current story
 		var err error
 		story, err = user.DequeueStory()
@@ -157,16 +150,41 @@ func (g *Game) SubmitText(userID string, text string, state *GameState, room int
 	story.AddText(text)
 	nextUser.EnqueueStory(story)
 
-	// Send story update to the next user
-	g.SendStoryUpdate(nextUserID, state, room)
+	// Send story updates to all users who are story owners and have a queued story
+	g.SendStoryUpdatesToOwners(state, room)
 	g.SendUsersUpdate(state, room)
 
 	return nil
 }
 
+// isUserStoryOwner checks if a user has created at least one story (submitted at least once)
+func (g *Game) isUserStoryOwner(userID string, state *GameState) bool {
+	for _, s := range state.Stories {
+		if s.OwnerID == userID {
+			return true
+		}
+	}
+	return false
+}
+
+// SendStoryUpdatesToOwners sends story updates to all users who are story owners and have a queued story
+// This prevents first-round stories from appearing before users submit their initial text,
+// while ensuring all story owners with queued work are notified
+func (g *Game) SendStoryUpdatesToOwners(state *GameState, room interfaces.Room) {
+	// Iterate through all users in the room
+	for _, userID := range state.UserOrder {
+		g.SendStoryUpdate(userID, state, room)
+	}
+}
+
 func (g *Game) SendStoryUpdate(userID string, state *GameState, room interfaces.Room) {
 	user := state.Users[userID]
 	if user == nil {
+		return
+	}
+
+	// Don't send story updates to users who haven't submitted yet
+	if !g.isUserStoryOwner(userID, state) {
 		return
 	}
 
