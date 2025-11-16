@@ -14,17 +14,6 @@ type UserDTO struct {
 	QueuedStories int      `json:"queuedStories"`
 }
 
-// Room represents a game room
-type Room struct {
-	Name              string    `json:"name"`
-	Started           bool      `json:"started"`
-	StartTime         time.Time `json:"startTime"`
-	GameStatus        string    `json:"gameStatus"`
-	UserCount         int       `json:"userCount"`
-	IsPublic          bool      `json:"isPublic"`
-	SpectatorsAllowed bool      `json:"spectatorsAllowed"`
-}
-
 // RoomConfig represents room configuration
 type RoomConfig struct {
 	SpectatorsAllowed bool `json:"spectatorsAllowed"`
