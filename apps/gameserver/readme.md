@@ -19,12 +19,8 @@
 ### Client Events
 
 Client can send these events to the server:
-
--   `create_room`: Creates a new game room and joins it automatically
-    -   Payload: `{ gameType: string, options?: object }`
-    -   Response: `create_room_result`
 -   `join_room`: Joins an existing room by ID
-    -   Payload: `{ roomId: string }`
+    -   Payload: `{ gameType: string, roomId?: string, playerName: string, options?: any}`
     -   Response: `join_room_result`
 -   `leave_room`: Explicitly leave the current room
     -   Payload: `{}`
@@ -42,8 +38,6 @@ Client can send these events to the server:
 Server sends these events to clients:
 
 -   `welcome`: Initial connection established
--   `create_room_result`: Result when creating a room
-    -   Data: `{ roomId: string, gameType: string }`
 -   `join_room_result`: Result when joining a room
     -   Data: `{ roomId: string, gameType: string, clients: number }`
 -   `leave_room_result`: Result when leaving a room
@@ -57,7 +51,7 @@ Server sends these events to clients:
 -   `room_closed`: Notification when a room is closed
     -   Data: `{ roomId: string }`
 -   `room_list_update`: Notification when the game specific room list changed
-    -   Data: `{ roomId: string, playerCount: number, started: boolean }`
+    -   Data: `Array<{ roomId: string, playerCount: number, started: boolean }>`
 
 ### Game-Specific Events
 

@@ -108,13 +108,7 @@ func (g *Game) OnClientLeave(client interfaces.Client, room interfaces.Room) {
 
 		// Mark as disconnected instead of removing immediately
 		user.Disconnected = true
-
-		// Broadcast user left message
-		msg := protocol.NewSuccessResponse("user_left", interfaces.M{
-			"userID": client.ID(),
-		})
-		room.Broadcast(msg)
-
+	
 		g.SendUsersUpdate(state, room)
 	}
 }
