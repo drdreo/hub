@@ -30,6 +30,7 @@ type Room interface {
 	IsClosed() bool
 	Join(client Client) error
 	Leave(client Client)
+	SendTo(message *protocol.Response, clientId string)
 	Broadcast(message *protocol.Response, exclude ...Client)
 	BroadcastTo(message *protocol.Response, clients ...Client)
 	Clients() map[string]Client

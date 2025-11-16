@@ -117,6 +117,14 @@ func (room *GameRoom) Leave(client interfaces.Client) {
 	}
 }
 
+// SendTo sends a message to the specific client with clientId
+func (room *GameRoom) SendTo(message *protocol.Response, clientId string) {
+	// Send to specific user
+	if client, ok := room.clients[clientId]; ok {
+		client.Send(message)
+	}
+}
+
 // Broadcast sends a message to all clients in the room except excluded ones
 func (room *GameRoom) Broadcast(message *protocol.Response, exclude ...interfaces.Client) {
 	excludeMap := make(map[string]bool)

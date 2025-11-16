@@ -87,14 +87,7 @@ func (g *Game) OnClientJoin(client interfaces.Client, room interfaces.Room, opti
 
 	log.Info().Str("user", userName).Str("room", room.ID()).Msg("User joined tell-it room")
 
-	// TODO: cleanup, i think this is handled by the socket framework already
-	//	// Send joined confirmation to the client
-	//	msg := protocol.NewSuccessResponse("joined", interfaces.M{
-	//		"userID": client.ID(),
-	//		"room":   room.ID(),
-	//	})
-	//	client.Send(msg)
-
+	room.SetState(state)
 	// Broadcast updated user list to all clients
 	g.SendUsersUpdate(state, room)
 }
@@ -108,6 +101,7 @@ func (g *Game) OnClientLeave(client interfaces.Client, room interfaces.Room) {
 
 		// Mark as disconnected instead of removing immediately
 		user.Disconnected = true
+		room.SetState(state)
 
 		g.SendUsersUpdate(state, room)
 	}
@@ -117,29 +111,15 @@ func (g *Game) OnClientLeave(client interfaces.Client, room interfaces.Room) {
 func (g *Game) OnClientReconnect(client interfaces.Client, room interfaces.Room, oldClientId string) error {
 	state := room.State().(*GameState)
 
-	// Find the old user and update their ID
-	if oldUser, ok := state.Users[oldClientId]; ok {
-		// Remove old entry
-		delete(state.Users, oldClientId)
-
-		// Add with new ID
-		oldUser.ID = client.ID()
-		oldUser.Disconnected = false
-		state.Users[client.ID()] = oldUser
-
-		// Update user order
-		for i, uid := range state.UserOrder {
-			if uid == oldClientId {
-				state.UserOrder[i] = client.ID()
-				break
-			}
-		}
-
-		log.Info().Str("user", oldUser.Name).Str("oldID", oldClientId).Str("newID", client.ID()).Msg("User reconnected")
-
-		// Send latest state
-		g.handleRequestUpdate(client, state, room)
+	if err := g.ReconnectUser(oldClientId, client.ID(), state); err != nil {
+		log.Error().Err(err).Str("oldID", oldClientId).Str("newID", client.ID()).Msg("Failed to reconnect user")
+		return err
 	}
+
+	room.SetState(state)
+
+	g.handleRequestUpdate(client, state, room)
+	g.SendUsersUpdate(state, room)
 
 	return nil
 }
@@ -185,6 +165,8 @@ func (g *Game) handleStart(client interfaces.Client, state *GameState, room inte
 	}
 
 	g.StartGame(state)
+
+	room.SetState(state)
 
 	// Broadcast game status update
 	msg := protocol.NewSuccessResponse("game_status", interfaces.M{
@@ -294,7 +276,7 @@ func (g *Game) handleRequestUpdate(client interfaces.Client, state *GameState, r
 
 	if state.GameStatus == GameStatusEnded {
 		g.handleRequestStories(client, state, room)
-	} else {
+	} else if state.GameStatus == GameStatusStarted {
 		// If user has a story, send it
 		user := g.GetUser(client.ID(), state)
 		if user != nil {

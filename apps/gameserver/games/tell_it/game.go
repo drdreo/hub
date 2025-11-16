@@ -85,6 +85,69 @@ func (g *Game) RemoveUser(clientID string, state *GameState) {
 	log.Info().Str("user", userName).Str("room", state.RoomName).Msg("User removed from room")
 }
 
+// ReconnectUser handles reconnecting a user with a new client ID
+// This patches all references to the old ID throughout the game state
+func (g *Game) ReconnectUser(oldClientID, newClientID string, state *GameState) error {
+	// Find the old user
+	oldUser, ok := state.Users[oldClientID]
+	if !ok {
+		return errors.New("user not found")
+	}
+
+	// Update the user's ID and disconnected state
+	oldUser.ID = newClientID
+	oldUser.Disconnected = false
+
+	// Move user to new ID in Users map
+	delete(state.Users, oldClientID)
+	state.Users[newClientID] = oldUser
+
+	// Update UserOrder
+	for i, uid := range state.UserOrder {
+		if uid == oldClientID {
+			state.UserOrder[i] = newClientID
+			break
+		}
+	}
+
+	// Update FinishVotes
+	if voted, ok := state.FinishVotes[oldClientID]; ok {
+		delete(state.FinishVotes, oldClientID)
+		state.FinishVotes[newClientID] = voted
+	}
+
+	// Update RestartVotes
+	if voted, ok := state.RestartVotes[oldClientID]; ok {
+		delete(state.RestartVotes, oldClientID)
+		state.RestartVotes[newClientID] = voted
+	}
+
+	// Update KickVotes for all users
+	for _, user := range state.Users {
+		for i, voterID := range user.KickVotes {
+			if voterID == oldClientID {
+				user.KickVotes[i] = newClientID
+			}
+		}
+	}
+
+	// Update Story owner
+	for _, story := range state.Stories {
+		if story.OwnerID == oldClientID {
+			story.OwnerID = newClientID
+			break
+		}
+	}
+
+	log.Info().
+		Str("user", oldUser.Name).
+		Str("oldID", oldClientID).
+		Str("newID", newClientID).
+		Msg("User reconnected with new ID")
+
+	return nil
+}
+
 func (g *Game) StartGame(state *GameState) {
 	state.Started = true
 	state.GameStatus = GameStatusStarted
@@ -150,6 +213,8 @@ func (g *Game) SubmitText(userID string, text string, state *GameState, room int
 	story.AddText(text)
 	nextUser.EnqueueStory(story)
 
+	room.SetState(state)
+
 	// Send story updates to all users who are story owners and have a queued story
 	g.SendStoryUpdatesToOwners(state, room)
 	g.SendUsersUpdate(state, room)
@@ -183,34 +248,35 @@ func (g *Game) SendStoryUpdate(userID string, state *GameState, room interfaces.
 		return
 	}
 
+	log.Debug().Msg("send story update user exists")
+
 	// Don't send story updates to users who haven't submitted yet
 	if !g.isUserStoryOwner(userID, state) {
+		log.Debug().Str("userId ", userID).Any("stories", state.Stories).Msg("send story update user is no owner")
+
 		return
 	}
+
+	var storyData *models.StoryDTO
 
 	story := user.GetCurrentStory()
-	if story == nil {
-		return
-	}
+	log.Debug().Any("story", story).Msg("Sending story update")
 
-	// Find the author name
-	author := "Unknown"
-	if authorUser, ok := state.Users[story.OwnerID]; ok {
-		author = authorUser.Name
-	}
+	if story != nil {
+		// Find the author name
+		author := "Unknown"
+		if authorUser, ok := state.Users[story.OwnerID]; ok {
+			author = authorUser.Name
+		}
 
-	storyData := models.StoryDTO{
-		Text:   story.GetLatestText(),
-		Author: author,
+		storyData = &models.StoryDTO{
+			Text:   story.GetLatestText(),
+			Author: author,
+		}
 	}
 
 	msg := protocol.NewSuccessResponse("story_update", storyData)
-
-	// Send to specific user
-	clients := room.Clients()
-	if client, ok := clients[userID]; ok {
-		client.Send(msg)
-	}
+	room.SendTo(msg, userID)
 }
 
 func (g *Game) SendUsersUpdate(state *GameState, room interfaces.Room) {
@@ -228,7 +294,7 @@ func (g *Game) SendUsersUpdate(state *GameState, room interfaces.Room) {
 		}
 	}
 
-	msg := protocol.NewSuccessResponse("users_update", map[string]interface{}{"users": users})
+	msg := protocol.NewSuccessResponse("users_update", interfaces.M{"users": users})
 	room.Broadcast(msg)
 }
 
@@ -254,7 +320,9 @@ func (g *Game) VoteFinish(userID string, state *GameState, room interfaces.Room)
 		votedIDs = append(votedIDs, id)
 	}
 
-	msg := protocol.NewSuccessResponse("finish_vote_update", map[string]interface{}{"votes": votedIDs})
+	room.SetState(state)
+
+	msg := protocol.NewSuccessResponse("finish_vote_update", interfaces.M{"votes": votedIDs})
 	room.Broadcast(msg)
 
 	// Check if all users voted
@@ -279,6 +347,16 @@ func (g *Game) VoteRestart(userID string, state *GameState, room interfaces.Room
 		state.RestartVotes[user.ID] = true
 	}
 
+	// Send vote update
+	votedIDs := make([]string, 0, len(state.RestartVotes))
+	for id := range state.RestartVotes {
+		votedIDs = append(votedIDs, id)
+	}
+
+	room.SetState(state)
+	msg := protocol.NewSuccessResponse("restart_vote_update", interfaces.M{"votes": votedIDs})
+	room.Broadcast(msg)
+
 	// Check if all users voted
 	if len(state.RestartVotes) >= len(state.Users) {
 		g.RestartGame(state, room)
@@ -287,11 +365,18 @@ func (g *Game) VoteRestart(userID string, state *GameState, room interfaces.Room
 
 func (g *Game) EndGame(state *GameState, room interfaces.Room) {
 	state.GameStatus = GameStatusEnded
+	room.SetState(state)
+
 	log.Info().Str("room", state.RoomName).Msg("Game ended")
 
 	stories := g.GetStories(state)
-	msg := protocol.NewSuccessResponse("final_stories", map[string]interface{}{
+	msg := protocol.NewSuccessResponse("final_stories", interfaces.M{
 		"stories": stories,
+	})
+	room.Broadcast(msg)
+
+	msg = protocol.NewSuccessResponse("game_status", interfaces.M{
+		"status": state.GameStatus.String(),
 	})
 	room.Broadcast(msg)
 
@@ -318,9 +403,16 @@ func (g *Game) RestartGame(state *GameState, room interfaces.Room) {
 		user.Reset()
 	}
 
+	room.SetState(state)
+
 	g.SendUsersUpdate(state, room)
 
-	msg := protocol.NewSuccessResponse("story_update", map[string]interface{}{
+	msg := protocol.NewSuccessResponse("game_status", interfaces.M{
+		"status": state.GameStatus.String(),
+	})
+	room.Broadcast(msg)
+
+	msg = protocol.NewSuccessResponse("story_update", interfaces.M{
 		"story": nil,
 	})
 	room.Broadcast(msg)
