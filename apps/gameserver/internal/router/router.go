@@ -176,7 +176,7 @@ func (r *Router) handleJoinRoom(ctx context.Context, client interfaces.Client, d
 	log.Info().Str("roomID", room.ID()).Msg("client joined room")
 
 	client.Send(protocol.NewSuccessResponse("join_room_result", response))
-	r.broadCastRoomListChange(room.GameType())
+	r.BroadcastRoomListChange(room.GameType())
 }
 
 // handleLeaveRoom leaves the current room
@@ -204,7 +204,7 @@ func (r *Router) handleLeaveRoom(client interfaces.Client) {
 	log.Info().Str("clientId", client.ID()).Str("roomID", roomID).Msg("client left room")
 
 	client.Send(protocol.NewSuccessResponse("leave_room_result", nil))
-	r.broadCastRoomListChange(room.GameType())
+	r.BroadcastRoomListChange(room.GameType())
 }
 
 // handleReconnect tries to reconnect the new socket to an existing room
@@ -335,7 +335,7 @@ func (r *Router) getRoomList(gameType string) []RoomListInfo {
 	return roomList
 }
 
-func (r *Router) broadCastRoomListChange(gameType string) {
+func (r *Router) BroadcastRoomListChange(gameType string) {
 	// find all clients that are connected to a certain game type and inform them of the room list change
 	roomList := r.getRoomList(gameType)
 	response := protocol.NewSuccessResponse("room_list_update", roomList)

@@ -14,12 +14,13 @@ import (
 
 // RoomManager handles the creation and tracking of game rooms
 type RoomManager struct {
-	rooms           map[string]interfaces.Room
-	mu              sync.RWMutex
-	gameRegistry    interfaces.GameRegistry
-	cleanupInterval time.Duration
-	cleanupTicker   *time.Ticker
-	cleanupStop     chan struct{}
+	rooms                map[string]interfaces.Room
+	mu                   sync.RWMutex
+	gameRegistry         interfaces.GameRegistry
+	cleanupInterval      time.Duration
+	cleanupTicker        *time.Ticker
+	cleanupStop          chan struct{}
+	onRoomListChange     func(gameType string)
 }
 
 // RoomManagerOption is a functional option for configuring RoomManager
@@ -29,6 +30,13 @@ type RoomManagerOption func(*RoomManager)
 func WithCleanupInterval(interval time.Duration) RoomManagerOption {
 	return func(rm *RoomManager) {
 		rm.cleanupInterval = interval
+	}
+}
+
+// WithRoomListChangeCallback sets a callback to be called when room lists change
+func WithRoomListChangeCallback(callback func(gameType string)) RoomManagerOption {
+	return func(rm *RoomManager) {
+		rm.onRoomListChange = callback
 	}
 }
 
@@ -105,6 +113,11 @@ func (m *RoomManager) CreateRoom(ctx context.Context, createOptions interfaces.C
 
 	log.Debug().Msg("room stored")
 
+	// Notify about room list change
+	if m.onRoomListChange != nil {
+		m.onRoomListChange(createOptions.GameType)
+	}
+
 	return room, nil
 }
 
@@ -138,13 +151,21 @@ func (m *RoomManager) GetAllRoomsByGameType(gameType string) []interfaces.Room {
 // RemoveRoom removes a room
 func (m *RoomManager) RemoveRoom(roomID string) {
 	m.mu.Lock()
-	defer m.mu.Unlock()
 
 	log.Info().Str("roomId", roomID).Msg("removing room")
 
+	var gameType string
 	if room, exists := m.rooms[roomID]; exists {
+		gameType = room.GameType()
 		room.Close()
 		delete(m.rooms, roomID)
+	}
+
+	m.mu.Unlock()
+
+	// Notify about room list change after releasing the lock
+	if gameType != "" && m.onRoomListChange != nil {
+		m.onRoomListChange(gameType)
 	}
 }
 
@@ -157,13 +178,18 @@ func (m *RoomManager) ListRooms() []interfaces.Room {
 }
 
 // Cleanup periodically checks for and removes empty rooms
-func (m *RoomManager) Cleanup() {
+// Returns a slice of game types that had rooms cleaned up
+func (m *RoomManager) Cleanup() []string {
 	// First find empty rooms with read lock
 	m.mu.RLock()
-	roomsToCleanup := make([]string, 0)
+	type roomInfo struct {
+		id       string
+		gameType string
+	}
+	roomsToCleanup := make([]roomInfo, 0)
 	for id, room := range m.rooms {
 		if len(room.Clients()) == 0 {
-			roomsToCleanup = append(roomsToCleanup, id)
+			roomsToCleanup = append(roomsToCleanup, roomInfo{id: id, gameType: room.GameType()})
 		}
 	}
 	m.mu.RUnlock()
@@ -171,7 +197,7 @@ func (m *RoomManager) Cleanup() {
 	// Early return if nothing to cleanup
 	if len(roomsToCleanup) == 0 {
 		log.Debug().Msg("cleanup completed: no empty rooms found")
-		return
+		return nil
 	}
 
 	log.Info().
@@ -179,15 +205,18 @@ func (m *RoomManager) Cleanup() {
 		Msg("cleaning up empty rooms")
 
 	// Then remove rooms incrementally with brief write locks
+	// Track which game types were affected
+	affectedGameTypes := make(map[string]bool)
 	cleanedCount := 0
-	for _, roomID := range roomsToCleanup {
+	for _, info := range roomsToCleanup {
 		m.mu.Lock()
 
 		// Double-check room is still empty (could have changed between locks)
-		if room, exists := m.rooms[roomID]; exists {
+		if room, exists := m.rooms[info.id]; exists {
 			if len(room.Clients()) == 0 {
 				room.Close()
-				delete(m.rooms, roomID)
+				delete(m.rooms, info.id)
+				affectedGameTypes[info.gameType] = true
 				cleanedCount++
 			}
 		}
@@ -199,6 +228,19 @@ func (m *RoomManager) Cleanup() {
 		Int("cleaned", cleanedCount).
 		Int("checked", len(roomsToCleanup)).
 		Msg("cleanup completed")
+
+	// Convert affected game types map to slice and notify about changes
+	gameTypes := make([]string, 0, len(affectedGameTypes))
+	for gameType := range affectedGameTypes {
+		gameTypes = append(gameTypes, gameType)
+
+		// Notify about room list change for this game type
+		if m.onRoomListChange != nil {
+			m.onRoomListChange(gameType)
+		}
+	}
+
+	return gameTypes
 }
 
 var (

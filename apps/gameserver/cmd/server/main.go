@@ -78,6 +78,10 @@ func main() {
 	roomManager := room.NewRoomManager(gameRegistry)
 	messageRouter := router.NewRouter(rootCtx, clientManager, roomManager, gameRegistry)
 
+	roomManager.SetRoomListChangeCallback(func(gameType string) {
+		messageRouter.BroadcastRoomListChange(gameType)
+	})
+
 	// Register all games
 	tictactoe.RegisterTicTacToeGame(gameRegistry)
 	dicegame.RegisterDiceGame(gameRegistry)
