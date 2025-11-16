@@ -417,5 +417,10 @@ func (g *Game) RestartGame(state *GameState, room interfaces.Room) {
 	})
 	room.Broadcast(msg)
 
+	msg = protocol.NewSuccessResponse("finish_vote_update", interfaces.M{"votes": state.FinishVotes})
+	room.Broadcast(msg)
+	msg = protocol.NewSuccessResponse("restart_vote_update", interfaces.M{"votes": state.RestartVotes})
+	room.Broadcast(msg)
+
 	log.Info().Str("room", state.RoomName).Msg("Game restarted")
 }

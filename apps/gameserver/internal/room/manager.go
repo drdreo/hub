@@ -14,13 +14,13 @@ import (
 
 // RoomManager handles the creation and tracking of game rooms
 type RoomManager struct {
-	rooms                map[string]interfaces.Room
-	mu                   sync.RWMutex
-	gameRegistry         interfaces.GameRegistry
-	cleanupInterval      time.Duration
-	cleanupTicker        *time.Ticker
-	cleanupStop          chan struct{}
-	onRoomListChange     func(gameType string)
+	rooms            map[string]interfaces.Room
+	mu               sync.RWMutex
+	gameRegistry     interfaces.GameRegistry
+	cleanupInterval  time.Duration
+	cleanupTicker    *time.Ticker
+	cleanupStop      chan struct{}
+	onRoomListChange func(gameType string)
 }
 
 // RoomManagerOption is a functional option for configuring RoomManager
@@ -38,6 +38,10 @@ func WithRoomListChangeCallback(callback func(gameType string)) RoomManagerOptio
 	return func(rm *RoomManager) {
 		rm.onRoomListChange = callback
 	}
+}
+
+func (rm *RoomManager) SetRoomListChangeCallback(callback func(gameType string)) {
+	rm.onRoomListChange = callback
 }
 
 // NewRoomManager creates a new room manager
