@@ -85,6 +85,17 @@ func (g *Game) RemoveUser(clientID string, state *GameState) {
 	log.Info().Str("user", userName).Str("room", state.RoomName).Msg("User removed from room")
 }
 
+// countActiveUsers returns the number of users who are not disconnected
+func (g *Game) countActiveUsers(state *GameState) int {
+	count := 0
+	for _, user := range state.Users {
+		if !user.Disconnected {
+			count++
+		}
+	}
+	return count
+}
+
 // ReconnectUser handles reconnecting a user with a new client ID
 // This patches all references to the old ID throughout the game state
 func (g *Game) ReconnectUser(oldClientID, newClientID string, state *GameState) error {
@@ -325,8 +336,8 @@ func (g *Game) VoteFinish(userID string, state *GameState, room interfaces.Room)
 	msg := protocol.NewSuccessResponse("finish_vote_update", interfaces.M{"votes": votedIDs})
 	room.Broadcast(msg)
 
-	// Check if all users voted
-	if len(state.FinishVotes) >= len(state.Users) {
+	// Check if all active users voted
+	if len(state.FinishVotes) >= g.countActiveUsers(state) {
 		g.EndGame(state, room)
 	}
 }
@@ -357,8 +368,8 @@ func (g *Game) VoteRestart(userID string, state *GameState, room interfaces.Room
 	msg := protocol.NewSuccessResponse("restart_vote_update", interfaces.M{"votes": votedIDs})
 	room.Broadcast(msg)
 
-	// Check if all users voted
-	if len(state.RestartVotes) >= len(state.Users) {
+	// Check if all active users voted
+	if len(state.RestartVotes) >= g.countActiveUsers(state) {
 		g.RestartGame(state, room)
 	}
 }
