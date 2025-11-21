@@ -27,28 +27,32 @@ export const connectWebSocket = () => {
         console.log("WebSocket connected!");
         reconnectAttempts = 0; // Reset on successful connection
         lastMessageTime = Date.now();
-        
+
         // Start health check monitoring
         startHealthCheck();
     };
 
-    socket.onclose = (event) => {
+    socket.onclose = event => {
         console.log("WebSocket disconnected!", event.code, event.reason);
-        
+
         // Stop health check
         stopHealthCheck();
-        
+
         // Attempt reconnection with exponential backoff
         if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
             const delay = Math.min(30000, BASE_DELAY * Math.pow(2, reconnectAttempts));
-            console.log(`Reconnecting in ${delay}ms (attempt ${reconnectAttempts + 1}/${MAX_RECONNECT_ATTEMPTS})`);
-            
+            console.log(
+                `Reconnecting in ${delay}ms (attempt ${
+                    reconnectAttempts + 1
+                }/${MAX_RECONNECT_ATTEMPTS})`
+            );
+
             reconnectTimeout = setTimeout(() => {
                 reconnectAttempts++;
                 connectWebSocket();
             }, delay);
         } else {
-            console.error('Max reconnection attempts reached. Please refresh the page.');
+            console.error("Max reconnection attempts reached. Please refresh the page.");
         }
     };
 
@@ -67,16 +71,18 @@ export const updateLastMessageTime = () => {
 // Health check to detect dead connections
 const startHealthCheck = () => {
     stopHealthCheck(); // Clear any existing interval
-    
+
     healthCheckInterval = setInterval(() => {
         const timeSinceLastMessage = Date.now() - lastMessageTime;
-        
+
         if (timeSinceLastMessage > MAX_MESSAGE_AGE) {
-            console.warn(`No messages for ${Math.round(timeSinceLastMessage / 1000)}s, connection likely dead`);
-            
+            console.warn(
+                `No messages for ${Math.round(timeSinceLastMessage / 1000)}s, connection likely dead`
+            );
+
             // Force close to trigger reconnection if socket thinks it's open
             if (socket && socket.readyState === WebSocket.OPEN) {
-                console.log('Forcing connection close to trigger reconnection');
+                console.log("Forcing connection close to trigger reconnection");
                 socket.close();
             }
         }
@@ -103,16 +109,16 @@ export const getMaxReconnectAttempts = () => {
 };
 
 // Page Visibility API - handle backgrounding
-document.addEventListener('visibilitychange', () => {
+document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
-        console.log('Page hidden - connection may be suspended by browser');
+        console.log("Page hidden - connection may be suspended by browser");
     } else {
-        console.log('Page visible - checking connection health');
+        console.log("Page visible - checking connection health");
         const currentSocket = getWebSocket();
-        
+
         // Check if connection is actually alive
         if (!currentSocket || currentSocket.readyState !== WebSocket.OPEN) {
-            console.log('Connection dead after returning from background, reconnecting...');
+            console.log("Connection dead after returning from background, reconnecting...");
             connectWebSocket();
         } else {
             // Connection appears open, but might be stale - update check time
@@ -122,17 +128,17 @@ document.addEventListener('visibilitychange', () => {
 });
 
 // Network change detection
-window.addEventListener('online', () => {
-    console.log('Network back online');
+window.addEventListener("online", () => {
+    console.log("Network back online");
     const currentSocket = getWebSocket();
-    
+
     if (!currentSocket || currentSocket.readyState !== WebSocket.OPEN) {
-        console.log('Reconnecting after network came online...');
+        console.log("Reconnecting after network came online...");
         reconnectAttempts = 0; // Reset attempts for network recovery
         connectWebSocket();
     }
 });
 
-window.addEventListener('offline', () => {
-    console.log('Network offline - connection will be lost');
+window.addEventListener("offline", () => {
+    console.log("Network offline - connection will be lost");
 });

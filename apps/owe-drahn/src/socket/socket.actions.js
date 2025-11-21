@@ -24,7 +24,7 @@ export const eventMap = {
     RECONNECTED: "reconnect_result"
 };
 
-export const handshake = (uid) => {
+export const handshake = uid => {
     return {
         type: CONNECTION_HANDSHAKE,
         data: { uid }

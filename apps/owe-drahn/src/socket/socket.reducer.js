@@ -16,7 +16,7 @@ import {
 import { connectWebSocket, getWebSocket } from "./websocket";
 
 // Helper to get session data with localStorage fallback
-const getSessionData = (key) => {
+const getSessionData = key => {
     let value = sessionStorage.getItem(key);
 
     if (!value) {
