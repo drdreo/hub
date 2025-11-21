@@ -52,7 +52,7 @@ func (s *GameState) ToDBGame() models.DBGame {
 }
 
 type HandshakePayload struct {
-	UserID   string `json:"uid"`
+	UserID string `json:"uid"`
 }
 
 type NextPlayerPayload struct {

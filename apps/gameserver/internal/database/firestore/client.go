@@ -62,7 +62,7 @@ func WithTimeout(timeout time.Duration) ClientOption {
 // NewClient creates a new Firestore client with the given options
 func NewClient(ctx context.Context, opts ...ClientOption) (*Client, error) {
 	client := &Client{
-		timeout:  30 * time.Second, // Default timeout
+		timeout: 30 * time.Second, // Default timeout
 	}
 
 	// Apply options
