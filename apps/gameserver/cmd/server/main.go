@@ -87,7 +87,7 @@ func main() {
 	dicegame.RegisterDiceGame(gameRegistry)
 	if err := owe_drahn.RegisterGame(rootCtx, gameRegistry, owe_drahn.GameConfig{
 		Stage:          stage,
-		CredentialsDir: "apps/gameserver/internal/database/firestore/credentials",
+		CredentialsDir: "apps/gameserver/games/owe_drahn/database/credentials",
 	}); err != nil {
 		log.Fatal().Err(err).Msg("Failed to register owe_drahn")
 	}

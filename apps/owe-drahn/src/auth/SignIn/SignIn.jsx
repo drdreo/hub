@@ -23,11 +23,11 @@ const SignInGoogle = ({ className }) => {
             const additionalUserInfo = await firebase.getAdditionalUserInfo(socialAuthUser);
 
             if (additionalUserInfo.isNewUser) {
-                await firebase.user(socialAuthUser.user.uid).set({
+                await firebase.userSet(socialAuthUser.user.uid, {
                     username: socialAuthUser.user.displayName,
                     email: socialAuthUser.user.email,
                     roles: [],
-                    points: 1000
+                    stats: {}
                 });
             }
 

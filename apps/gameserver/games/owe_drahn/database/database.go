@@ -10,6 +10,8 @@ import (
 	googlefirestore "cloud.google.com/go/firestore"
 )
 
+const diceBucketCount = 6
+
 // Database defines the methods required for database operations
 type Database interface {
 	StoreGame(ctx context.Context, state models.DBGame) error
@@ -72,7 +74,7 @@ func (s *DatabaseService) updateUserStats(ctx context.Context, player *models.Fo
 	var user models.DBUser
 	err := s.db.Get(ctx, "users", uid, &user)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to get user document")
+		log.Error().Str("uid", uid).Err(err).Msg("failed to get user document")
 		return err
 	}
 
@@ -117,27 +119,40 @@ func (s *DatabaseService) GetUser(ctx context.Context, uid string) (*models.DBUs
 // MergeStats combines existing player stats with new stats from a game
 func MergeStats(oldStats models.PlayerStats, newStats models.PlayerStatAggregation) models.PlayerStats {
 	stats := oldStats
-	stats.PerfectRoll += newStats.PerfectRoll
-	stats.LuckiestRoll += newStats.LuckiestRoll
-	stats.WorstRoll += newStats.WorstRoll
-	stats.Rolled21 += newStats.Rolled21
-	stats.MaxLifeLoss += newStats.MaxLifeLoss
+	stats.RolledDice = normalizeDiceSlice(stats.RolledDice)
 
-	if newStats.Won {
+	aggregation := newStats
+	aggregation.RolledDice = normalizeDiceSlice(newStats.RolledDice)
+
+	stats.PerfectRoll += aggregation.PerfectRoll
+	stats.LuckiestRoll += aggregation.LuckiestRoll
+	stats.WorstRoll += aggregation.WorstRoll
+	stats.Rolled21 += aggregation.Rolled21
+	stats.MaxLifeLoss += aggregation.MaxLifeLoss
+
+	if aggregation.Won {
 		stats.Wins++
 	}
 	stats.TotalGames++
 
-	for i := 0; i < 6; i++ {
-		stats.RolledDice[i] += newStats.RolledDice[i]
+	for i := 0; i < diceBucketCount; i++ {
+		stats.RolledDice[i] += aggregation.RolledDice[i]
 	}
 
 	return stats
 }
 
-// Helper function to check if an error is a "not found" error
-func isNotFoundError(err error) bool {
-	return err != nil && (err.Error() == "document not found" || err.Error() == "not found" ||
-		err.Error() == "rpc error: code = NotFound desc = " ||
-		err.Error() == "firestore: document doesn't exist")
+// normalizeDiceSlice ensures a dice slice has exactly diceBucketCount elements
+func normalizeDiceSlice(dice []int) []int {
+	if len(dice) == diceBucketCount {
+		return dice
+	}
+
+	log.Warn().
+		Int("currentLength", len(dice)).
+		Msg("rolledDice length invalid, normalizing")
+
+	normalized := make([]int, diceBucketCount)
+	copy(normalized, dice)
+	return normalized
 }
