@@ -18,8 +18,11 @@ import { createSocketMiddleware } from "./socket/socket.middleware";
 import "./index.css";
 
 Sentry.init({
-    dsn: "https://7161d3e0e54e220191f43c781ff002a8@o528779.ingest.us.sentry.io/4508902126452736",
-    integrations: []
+    dsn: import.meta.env.VITE_SENTRY_DSN,
+    integrations: [Sentry.browserTracingIntegration()],
+    tracesSampleRate: 0.1,
+    // Set `tracePropagationTargets` to control for which URLs distributed tracing should be enabled
+    tracePropagationTargets: ["localhost", /^wss:\/\/gameserver-production-23a9\.up\.railway\.app/, /^https:\/\/gameserver-production-23a9\.up\.railway\.app/]
 });
 
 export const history = createBrowserHistory();
