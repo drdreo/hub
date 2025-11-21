@@ -12,6 +12,7 @@ import { useDispatch, useSelector } from "react-redux";
 
 import "./Settings.scss";
 import { useNavigate } from "react-router-dom";
+import { gameLeave } from "../game/game.actions";
 import { toggleFeed, toggleSound, toggleStandings } from "./settings.actions";
 
 const Speaker = ({ disabled }) => (disabled ? <VolumeOff /> : <Volume2 />);
@@ -50,6 +51,17 @@ const Settings = props => {
     const handleToggleFeed = () => dispatch(toggleFeed());
     const handleToggleStandings = () => dispatch(toggleStandings());
 
+    const handleLeaveRoom = () => {
+        const shouldLeave = window.confirm("Are you sure you want to leave this game?");
+
+        if (shouldLeave) {
+            // Dispatch leave action to clean up room state and notify server
+            dispatch(gameLeave());
+            // Navigate to home after leaving
+            navigate("/");
+        }
+    };
+
     return (
         <div className={`menu ${menuClass} ${props.className}`}>
             <div
@@ -78,7 +90,8 @@ const Settings = props => {
                 </button>
                 <button
                     className="menu__button"
-                    onClick={() => navigate("/")}>
+                    onClick={handleLeaveRoom}
+                    title="Leave Game">
                     <LogOut />
                 </button>
             </div>

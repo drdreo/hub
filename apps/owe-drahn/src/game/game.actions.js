@@ -40,6 +40,13 @@ export const playerUpdate = data => {
     };
 };
 
+export const playerJoined = username => {
+    return {
+        type: "PLAYER_JOINED",
+        payload: username
+    };
+};
+
 export const playerLeft = username => {
     return {
         type: "PLAYER_LEFT",

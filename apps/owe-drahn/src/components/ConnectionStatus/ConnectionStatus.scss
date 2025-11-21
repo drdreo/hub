@@ -21,12 +21,35 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: rgba(60, 60, 60, 0.5);
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 
     .status-icon {
         font-size: 10px;
         font-weight: normal;
+    }
+
+    &.connecting {
+        .status-icon {
+            color: rgba(255, 152, 0, 0.8);
+        }
+    }
+
+    &.disconnected {
+        .status-icon {
+            color: rgba(244, 67, 54, 0.8);
+        }
+    }
+
+    &.max-retries {
+        .status-icon {
+            color: rgba(231, 54, 244, 0.8);
+        }
+    }
+
+    &.closing {
+        .status-icon {
+            color: rgba(255, 193, 7, 0.8);
+        }
     }
 }
 

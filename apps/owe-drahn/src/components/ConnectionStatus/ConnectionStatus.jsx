@@ -1,18 +1,24 @@
-import React from "react";
 import { Signal, Unplug } from "lucide-react";
+import React from "react";
 import { useSelector } from "react-redux";
+import { getConnectionManager } from "../../socket/ConnectionManager";
 import "./ConnectionStatus.scss";
 
 const ConnectionStatus = () => {
-    const socket = useSelector(state => state.socket.socket);
     const connectionStatus = useSelector(state => state.socket.connectionStatus);
-    const readyState = socket?.readyState;
-    console.log({ readyState, connectionStatus });
+
     const getStatusDetails = () => {
-        switch (readyState) {
+        const connectionManager = getConnectionManager();
+        const stats = connectionManager.getReconnectStats();
+        const reconnectAttempts = stats.attempts;
+
+        switch (connectionStatus) {
             case WebSocket.CONNECTING:
                 return {
-                    text: "Connecting...",
+                    text:
+                        reconnectAttempts > 0
+                            ? `Reconnecting... (attempt ${reconnectAttempts})`
+                            : "Connecting...",
                     class: "connecting",
                     icon: "•" // Simple dot
                 };
@@ -29,12 +35,17 @@ const ConnectionStatus = () => {
                     icon: "•" // Simple dot
                 };
             case WebSocket.CLOSED:
-            default:
+            default: {
+                // With new ConnectionManager, there's no hard max - it keeps trying
+                const isReconnecting = reconnectAttempts > 0;
                 return {
-                    text: "Disconnected",
+                    text: isReconnecting
+                        ? `Reconnecting... (attempt ${reconnectAttempts})`
+                        : "Disconnected",
                     class: "disconnected",
                     icon: <Unplug size={15} />
                 };
+            }
         }
     };
 

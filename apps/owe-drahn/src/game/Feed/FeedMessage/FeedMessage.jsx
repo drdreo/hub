@@ -23,6 +23,10 @@ const LostMessage = ({ username, dice, total }) => {
     );
 };
 
+const JoinedMessage = ({ username }) => {
+    return <div className="message message__joined">{username} joined!</div>;
+};
+
 const LeftMessage = ({ username }) => {
     return <div className="message message__left">{username} left the game!</div>;
 };
@@ -57,6 +61,9 @@ class FeedMessage extends Component {
                         total={message.total}
                     />
                 );
+                break;
+            case "PLAYER_JOINED":
+                msgContent = <JoinedMessage username={message.username} />;
                 break;
             case "PLAYER_LEFT":
                 msgContent = <LeftMessage username={message.username} />;

@@ -9,6 +9,11 @@
             "implementation": "./dist/executors/release-notification/release-notification",
             "schema": "./dist/executors/release-notification/schema.json",
             "description": "release-notification executor"
+        },
+        "cloudflare": {
+            "implementation": "./src/executors/cloudflare/cloudflare",
+            "schema": "./src/executors/cloudflare/schema.json",
+            "description": "Deploy to Cloudflare using Wrangler"
         }
     }
 }

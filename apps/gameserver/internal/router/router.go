@@ -7,6 +7,7 @@ import (
 	"gameserver/internal/interfaces"
 	"gameserver/internal/protocol"
 	"gameserver/internal/session"
+	"github.com/getsentry/sentry-go"
 	"github.com/rs/zerolog/log"
 )
 
@@ -173,6 +174,18 @@ func (r *Router) handleJoinRoom(ctx context.Context, client interfaces.Client, d
 		RoomID:   room.ID(),
 	}
 
+	// Configure Sentry scope for observability (isolated per request)
+	sentry.WithScope(func(scope *sentry.Scope) {
+		scope.SetTag("game.room", room.ID())
+		scope.SetTag("game.type", room.GameType())
+		scope.SetTag("client.id", client.ID())
+		scope.SetContext("room_info", map[string]interface{}{
+			"room_id":   room.ID(),
+			"game_type": room.GameType(),
+			"client_id": client.ID(),
+		})
+	})
+
 	log.Info().Str("roomID", room.ID()).Msg("client joined room")
 
 	client.Send(protocol.NewSuccessResponse("join_room_result", response))
@@ -200,6 +213,10 @@ func (r *Router) handleLeaveRoom(client interfaces.Client) {
 
 	room.Leave(client)
 	client.SetRoom(nil)
+
+	// Clear session since player explicitly left
+	sessionStore := session.GetSessionStore()
+	sessionStore.RemoveSession(client.ID())
 
 	log.Info().Str("clientId", client.ID()).Str("roomID", roomID).Msg("client left room")
 
@@ -270,6 +287,18 @@ func (r *Router) handleReconnect(client interfaces.Client, data json.RawMessage)
 		GameType: targetRoom.GameType(),
 	}
 
+	// Configure Sentry scope for observability (isolated per request)
+	sentry.WithScope(func(scope *sentry.Scope) {
+		scope.SetTag("game.room", targetRoom.ID())
+		scope.SetTag("game.type", targetRoom.GameType())
+		scope.SetTag("client.id", client.ID())
+		scope.SetContext("room_info", map[string]interface{}{
+			"room_id":   targetRoom.ID(),
+			"game_type": targetRoom.GameType(),
+			"client_id": client.ID(),
+		})
+	})
+
 	log.Info().Str("roomId", targetRoom.ID()).Str("gameType", targetRoom.GameType()).Msg("client reconnected")
 
 	client.Send(protocol.NewSuccessResponse("reconnect_result", response))
@@ -282,10 +311,23 @@ func (r *Router) handleGameAction(client interfaces.Client, data json.RawMessage
 		return
 	}
 
-	if err := r.gameRegistry.HandleMessage(client, "game_action", data); err != nil {
-		client.Send(protocol.NewErrorResponse("game_action_result", err.Error()))
-		return
-	}
+	// Configure Sentry scope for game actions (isolated per request)
+	room := client.Room()
+	sentry.WithScope(func(scope *sentry.Scope) {
+		scope.SetTag("game.room", room.ID())
+		scope.SetTag("game.type", room.GameType())
+		scope.SetTag("client.id", client.ID())
+		scope.SetContext("room_info", map[string]interface{}{
+			"room_id":   room.ID(),
+			"game_type": room.GameType(),
+			"client_id": client.ID(),
+		})
+
+		// Execute the game action within this isolated scope
+		if err := r.gameRegistry.HandleMessage(client, "game_action", data); err != nil {
+			client.Send(protocol.NewErrorResponse("game_action_result", err.Error()))
+		}
+	})
 }
 
 // handleAddBot adds a bot to the current room

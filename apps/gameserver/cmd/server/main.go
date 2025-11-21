@@ -70,8 +70,8 @@ func main() {
 
 	log.Info().Str("env.STAGE", os.Getenv("STAGE")).Str("stage", string(stage)).Msg("checking environment")
 
-	// Initialize the global session store with 5 minute expiry
-	session.InitGlobalStore(300)
+	// Initialize the global session store with 15 minute expiry
+	session.InitGlobalStore(900)
 
 	gameRegistry := game.NewRegistry()
 	clientManager := client.NewManager()
@@ -87,7 +87,7 @@ func main() {
 	dicegame.RegisterDiceGame(gameRegistry)
 	if err := owe_drahn.RegisterGame(rootCtx, gameRegistry, owe_drahn.GameConfig{
 		Stage:          stage,
-		CredentialsDir: "apps/gameserver/internal/database/firestore/credentials",
+		CredentialsDir: "apps/gameserver/games/owe_drahn/database/credentials",
 	}); err != nil {
 		log.Fatal().Err(err).Msg("Failed to register owe_drahn")
 	}
@@ -131,10 +131,12 @@ func initObservability() func() {
 	}
 
 	err := sentry.Init(sentry.ClientOptions{
-		Dsn:            dsn,
-		Debug:          false,
-		Environment:    "production",
-		SendDefaultPII: true,
+		Dsn:              dsn,
+		Debug:            false,
+		Environment:      "production",
+		SendDefaultPII:   true,
+		EnableTracing:    true,
+		TracesSampleRate: 0.1,
 	})
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to init sentry")

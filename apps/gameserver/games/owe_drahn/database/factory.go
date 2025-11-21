@@ -29,6 +29,10 @@ func NewDatabaseFactory(env interfaces.Environment, credentialsDir string) *Fact
 func (f *Factory) CreateDatabaseService(ctx context.Context) (*DatabaseService, error) {
 	var serviceAccount []byte
 	var err error
+	projectId := os.Getenv("OWE_DRAHN_FIREBASE_PROJECT_ID")
+	if projectId == "" {
+		projectId = "owe-drahn"
+	}
 
 	if f.env == interfaces.Development {
 		// In development, read from file
@@ -41,7 +45,6 @@ func (f *Factory) CreateDatabaseService(ctx context.Context) (*DatabaseService, 
 		// In production, get credentials from environment variable
 		credStr := os.Getenv("GCS_CREDENTIALS")
 		if credStr == "" {
-
 			return nil, errors.New("GCS_CREDENTIALS environment variable not set")
 		}
 		serviceAccount = []byte(credStr)
@@ -52,11 +55,11 @@ func (f *Factory) CreateDatabaseService(ctx context.Context) (*DatabaseService, 
 		return nil, errors.New("invalid service account format")
 	}
 
-	client, err := firestore.NewClient(ctx, firestore.WithCredentials(serviceAccount), firestore.WithProjectID("owe-drahn"))
+	client, err := firestore.NewClient(ctx, firestore.WithCredentials(serviceAccount), firestore.WithProjectID(projectId))
 	if err != nil {
 		return nil, err
 	}
 
-	log.Info().Msg("Firestore client initialized")
+	log.Info().Str("project", projectId).Msg("Firestore client initialized")
 	return NewDatabaseService(client), nil
 }

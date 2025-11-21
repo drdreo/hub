@@ -89,6 +89,11 @@ func (g *Game) OnClientLeave(client interfaces.Client, room interfaces.Room) {
 		g.RemovePlayer(client.ID(), room)
 	} else {
 		player.IsConnected = false
+
+		log.Info().Str("clientID", client.ID()).Msg("Someone left")
+		g.broadcastGameEvent(room, "playerLeft", interfaces.M{
+			"username": player.Name,
+		})
 	}
 	room.SetState(state)
 	g.broadcastGameState(room)
