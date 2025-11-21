@@ -47,7 +47,7 @@ const runExecutor: PromiseExecutor<CloudflareExecutorSchema> = async (
 
         // Prepare wrangler command
         // deploy for prod
-        let wranglerArgs: string[]  = ["deploy"];
+        let wranglerArgs: string[] = ["deploy"];
 
         if (preview) {
             // preview deployments need versions upload
