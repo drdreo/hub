@@ -9,11 +9,7 @@ export default defineConfig({
     cacheDir: "../../node_modules/.vite/apps/owe-drahn",
     server: {
         port: 4200,
-        host: "localhost"
-    },
-    preview: {
-        port: 4300,
-        host: "localhost"
+        host: true
     },
     plugins: [
         react(),

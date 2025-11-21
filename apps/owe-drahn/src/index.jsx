@@ -12,7 +12,8 @@ import { feedMiddleware } from "./game/Feed/feed.middleware";
 import { createRootReducer } from "./reducers";
 import * as serviceWorker from "./serviceWorker";
 import { settingsMiddleware } from "./settings/settings.middleware";
-import connectSocket from "./socket/socket";
+import { getConnectionManager } from "./socket/ConnectionManager";
+import { createSocketMiddleware } from "./socket/socket.middleware";
 
 import "./index.css";
 
@@ -28,12 +29,14 @@ const composeEnhancers =
         ? window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__({})
         : compose;
 
-const enhancer = composeEnhancers(applyMiddleware(settingsMiddleware, feedMiddleware));
+// Create socket middleware and apply all middleware
+const socketMiddleware = createSocketMiddleware();
+const enhancer = composeEnhancers(applyMiddleware(settingsMiddleware, feedMiddleware, socketMiddleware));
 
 const store = createStore(createRootReducer(history), enhancer);
 
-// connect the socket to the store.
-connectSocket(store);
+// Start WebSocket connection after store is fully initialized
+getConnectionManager().start();
 
 const root = createRoot(document.getElementById("root"));
 root.render(

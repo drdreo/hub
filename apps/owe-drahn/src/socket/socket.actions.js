@@ -6,6 +6,7 @@ export const PLAYER_CHOOSE_NEXT = "PLAYER_CHOOSE_NEXT";
 export const GET_ROOM_LIST = "GET_ROOM_LIST";
 export const JOIN_ROOM = "JOIN_ROOM";
 export const JOINED_ROOM = "JOINED_ROOM";
+export const JOIN_ROOM_ERROR = "JOIN_ROOM_ERROR";
 export const RECONNECT = "RECONNECT";
 export const RESET_RECONNECTED = "RESET_RECONNECTED";
 export const RECONNECTED = "RECONNECTED";
@@ -78,6 +79,13 @@ export const joinedRoom = ({ clientId, roomId }) => {
     };
 };
 
+export const joinRoomError = (error) => {
+    return {
+        type: JOIN_ROOM_ERROR,
+        error
+    };
+};
+
 export const reconnect = (clientId, roomId) => {
     return {
         type: RECONNECT,
@@ -101,6 +109,6 @@ export const resetReconnected = () => {
 export const connectionStatus = status => {
     return {
         type: CONNECTION_STATUS,
-        data: { status }
+        payload: status
     };
 };

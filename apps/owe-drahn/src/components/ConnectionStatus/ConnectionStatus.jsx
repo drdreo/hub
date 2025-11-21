@@ -1,23 +1,23 @@
-import React from "react";
 import { Signal, Unplug } from "lucide-react";
+import React from "react";
 import { useSelector } from "react-redux";
-import { getReconnectAttempts, getMaxReconnectAttempts } from "../../socket/websocket";
+import { getConnectionManager } from "../../socket/ConnectionManager";
 import "./ConnectionStatus.scss";
 
 const ConnectionStatus = () => {
-    const socket = useSelector(state => state.socket.socket);
-    const readyState = socket?.readyState;
+    const connectionStatus = useSelector(state => state.socket.connectionStatus);
 
     const getStatusDetails = () => {
-        const reconnectAttempts = getReconnectAttempts();
-        const maxAttempts = getMaxReconnectAttempts();
+        const connectionManager = getConnectionManager();
+        const stats = connectionManager.getReconnectStats();
+        const reconnectAttempts = stats.attempts;
 
-        switch (readyState) {
+        switch (connectionStatus) {
             case WebSocket.CONNECTING:
                 return {
                     text:
                         reconnectAttempts > 0
-                            ? `Reconnecting... (${reconnectAttempts}/${maxAttempts})`
+                            ? `Reconnecting... (attempt ${reconnectAttempts})`
                             : "Connecting...",
                     class: "connecting",
                     icon: "•" // Simple dot
@@ -36,10 +36,13 @@ const ConnectionStatus = () => {
                 };
             case WebSocket.CLOSED:
             default: {
-                const isMaxedOut = reconnectAttempts >= maxAttempts;
+                // With new ConnectionManager, there's no hard max - it keeps trying
+                const isReconnecting = reconnectAttempts > 0;
                 return {
-                    text: isMaxedOut ? "Connection lost - Please refresh" : "Disconnected",
-                    class: isMaxedOut ? "max-retries" : "disconnected",
+                    text: isReconnecting
+                        ? `Reconnecting... (attempt ${reconnectAttempts})`
+                        : "Disconnected",
+                    class: "disconnected",
                     icon: <Unplug size={15} />
                 };
             }
