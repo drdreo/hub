@@ -52,7 +52,12 @@ const runExecutor: PromiseExecutor<CloudflareExecutorSchema> = async (
             wranglerArgs.push("--config", config);
         }
 
-        // For PR preview we ask wrangler for a preview via --dry-run (it will output URLs)
+        // For PR previews, use --branch to create a branch-specific preview deployment
+        if (preview) {
+            wranglerArgs.push("--branch", branch);
+        }
+
+        // Dry-run mode validates without deploying
         if (dryRun) {
             wranglerArgs.push("--dry-run");
         }
