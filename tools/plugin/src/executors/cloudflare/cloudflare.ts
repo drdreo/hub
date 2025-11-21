@@ -46,15 +46,16 @@ const runExecutor: PromiseExecutor<CloudflareExecutorSchema> = async (
         }
 
         // Prepare wrangler command
-        const wranglerArgs = ["deploy"];
+        // deploy for prod
+        let wranglerArgs: string[]  = ["deploy"];
+
+        if (preview) {
+            // preview deployments need versions upload
+            wranglerArgs = ["versions", "upload"];
+        }
 
         if (config) {
             wranglerArgs.push("--config", config);
-        }
-
-        // For PR previews, use --branch to create a branch-specific preview deployment
-        if (preview) {
-            wranglerArgs.push("--branch", branch);
         }
 
         // Dry-run mode validates without deploying
