@@ -22,7 +22,11 @@ Sentry.init({
     integrations: [Sentry.browserTracingIntegration()],
     tracesSampleRate: 0.1,
     // Set `tracePropagationTargets` to control for which URLs distributed tracing should be enabled
-    tracePropagationTargets: ["localhost", /^wss:\/\/gameserver-production-23a9\.up\.railway\.app/, /^https:\/\/gameserver-production-23a9\.up\.railway\.app/]
+    tracePropagationTargets: [
+        "localhost",
+        /^wss:\/\/gameserver-production-23a9\.up\.railway\.app/,
+        /^https:\/\/gameserver-production-23a9\.up\.railway\.app/
+    ]
 });
 
 export const history = createBrowserHistory();
