@@ -1,5 +1,5 @@
 import { getSessionData } from "./session";
-import { JOIN_ROOM_ERROR, JOINED_ROOM, RECONNECTED, RESET_RECONNECTED } from "./socket.actions";
+import { JOIN_ROOM_ERROR, JOINED_ROOM, RECONNECTED, RESET_RECONNECTED, ROOM_ERROR } from "./socket.actions";
 
 const initialState = {
     clientId: getSessionData("clientId"),
@@ -7,7 +7,8 @@ const initialState = {
     connectionStatus: WebSocket.CONNECTING,
     reconnected: false,
     joinedRoom: false,
-    joinError: null
+    joinError: null,
+    roomError: null
 };
 
 /**
@@ -37,7 +38,8 @@ const socketReducer = (state = initialState, action) => {
                 joinedRoom: true,
                 clientId: action.data.clientId,
                 roomId: action.data.roomId,
-                joinError: null // Clear any previous errors
+                joinError: null, // Clear any previous errors
+                roomError: null
             };
 
         case JOIN_ROOM_ERROR:
@@ -45,6 +47,12 @@ const socketReducer = (state = initialState, action) => {
                 ...state,
                 joinedRoom: false,
                 joinError: action.error
+            };
+
+        case ROOM_ERROR:
+            return {
+                ...state,
+                roomError: action.error
             };
 
         case RESET_RECONNECTED:
@@ -58,7 +66,8 @@ const socketReducer = (state = initialState, action) => {
                 ...state,
                 reconnected: true,
                 clientId: action.data.clientId,
-                roomId: action.data.roomId
+                roomId: action.data.roomId,
+                roomError: null // Clear room error on successful reconnect
             };
 
         default:

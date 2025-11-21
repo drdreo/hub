@@ -28,6 +28,7 @@ import {
     joinRoomError,
     reconnect,
     reconnected,
+    roomError,
     CONNECTION_HANDSHAKE,
     PLAYER_READY,
     PLAYER_ROLL_DICE,
@@ -172,6 +173,10 @@ function handleIncomingMessage(message, store) {
             handleJoinData(message.data);
             if (message.success) {
                 store.dispatch(reconnected(message.data));
+            } else {
+                // Reconnection failed - room might not exist anymore
+                console.error("Reconnection failed:", message.error);
+                store.dispatch(roomError(message.error || "Failed to reconnect to room"));
             }
             break;
 

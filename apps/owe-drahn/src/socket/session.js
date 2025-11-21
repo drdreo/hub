@@ -1,4 +1,3 @@
-
 export function setSessionData(key, value) {
     if (!value) {
         sessionStorage.removeItem(key);

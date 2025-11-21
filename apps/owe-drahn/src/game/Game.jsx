@@ -13,6 +13,7 @@ import {
     resetReconnected,
     rollDice
 } from "../socket/socket.actions";
+import { gameLeave } from "./game.actions";
 import Feed from "./Feed/Feed";
 import { feedMessage } from "./Feed/feed.actions";
 
@@ -37,18 +38,10 @@ const Game = () => {
     useGameConnection(room);
 
     const settings = useSelector(state => state.settings);
-    const {
-        diceRoll,
-        currentValue,
-        currentTurn,
-        ui_currentValue,
-        ui_players,
-        players,
-        started,
-        over,
-        error
-    } = useSelector(state => state.game);
+    const { diceRoll, currentValue, currentTurn, ui_currentValue, ui_players, players, started, over } =
+        useSelector(state => state.game);
     const reconnected = useSelector(state => state.socket.reconnected);
+    const roomError = useSelector(state => state.socket.roomError);
 
     const [animatingDice, setAnimatingDice] = useState(false);
     const [animatingHeart, setAnimatingHeart] = useState(false);
@@ -67,6 +60,43 @@ const Game = () => {
             dispatch(resetReconnected());
         }
     }, [reconnected, currentValue]);
+
+    // Handle room errors - redirect to home if room no longer exists
+    useEffect(() => {
+        if (roomError) {
+            console.error("Room error detected:", roomError);
+
+            // Show user-friendly message
+            const errorMessage = roomError.includes("not found") || roomError.includes("does not exist")
+                ? "This room no longer exists."
+                : "There was a problem with the room.";
+
+            alert(`${errorMessage}\n\nYou will be redirected to the lobby.`);
+
+            // Clean up and go home
+            dispatch(gameLeave());
+            navigate("/");
+        }
+    }, [roomError, dispatch, navigate]);
+
+    // Detect if room became empty or invalid
+    useEffect(() => {
+        // If game started but all players left (shouldn't happen normally)
+        if (started && players.length === 0) {
+            console.warn("Game started but no players remain - room may be invalid");
+
+            // Give a grace period in case it's a temporary state during reconnection
+            const timeout = setTimeout(() => {
+                if (players.length === 0) {
+                    alert("All players have left the game.\n\nYou will be redirected to the lobby.");
+                    dispatch(gameLeave());
+                    navigate("/");
+                }
+            }, 3000); // 3 second grace period
+
+            return () => clearTimeout(timeout);
+        }
+    }, [started, players.length, dispatch, navigate]);
 
     const getPlayer = () => {
         return players.find(player => player.id === clientId);

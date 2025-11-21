@@ -7,6 +7,7 @@ export const GET_ROOM_LIST = "GET_ROOM_LIST";
 export const JOIN_ROOM = "JOIN_ROOM";
 export const JOINED_ROOM = "JOINED_ROOM";
 export const JOIN_ROOM_ERROR = "JOIN_ROOM_ERROR";
+export const ROOM_ERROR = "ROOM_ERROR";
 export const RECONNECT = "RECONNECT";
 export const RESET_RECONNECTED = "RESET_RECONNECTED";
 export const RECONNECTED = "RECONNECTED";
@@ -79,9 +80,16 @@ export const joinedRoom = ({ clientId, roomId }) => {
     };
 };
 
-export const joinRoomError = error => {
+export const joinRoomError = (error) => {
     return {
         type: JOIN_ROOM_ERROR,
+        error
+    };
+};
+
+export const roomError = (error) => {
+    return {
+        type: ROOM_ERROR,
         error
     };
 };
