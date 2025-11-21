@@ -131,10 +131,12 @@ func initObservability() func() {
 	}
 
 	err := sentry.Init(sentry.ClientOptions{
-		Dsn:            dsn,
-		Debug:          false,
-		Environment:    "production",
-		SendDefaultPII: true,
+		Dsn:              dsn,
+		Debug:            false,
+		Environment:      "production",
+		SendDefaultPII:   true,
+		EnableTracing:    true,
+		TracesSampleRate: 0.1,
 	})
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to init sentry")
