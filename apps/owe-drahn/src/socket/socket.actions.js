@@ -80,14 +80,14 @@ export const joinedRoom = ({ clientId, roomId }) => {
     };
 };
 
-export const joinRoomError = (error) => {
+export const joinRoomError = error => {
     return {
         type: JOIN_ROOM_ERROR,
         error
     };
 };
 
-export const roomError = (error) => {
+export const roomError = error => {
     return {
         type: ROOM_ERROR,
         error

@@ -1,5 +1,11 @@
 import { getSessionData } from "./session";
-import { JOIN_ROOM_ERROR, JOINED_ROOM, RECONNECTED, RESET_RECONNECTED, ROOM_ERROR } from "./socket.actions";
+import {
+    JOIN_ROOM_ERROR,
+    JOINED_ROOM,
+    RECONNECTED,
+    RESET_RECONNECTED,
+    ROOM_ERROR
+} from "./socket.actions";
 
 const initialState = {
     clientId: getSessionData("clientId"),

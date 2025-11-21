@@ -67,9 +67,10 @@ const Game = () => {
             console.error("Room error detected:", roomError);
 
             // Show user-friendly message
-            const errorMessage = roomError.includes("not found") || roomError.includes("does not exist")
-                ? "This room no longer exists."
-                : "There was a problem with the room.";
+            const errorMessage =
+                roomError.includes("not found") || roomError.includes("does not exist")
+                    ? "This room no longer exists."
+                    : "There was a problem with the room.";
 
             alert(`${errorMessage}\n\nYou will be redirected to the lobby.`);
 
