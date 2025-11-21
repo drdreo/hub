@@ -1,18 +1,24 @@
 import React from "react";
 import { Signal, Unplug } from "lucide-react";
 import { useSelector } from "react-redux";
+import { getReconnectAttempts, getMaxReconnectAttempts } from "../../socket/websocket";
 import "./ConnectionStatus.scss";
 
 const ConnectionStatus = () => {
     const socket = useSelector(state => state.socket.socket);
-    const connectionStatus = useSelector(state => state.socket.connectionStatus);
     const readyState = socket?.readyState;
-    console.log({ readyState, connectionStatus });
+
     const getStatusDetails = () => {
+        const reconnectAttempts = getReconnectAttempts();
+        const maxAttempts = getMaxReconnectAttempts();
+
         switch (readyState) {
             case WebSocket.CONNECTING:
                 return {
-                    text: "Connecting...",
+                    text:
+                        reconnectAttempts > 0
+                            ? `Reconnecting... (${reconnectAttempts}/${maxAttempts})`
+                            : "Connecting...",
                     class: "connecting",
                     icon: "•" // Simple dot
                 };
@@ -29,12 +35,14 @@ const ConnectionStatus = () => {
                     icon: "•" // Simple dot
                 };
             case WebSocket.CLOSED:
-            default:
+            default: {
+                const isMaxedOut = reconnectAttempts >= maxAttempts;
                 return {
-                    text: "Disconnected",
-                    class: "disconnected",
+                    text: isMaxedOut ? "Connection lost - Please refresh" : "Disconnected",
+                    class: isMaxedOut ? "max-retries" : "disconnected",
                     icon: <Unplug size={15} />
                 };
+            }
         }
     };
 

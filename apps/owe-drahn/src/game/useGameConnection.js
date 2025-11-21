@@ -5,13 +5,10 @@ import { handshake } from "../socket/socket.actions.js";
 export const useGameConnection = room => {
     const dispatch = useDispatch();
     const authUser = useSelector(state => state.auth.authUser); // Redux hook for state
-    const clientId = useSelector(state => state.socket.clientId);
 
     useEffect(() => {
-        // Initialize socket listeners
-        // Perform handshake
+        // Perform auth user handshake, if not logged in, still handshake
         const uid = authUser?.uid;
-        dispatch(handshake(room, uid));
-        // dispatch(reconnect(clientId, room));
-    }, [room, authUser, clientId, dispatch]);
+        dispatch(handshake(uid));
+    }, [authUser?.uid]);
 };

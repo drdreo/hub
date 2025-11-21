@@ -10,9 +10,6 @@
             "path": "./apps/owe-drahn"
         },
         {
-            "path": "./apps/owe-drahn-api"
-        },
-        {
             "path": "./apps/tell-it-api"
         },
         {

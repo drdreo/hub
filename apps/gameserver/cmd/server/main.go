@@ -70,8 +70,8 @@ func main() {
 
 	log.Info().Str("env.STAGE", os.Getenv("STAGE")).Str("stage", string(stage)).Msg("checking environment")
 
-	// Initialize the global session store with 5 minute expiry
-	session.InitGlobalStore(300)
+	// Initialize the global session store with 15 minute expiry
+	session.InitGlobalStore(900)
 
 	gameRegistry := game.NewRegistry()
 	clientManager := client.NewManager()

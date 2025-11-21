@@ -15,10 +15,37 @@ import {
 
 import { connectWebSocket, getWebSocket } from "./websocket";
 
+// Helper to get session data with localStorage fallback
+const getSessionData = (key) => {
+    let value = sessionStorage.getItem(key);
+
+    if (!value) {
+        // Try localStorage backup (but only if recent - within 15 minutes)
+        const timestamp = localStorage.getItem(`${key}_timestamp`);
+        const age = Date.now() - parseInt(timestamp || "0");
+        const FIFTEEN_MINUTES = 15 * 60 * 1000;
+
+        if (age < FIFTEEN_MINUTES) {
+            value = localStorage.getItem(`${key}_backup`);
+            if (value) {
+                // Restore to sessionStorage
+                sessionStorage.setItem(key, value);
+                console.log(`Restored ${key} from localStorage backup`);
+            }
+        } else if (timestamp) {
+            // Clear old localStorage data
+            localStorage.removeItem(`${key}_backup`);
+            localStorage.removeItem(`${key}_timestamp`);
+        }
+    }
+
+    return value;
+};
+
 const initialState = {
     socket: connectWebSocket(),
-    clientId: sessionStorage.getItem("clientId"),
-    roomId: sessionStorage.getItem("roomId"),
+    clientId: getSessionData("clientId"),
+    roomId: getSessionData("roomId"),
     connectionStatus: WebSocket.CLOSED
 };
 
@@ -49,10 +76,20 @@ const socketReducer = (state = initialState, action) => {
             };
         case "GAME_LEAVE":
             sendMessage(socket, "leave_room");
-            return state;
+            // Clear session data when leaving room
+            sessionStorage.removeItem("clientId");
+            sessionStorage.removeItem("roomId");
+            localStorage.removeItem("clientId_backup");
+            localStorage.removeItem("roomId_backup");
+            localStorage.removeItem("clientId_timestamp");
+            return {
+                ...state,
+                clientId: null,
+                roomId: null,
+                reconnected: false
+            };
         case CONNECTION_HANDSHAKE:
             sendMessage(socket, eventMap[CONNECTION_HANDSHAKE], {
-                clientId: sessionStorage.getItem("clientId"),
                 room: action.data.room,
                 uid: action.data.uid
             });

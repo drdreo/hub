@@ -201,6 +201,10 @@ func (r *Router) handleLeaveRoom(client interfaces.Client) {
 	room.Leave(client)
 	client.SetRoom(nil)
 
+	// Clear session since player explicitly left
+	sessionStore := session.GetSessionStore()
+	sessionStore.RemoveSession(client.ID())
+
 	log.Info().Str("clientId", client.ID()).Str("roomID", roomID).Msg("client left room")
 
 	client.Send(protocol.NewSuccessResponse("leave_room_result", nil))

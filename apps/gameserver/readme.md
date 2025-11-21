@@ -42,8 +42,8 @@ Client can send these events to the server (standard request messages). All mess
     -   Success/Error Response: `game_action_result`
     -   Note: You do NOT have to use `game_action`; any other `type` sent while in a room is forwarded directly to the game's handler.
     -   Direct Game Actions (Forwarded without wrapper)
-        - Examples (TicTacToe): `make_move`, `restart_game`
-        - Response: Game typically emits updated `game_state` or specific events; errors come back as `error` messages.
+        -   Examples (TicTacToe): `make_move`, `restart_game`
+        -   Response: Game typically emits updated `game_state` or specific events; errors come back as `error` messages.
 -   `add_bot`
     -   Purpose: Add a bot player to the current room (if supported by the game).
     -   Payload: `{}`
