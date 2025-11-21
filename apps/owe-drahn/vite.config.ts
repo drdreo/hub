@@ -4,9 +4,11 @@ import react from "@vitejs/plugin-react-swc";
 import { defineConfig } from "vitest/config";
 import { ViteImageOptimizer } from "vite-plugin-image-optimizer";
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
     root: __dirname,
     cacheDir: "../../node_modules/.vite/apps/owe-drahn",
+    mode,
+    envDir: __dirname,
     server: {
         port: 4200,
         host: true
@@ -50,4 +52,4 @@ export default defineConfig({
             provider: "v8"
         }
     }
-});
+}));

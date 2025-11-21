@@ -29,10 +29,14 @@
                     "config": "apps/owe-drahn/wrangler.jsonc"
                 },
                 "configurations": {
+                    "development": {
+                        "buildTarget": "owe-drahn:build:development"
+                    },
                     "production": {
                         "buildTarget": "owe-drahn:build:production"
                     }
-                }
+                },
+                "defaultConfiguration": "production"
             },
             "deploy_old": {
                 "executor": "nx:run-commands",
