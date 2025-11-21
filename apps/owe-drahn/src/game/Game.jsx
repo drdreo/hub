@@ -33,9 +33,8 @@ const MIN_VAL_TO_OWE_DRAHN = 10;
 const Game = () => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
-    const { room } = useParams();
     const clientId = useSelector(state => state.socket.clientId);
-    useGameConnection(room);
+    useGameConnection();
 
     const settings = useSelector(state => state.settings);
     const { diceRoll, currentValue, currentTurn, ui_currentValue, ui_players, players, started, over } =
@@ -59,7 +58,7 @@ const Game = () => {
             dispatch(patchUIState({ currentValue }));
             dispatch(resetReconnected());
         }
-    }, [reconnected, currentValue]);
+    }, [reconnected, currentValue, dispatch]);
 
     // Handle room errors - redirect to home if room no longer exists
     useEffect(() => {

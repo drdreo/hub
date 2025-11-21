@@ -35,7 +35,9 @@ const socketReducer = (state = initialState, action) => {
                 clientId: null,
                 roomId: null,
                 reconnected: false,
-                joinedRoom: false
+                joinedRoom: false,
+                joinError: null,
+                roomError: null
             };
 
         case JOINED_ROOM:

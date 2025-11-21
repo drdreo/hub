@@ -22,21 +22,21 @@ import { gameOverview } from "../home/home.actions.js";
 import { getConnectionManager } from "./ConnectionManager";
 import { setSessionData } from "./session";
 import {
+    CONNECTION_HANDSHAKE,
     connectionStatus,
     eventMap,
-    joinedRoom,
-    joinRoomError,
-    reconnect,
-    reconnected,
-    roomError,
-    CONNECTION_HANDSHAKE,
-    PLAYER_READY,
-    PLAYER_ROLL_DICE,
-    PLAYER_LOSE_LIFE,
-    PLAYER_CHOOSE_NEXT,
     GET_ROOM_LIST,
     JOIN_ROOM,
-    RECONNECT
+    joinedRoom,
+    joinRoomError,
+    PLAYER_CHOOSE_NEXT,
+    PLAYER_LOSE_LIFE,
+    PLAYER_READY,
+    PLAYER_ROLL_DICE,
+    reconnect,
+    RECONNECT,
+    reconnected,
+    roomError
 } from "./socket.actions";
 
 function handleJoinData(data) {
@@ -110,7 +110,6 @@ export function createSocketMiddleware() {
 
                 case CONNECTION_HANDSHAKE:
                     connectionManager.send(eventMap[CONNECTION_HANDSHAKE], {
-                        room: action.data.room,
                         uid: action.data.uid
                     });
                     break;
@@ -222,7 +221,7 @@ function handleIncomingMessage(message, store) {
             break;
 
         case "gameStarted":
-            store.dispatch(gameStarted(message.data));
+            store.dispatch(gameStarted());
             break;
 
         case "game_state":
