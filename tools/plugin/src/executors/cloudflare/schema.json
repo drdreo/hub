@@ -1,0 +1,28 @@
+{
+    "$schema": "https://json-schema.org/schema",
+    "version": 2,
+    "title": "Cloudflare executor",
+    "description": "Deploy to Cloudflare using Wrangler",
+    "type": "object",
+    "properties": {
+        "buildTarget": {
+            "type": "string",
+            "description": "The target to build before deploying (e.g., 'client:build:production')"
+        },
+        "config": {
+            "type": "string",
+            "description": "Path to wrangler config file",
+            "default": "wrangler.jsonc"
+        },
+        "dryRun": {
+            "type": "boolean",
+            "description": "Run wrangler deploy in dry-run mode",
+            "default": false
+        },
+        "env": {
+            "type": "string",
+            "description": "Environment to deploy to (corresponds to wrangler environment)"
+        }
+    },
+    "required": []
+}
