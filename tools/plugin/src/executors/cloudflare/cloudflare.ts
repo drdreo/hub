@@ -5,7 +5,8 @@ import {
     getCurrentBranch,
     isMainBranch,
     shouldPreviewDeploy,
-    computeEffectiveDryRun
+    computeEffectiveDryRun,
+    sanitizeBranchForAlias
 } from "../../lib/branch.ts";
 
 const runExecutor: PromiseExecutor<CloudflareExecutorSchema> = async (
@@ -52,6 +53,11 @@ const runExecutor: PromiseExecutor<CloudflareExecutorSchema> = async (
         if (preview) {
             // preview deployments need versions upload
             wranglerArgs = ["versions", "upload"];
+
+            // Add alias for nice branch name preview
+            const alias = sanitizeBranchForAlias(branch);
+            wranglerArgs.push("--preview-alias", alias);
+            console.log(`\n📎 Preview will be aliased as: ${alias}`);
         }
 
         if (config) {

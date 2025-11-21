@@ -44,3 +44,16 @@ export function computeEffectiveDryRun(
     }
     return false;
 }
+
+/**
+ * Sanitize branch name to be valid for Cloudflare alias.
+ * Removes invalid characters and ensures it meets Cloudflare requirements.
+ */
+export function sanitizeBranchForAlias(branch: string): string {
+    return branch
+        .toLowerCase()
+        .replace(/[^a-z0-9-]/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "")
+        .slice(0, 63); // Cloudflare alias max length
+}
