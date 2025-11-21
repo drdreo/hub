@@ -31,7 +31,9 @@ const composeEnhancers =
 
 // Create socket middleware and apply all middleware
 const socketMiddleware = createSocketMiddleware();
-const enhancer = composeEnhancers(applyMiddleware(settingsMiddleware, feedMiddleware, socketMiddleware));
+const enhancer = composeEnhancers(
+    applyMiddleware(settingsMiddleware, feedMiddleware, socketMiddleware)
+);
 
 const store = createStore(createRootReducer(history), enhancer);
 

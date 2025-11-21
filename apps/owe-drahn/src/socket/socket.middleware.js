@@ -60,12 +60,12 @@ export function createSocketMiddleware() {
 
     return store => {
         // Setup connection manager event listeners
-        connectionManager.on('statusChange', (status) => {
+        connectionManager.on("statusChange", status => {
             store.dispatch(connectionStatus(status));
         });
 
-        connectionManager.on('open', () => {
-            console.log('Socket connection opened');
+        connectionManager.on("open", () => {
+            console.log("Socket connection opened");
             const state = store.getState();
 
             // Only attempt reconnection if we have stored session data
@@ -81,7 +81,7 @@ export function createSocketMiddleware() {
             }
         });
 
-        connectionManager.on('message', (event) => {
+        connectionManager.on("message", event => {
             try {
                 const messages = JSON.parse(event.data);
                 console.log("Received messages:", messages);
@@ -95,7 +95,6 @@ export function createSocketMiddleware() {
                 console.error("Error parsing WebSocket message:", error, event.data);
             }
         });
-
 
         return next => action => {
             switch (action.type) {
@@ -181,10 +180,7 @@ function handleIncomingMessage(message, store) {
             if (message.success) {
                 // Format the data to match the expected overview format
                 const overviewData = {
-                    totalPlayers: message.data.reduce(
-                        (sum, { playerCount }) => sum + playerCount,
-                        0
-                    ),
+                    totalPlayers: message.data.reduce((sum, { playerCount }) => sum + playerCount, 0),
                     rooms: message.data.map(({ roomId, started }) => ({
                         room: roomId,
                         started
@@ -242,9 +238,7 @@ function handleIncomingMessage(message, store) {
 
         case "lostLife":
             store.dispatch(lostLife());
-            store.dispatch(
-                feedMessage({ type: "LOST_LIFE", username: message.data.player.username })
-            );
+            store.dispatch(feedMessage({ type: "LOST_LIFE", username: message.data.player.username }));
             break;
 
         default:
@@ -253,4 +247,3 @@ function handleIncomingMessage(message, store) {
 }
 
 export default createSocketMiddleware;
-
