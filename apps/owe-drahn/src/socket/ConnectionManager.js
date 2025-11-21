@@ -53,13 +53,14 @@ class ConnectionManager {
      * Dynamically determine server URL
      */
     _getServerUrl() {
-        if (import.meta.env.VITE_DOMAIN && window.location.hostname === "localhost") {
-            return import.meta.env.VITE_DOMAIN;
+        if (window.location.hostname === "localhost") {
+            const protocol = window.location.protocol;
+            const hostname = window.location.hostname;
+            const port = "6969";
+            return `${protocol}//${hostname}:${port}`;
         }
-        const protocol = window.location.protocol;
-        const hostname = window.location.hostname;
-        const port = "6969";
-        return `${protocol}//${hostname}:${port}`;
+
+        return import.meta.env.VITE_GAMESERVER_URL;
     }
 
     /**
