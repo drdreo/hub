@@ -25,13 +25,10 @@
             "deploy": {
                 "executor": "@hub/plugin:cloudflare",
                 "options": {
-                    "buildTarget": "owe-drahn:build:production",
                     "config": "apps/owe-drahn/wrangler.jsonc"
                 },
                 "configurations": {
-                    "production": {
-                        "buildTarget": "owe-drahn:build:production"
-                    }
+                    "production": {}
                 }
             },
             "deploy_old": {

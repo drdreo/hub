@@ -28,13 +28,19 @@ export function shouldPreviewDeploy(branch = getCurrentBranch()): boolean {
     return isPullRequest() && !isMainBranch(branch);
 }
 
-/** Effective dry-run: explicit dryRun option OR preview (PR) OR non-main branch. */
 export function computeEffectiveDryRun(
     explicitDryRun: boolean | undefined,
     branch = getCurrentBranch()
 ): boolean {
-    if (explicitDryRun) return true;
-    if (shouldPreviewDeploy(branch)) return true;
-    if (!isMainBranch(branch)) return true; // safeguard: never push from non-main
+    if (explicitDryRun) {
+        return true;
+    }
+    if (shouldPreviewDeploy(branch)) {
+        return false;
+    }
+    // safeguard: never push from non-main
+    if (!isMainBranch(branch)) {
+        return true;
+    }
     return false;
 }
