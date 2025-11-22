@@ -46,9 +46,16 @@ func (s *Story) GetStats() models.StoryStats {
 	}
 }
 
-func (s *Story) ToDTO(author string) models.StoryDTO {
+func (s *Story) ToDTO(author string, includeAll bool) models.StoryDTO {
+	text := ""
+	if includeAll {
+		text = s.Serialize()
+	} else {
+		text = s.GetLatestText()
+	}
+
 	return models.StoryDTO{
-		Text:   s.Serialize(),
+		Text:   text,
 		Author: author,
 		Stats:  s.GetStats(),
 	}

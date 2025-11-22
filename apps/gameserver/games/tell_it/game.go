@@ -177,7 +177,7 @@ func (g *Game) GetStories(state *GameState) []models.StoryDTO {
 			author = user.Name
 		}
 
-		stories = append(stories, story.ToDTO(author))
+		stories = append(stories, story.ToDTO(author, true))
 	}
 	return stories
 }
@@ -276,7 +276,7 @@ func (g *Game) SendStoryUpdate(userID string, state *GameState, room interfaces.
 			author = authorUser.Name
 		}
 
-		storyData = story.ToDTO(author)
+		storyData = story.ToDTO(author, false)
 		msg := protocol.NewSuccessResponse("story_update", storyData)
 		room.SendTo(msg, userID)
 	}
