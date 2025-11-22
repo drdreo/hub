@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, signInWithPopup, getAdditionalUserInfo } from "firebase/auth";
-import { collection, doc, getDoc, getFirestore, onSnapshot } from "firebase/firestore";
+import { collection, doc, getDoc, setDoc, getFirestore, onSnapshot } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
 
 const env = import.meta.env;
@@ -84,6 +84,7 @@ class Firebase {
 
     user = uid => doc(this.firestore, "users", uid);
     users = () => collection(this.firestore, "users");
+    userSet = (uid, data) => setDoc(this.user(uid), data, { merge: true });
 
     // *** Message API ***
 

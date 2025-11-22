@@ -18,52 +18,99 @@
 
 ### Client Events
 
-Client can send these events to the server:
+Client can send these events to the server (standard request messages). All messages use the envelope `{ type: string, data?: any }`.
 
--   `join_room`: Joins an existing room by ID
-    -   Payload: `{ gameType: string, roomId?: string, playerName: string, options?: any}`
-    -   Response: `join_room_result`
--   `leave_room`: Explicitly leave the current room
+-   `join_room`
+    -   Purpose: Join an existing room or create one if `roomId` is omitted or not found.
+    -   Payload (`data`): `{ gameType: string, roomId?: string, playerName: string, options?: any }`
+    -   Success Response: `join_room_result` with data `{ clientId: string, roomId: string }`
+    -   Error Response: `join_room_result` with `success: false` and `error` message
+    -   Special Case: If already in a room and you send `join_room`, the server returns a `reconnect_result` success instead (auto treat as reconnect) containing `{ clientId, roomId }`.
+-   `leave_room`
+    -   Purpose: Leave the current room.
+    -   Payload: `{}` (no data needed)
+    -   Success Response: `leave_room_result` with `data: null`
+    -   Error Response: `leave_room_result` with `error` if not in a room
+-   `reconnect`
+    -   Purpose: Re-associate a new socket with a previous session.
+    -   Payload: `{ clientId: string, roomId?: string }`
+    -   Success Response: `reconnect_result` with data `{ clientId: string, roomId: string, gameType: string }`
+    -   Error Response: `reconnect_result` with `error` (invalid session, room not found, etc.)
+-   `game_action`
+    -   Purpose: Generic wrapper to send a game-specific action payload (the game sees `type = game_action`).
+    -   Payload: Game-defined JSON
+    -   Success/Error Response: `game_action_result`
+    -   Note: You do NOT have to use `game_action`; any other `type` sent while in a room is forwarded directly to the game's handler.
+    -   Direct Game Actions (Forwarded without wrapper)
+        -   Examples (TicTacToe): `make_move`, `restart_game`
+        -   Response: Game typically emits updated `game_state` or specific events; errors come back as `error` messages.
+-   `add_bot`
+    -   Purpose: Add a bot player to the current room (if supported by the game).
     -   Payload: `{}`
-    -   Response: `leave_room_result`
--   `reconnect`: Attempt to reconnect to a previously joined room
-    -   Payload: `{ roomId?: string, clientId: string }`
-    -   Response: `reconnect_result`
--   `game_action`: Generic wrapper for game-specific actions (like `make_move`)
-    -   Payload: Varies by game
-    -   Response: `game_action_result`
-    -   not required to stick to `game_action`, any message will be routed to the game
+    -   Success Response: `add_bot_result` (data is `null`)
+    -   Error Response: `add_bot_result` with `error`
+-   `get_room_list`
+    -   Purpose: Request current list of rooms for a given game type.
+    -   Payload: `{ gameType: string }`
+    -   Success Response: `room_list_update` (see below) immediately for requester
+    -   Error Response: `get_room_list_result` with `error`
+-   Other / Unknown Types
+    -   If the client is in a room, unknown types are passed to the game's `HandleMessage`; if not in a room, you get `error`.
 
 ### Server Events
 
 Server sends these events to clients:
 
--   `welcome`: Initial connection established
--   `join_room_result`: Result when joining a room
-    -   Data: `{ roomId: string, gameType: string, clients: number }`
--   `leave_room_result`: Result when leaving a room
-    -   Data: `{ roomId: string }`
--   `reconnect_result`: Result of reconnection attempt
-    -   Data: `{ gameType: string, roomId: string }`
--   `client_joined`: Notification when another client joins the room
-    -   Data: `{ clientId: string }`
--   `client_left`: Notification when another client leaves the room
-    -   Data: `{ clientId: string }`
--   `room_closed`: Notification when a room is closed
-    -   Data: `{ roomId: string }`
--   `room_list_update`: Notification when the game specific room list changed
-    -   Data: `Array<{ roomId: string, playerCount: number, started: boolean }>`
+-   `welcome`
+    -   Sent on initial WebSocket connection (before joining a room)
+    -   Data: `{ message: string }`
+-   `join_room_result`
+    -   Data (success): `{ clientId: string, roomId: string }`
+    -   Data (error): `error` string
+-   `leave_room_result`
+    -   Data (success): `null`
+    -   Data (error): `error` string
+-   `reconnect_result`
+    -   Data (success): `{ clientId: string, roomId: string, gameType: string }`
+    -   Data (error): `error` string
+    -   Note: When using `join_room` while already in a room, a success `reconnect_result` (without `gameType`) is returned to facilitate seamless UX.
+-   `client_joined`
+    -   Data: `{ clientId: string }` (broadcast to other clients when someone joins)
+-   `client_left`
+    -   Data: `{ clientId: string }` (broadcast when someone leaves)
+-   `room_closed`
+    -   Data: `{ roomId: string }` (broadcast when room is closed)
+-   `room_list_update`
+    -   Data: `Array<{ roomId: string, playerCount: number, started: boolean }>` (pushed on changes and on `get_room_list` success)
+-   `add_bot_result`
+    -   Data (success): `null`
+    -   Data (error): `error` string
+-   `get_room_list_result`
+    -   Only sent on error for the `get_room_list` client action with `error` message (success uses `room_list_update`).
+-   `error`
+    -   Data: `{ success: false, error: string }` (generic validation & unknown message errors)
 
-### Game-Specific Events
+### Game-Specific Events (Optional / Per-Game)
 
-Each game can implement these events to handle extra data synchronization:
+Each game may define additional events; not all games emit the same ones. For example:
 
--   `joined`: Successfully joined a game room
-    -   Data: `{ clientId: string, roomId: string, symbol: string, ... }`
--   `reconnected`: Successfully reconnected to a game room
-    -   Data: `{ clientId: string, roomId: string, symbol: string, ... }`
--   `game_state`: Current state of the game (sent after every state change)
-    -   Data: `{ board: any, players: object, currentTurn: string, ... }`
+-   TicTacToe:
+    -   `joined`: `{ clientId, symbol, roomId }` (sent only to the joining client)
+    -   `reconnected`: `{ clientId, symbol, roomId }` (sent only to the reconnecting client)
+    -   `game_state`: Full board & player state `{ board, players, currentTurn, winner, gameOver, drawGame }` (after each change)
+-   DiceGame:
+    -   `game_state`: `{ players, dice, selectedDice, setAside, started, currentTurn, winner, targetScore, ... }`
+    -   `busted`: `{ clientId, name }` (after a player busts a roll; may be delayed for animation)
+
+### Response Format
+
+All server responses share a common shape:
+
+```
+{ type: string, success: boolean, error?: string, data?: any }
+```
+
+Use `success` to drive optimistic UI updates; if `success` is false check `error`.
 
 ## Implementation Tips
 

@@ -5,6 +5,10 @@ export const feedMiddleware = store => next => action => {
         store.dispatch(feedMessage({ type: "GAME_OVER", winner: action.payload }));
     }
 
+    if (action.type === "PLAYER_JOINED") {
+        store.dispatch(feedMessage({ type: "PLAYER_JOINED", username: action.payload }));
+    }
+
     if (action.type === "PLAYER_LEFT") {
         store.dispatch(feedMessage({ type: "PLAYER_LEFT", username: action.payload }));
     }

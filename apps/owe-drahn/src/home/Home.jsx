@@ -5,7 +5,6 @@ import { useFirebase } from "../auth/Firebase"; // Custom hook for Firebase cont
 import SignInGoogle from "../auth/SignIn/SignIn";
 import { gameLeave } from "../game/game.actions";
 import { getRoomList, joinRoom } from "../socket/socket.actions";
-import { getWebSocket } from "../socket/websocket";
 import { debounce } from "../utils/helpers";
 
 import "./Home.scss";
@@ -17,17 +16,23 @@ const Home = () => {
     const overview = useSelector(state => state.home.overview);
     const [formError, setFormError] = useState("");
     const reconnected = useSelector(state => state.socket.reconnected);
+    const joinedRoom = useSelector(state => state.socket.joinedRoom);
+    const roomId = useSelector(state => state.socket.roomId);
+    const connectionStatus = useSelector(state => state.socket.connectionStatus);
+    const joinError = useSelector(state => state.socket.joinError);
 
     const navigate = useNavigate();
     const firebase = useFirebase();
     const authUser = useSelector(state => state.auth.authUser);
     const dispatch = useDispatch();
 
+    // Request room list when connection is established
     useEffect(() => {
-        console.log("Home mounted");
-        dispatch(getRoomList());
-        // dispatch(gameLeave());
-    }, [dispatch]);
+        if (connectionStatus === WebSocket.OPEN) {
+            console.log("Connection ready, requesting room list");
+            dispatch(getRoomList());
+        }
+    }, [connectionStatus, dispatch]);
 
     useEffect(() => {
         if (authUser && authUser.username !== username && !usernameSetFromDB) {
@@ -38,28 +43,37 @@ const Home = () => {
         }
     }, [authUser, usernameSetFromDB, username]);
 
+    // Handle reconnection - offer to rejoin existing game
     useEffect(() => {
-        if (reconnected) {
-            const roomId = sessionStorage.getItem("roomId");
-            if (roomId) {
-                // show notification and offer to rejoin game
-                const shouldRejoin = window.confirm(
-                    `Game still in progress. Rejoin '${roomId}'? Cancel to leave room`
-                );
-                if (shouldRejoin) {
-                    navigate(`/game/${roomId}`);
-                } else {
-                    dispatch(gameLeave());
-                }
+        if (reconnected && roomId) {
+            const shouldRejoin = window.confirm(
+                `Game still in progress. Rejoin '${roomId}'? Cancel to leave room`
+            );
+            if (shouldRejoin) {
+                navigate(`/game/${roomId}`);
             } else {
-                console.warn("No roomId found in sessionStorage after reconnection.");
+                dispatch(gameLeave());
             }
         }
-    }, [reconnected, navigate]);
+    }, [reconnected, roomId, navigate, dispatch]);
 
-    const updateRoom = room => {
-        setRoom(room);
-    };
+    // Navigate to game when successfully joined
+    useEffect(() => {
+        if (joinedRoom && roomId) {
+            console.log("Successfully joined room:", roomId);
+            navigate(`/game/${roomId}`);
+        }
+    }, [joinedRoom, roomId, navigate]);
+
+    useEffect(() => {
+        if (joinError) {
+            let errMsg = joinError;
+            if (joinError.includes("has started")) {
+                errMsg = `Game "${room}" has already started!`;
+            }
+            setFormError(errMsg);
+        }
+    }, [joinError, room]);
 
     const updateUsername = evt => {
         const newUsername = evt.target.value;
@@ -78,39 +92,12 @@ const Home = () => {
         if (started) {
             navigate(`/game/${room}`);
         } else {
-            updateRoom(room);
+            setRoom(room);
         }
     };
 
     const joinGame = () => {
-        // Set up socket listener for join_room_result
-        const socket = getWebSocket();
-
-        // Create a one-time event listener for the join_room_result
-        const messageHandler = event => {
-            const messages = JSON.parse(event.data);
-            messages.forEach(message => {
-                if (message.type === "join_room_result") {
-                    // Remove this listener since we only need it once
-                    socket.removeEventListener("message", messageHandler);
-
-                    if (message.success) {
-                        const { clientId, roomId } = message.data;
-                        sessionStorage.setItem("playerId", clientId);
-                        navigate(`/game/${roomId}`);
-                    } else {
-                        let errMsg = message.error || "Failed to join game";
-                        if (message.error?.includes("has started")) {
-                            errMsg = `Game "${room}" has already started!`;
-                        }
-                        setFormError(errMsg);
-                    }
-                }
-            });
-        };
-
-        socket.addEventListener("message", messageHandler);
-
+        setFormError(""); // Clear any previous errors
         dispatch(joinRoom(room, username));
     };
 
@@ -160,7 +147,7 @@ const Home = () => {
                 <input
                     className="input room"
                     value={room}
-                    onChange={evt => updateRoom(evt.target.value)}
+                    onChange={evt => setRoom(evt.target.value)}
                     placeholder="Room"
                 />
                 <button
