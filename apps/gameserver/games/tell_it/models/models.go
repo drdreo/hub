@@ -34,6 +34,13 @@ type DBStory struct {
 
 // StoryDTO represents a story with author information
 type StoryDTO struct {
-	Text   string `json:"text"`
-	Author string `json:"author"`
+	Text   string     `json:"text"`
+	Author string     `json:"author"`
+	Stats  StoryStats `json:"stats"`
+}
+
+type StoryStats struct {
+	AvgReadingTime float64 `json:"avgReadingTime"` // average story reading time in seconds, calculation: (words / 200) * 60
+	Words          int     `json:"words"`
+	Turns          int     `json:"turns"`
 }

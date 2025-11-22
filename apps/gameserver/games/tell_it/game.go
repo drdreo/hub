@@ -177,10 +177,7 @@ func (g *Game) GetStories(state *GameState) []models.StoryDTO {
 			author = user.Name
 		}
 
-		stories = append(stories, models.StoryDTO{
-			Text:   story.Serialize(),
-			Author: author,
-		})
+		stories = append(stories, story.ToDTO(author))
 	}
 	return stories
 }
@@ -264,14 +261,13 @@ func (g *Game) SendStoryUpdate(userID string, state *GameState, room interfaces.
 	// Don't send story updates to users who haven't submitted yet
 	if !g.isUserStoryOwner(userID, state) {
 		log.Debug().Str("userId ", userID).Any("stories", state.Stories).Msg("send story update user is no owner")
-
 		return
 	}
 
-	var storyData *models.StoryDTO
+	var storyData models.StoryDTO
 
 	story := user.GetCurrentStory()
-	log.Debug().Any("story", story).Msg("Sending story update")
+	log.Debug().Any("story", story).Msg("sending story update")
 
 	if story != nil {
 		// Find the author name
@@ -280,14 +276,10 @@ func (g *Game) SendStoryUpdate(userID string, state *GameState, room interfaces.
 			author = authorUser.Name
 		}
 
-		storyData = &models.StoryDTO{
-			Text:   story.GetLatestText(),
-			Author: author,
-		}
+		storyData = story.ToDTO(author)
+		msg := protocol.NewSuccessResponse("story_update", storyData)
+		room.SendTo(msg, userID)
 	}
-
-	msg := protocol.NewSuccessResponse("story_update", storyData)
-	room.SendTo(msg, userID)
 }
 
 func (g *Game) SendUsersUpdate(state *GameState, room interfaces.Room) {

@@ -1,6 +1,9 @@
 package tell_it
 
-import "strings"
+import (
+	"gameserver/games/tell_it/models"
+	"strings"
+)
 
 type Story struct {
 	ID      string   `json:"id"`
@@ -28,4 +31,30 @@ func (s *Story) GetLatestText() string {
 
 func (s *Story) Serialize() string {
 	return strings.Join(s.Texts, ". ")
+}
+
+func (s *Story) GetStats() models.StoryStats {
+	words := 0
+	for _, text := range s.Texts {
+		words += len(strings.Fields(text))
+	}
+
+	return models.StoryStats{
+		Turns:          len(s.Texts),
+		Words:          words,
+		AvgReadingTime: calculateWordsPerSecond(words),
+	}
+}
+
+func (s *Story) ToDTO(author string) models.StoryDTO {
+	return models.StoryDTO{
+		Text:   s.Serialize(),
+		Author: author,
+		Stats:  s.GetStats(),
+	}
+}
+
+func calculateWordsPerSecond(words int) float64 {
+	wpm := float64(words) / 200
+	return wpm * 60
 }
