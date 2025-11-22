@@ -1,6 +1,9 @@
 package tell_it
 
-import "testing"
+import (
+	"fmt"
+	"testing"
+)
 
 func TestNewStory(t *testing.T) {
 	story := NewStory("user1")
@@ -55,5 +58,29 @@ func TestStory_Serialize(t *testing.T) {
 
 	if result != expected {
 		t.Errorf("Expected '%s', got '%s'", expected, result)
+	}
+}
+
+func TestStory_Stats(t *testing.T) {
+	story := NewStory("user1")
+	story.AddText("Once upon a time")
+	story.AddText("there was a brave knight")
+	story.AddText("who fought a dragon")
+
+	expectedTurns := 3
+	expectedWords := 13
+	expectedReadingTime := 3.9
+	stats := story.GetStats()
+
+	if stats.Turns != expectedTurns {
+		t.Errorf("Expected %d turns, got %d", expectedTurns, stats.Turns)
+	}
+
+	if stats.Words != expectedWords {
+		t.Errorf("Expected %d words, got %d", expectedWords, stats.Words)
+	}
+
+	if fmt.Sprintf("%.1f", stats.AvgReadingTime) != fmt.Sprintf("%.1f", expectedReadingTime) {
+		t.Errorf("Expected %f avg reading time, got %f", expectedReadingTime, stats.AvgReadingTime)
 	}
 }
