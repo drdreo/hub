@@ -16,7 +16,11 @@ import {
     playerJoined,
     playerLeft,
     playerUpdate,
-    rolledDice
+    rolledDice,
+    sideBetAccepted,
+    sideBetCancelled,
+    sideBetDeclined,
+    sideBetProposed
 } from "../game/game.actions";
 import { gameOverview } from "../home/home.actions.js";
 import { getConnectionManager } from "./ConnectionManager";
@@ -36,7 +40,11 @@ import {
     reconnect,
     RECONNECT,
     reconnected,
-    roomError
+    roomError,
+    SIDEBET_ACCEPT,
+    SIDEBET_CANCEL,
+    SIDEBET_DECLINE,
+    SIDEBET_PROPOSE
 } from "./socket.actions";
 
 function handleJoinData(data) {
@@ -142,6 +150,22 @@ export function createSocketMiddleware() {
                     connectionManager.send(eventMap[RECONNECT], action.data);
                     break;
 
+                case SIDEBET_PROPOSE:
+                    connectionManager.send(eventMap[SIDEBET_PROPOSE], action.data);
+                    break;
+
+                case SIDEBET_ACCEPT:
+                    connectionManager.send(eventMap[SIDEBET_ACCEPT], action.data);
+                    break;
+
+                case SIDEBET_DECLINE:
+                    connectionManager.send(eventMap[SIDEBET_DECLINE], action.data);
+                    break;
+
+                case SIDEBET_CANCEL:
+                    connectionManager.send(eventMap[SIDEBET_CANCEL], action.data);
+                    break;
+
                 default:
                     break;
             }
@@ -243,6 +267,38 @@ function handleIncomingMessage(message, store) {
         case "lostLife":
             store.dispatch(lostLife());
             store.dispatch(feedMessage({ type: "LOST_LIFE", username: message.data.player.username }));
+            break;
+
+        case "sidebet_propose_result":
+            if (message.success) {
+                store.dispatch(sideBetProposed(message.data));
+            } else {
+                console.error("Side bet proposal failed:", message.error);
+            }
+            break;
+
+        case "sidebet_accept_result":
+            if (message.success) {
+                store.dispatch(sideBetAccepted(message.data));
+            } else {
+                console.error("Side bet accept failed:", message.error);
+            }
+            break;
+
+        case "sidebet_decline_result":
+            if (message.success) {
+                store.dispatch(sideBetDeclined(message.data));
+            } else {
+                console.error("Side bet decline failed:", message.error);
+            }
+            break;
+
+        case "sidebet_cancel_result":
+            if (message.success) {
+                store.dispatch(sideBetCancelled(message.data));
+            } else {
+                console.error("Side bet cancel failed:", message.error);
+            }
             break;
 
         default:

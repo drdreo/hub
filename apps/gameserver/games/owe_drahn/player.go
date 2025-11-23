@@ -11,7 +11,6 @@ type Player struct {
 	Rank        int                 `json:"rank"` // if the user was logged in, we can show their rank
 	Stats       *models.PlayerStats `json:"stats"`
 	Life        int                 `json:"life"`
-	Points      int                 `json:"points"`
 	IsReady     bool                `json:"ready"`
 	IsChoosing  bool                `json:"choosing"`
 	IsConnected bool                `json:"connected"`
@@ -42,7 +41,6 @@ func (p *Player) SetStats(stats *models.PlayerStats) {
 func (p *Player) ToFormattedPlayer() *models.FormattedPlayer {
 	return &models.FormattedPlayer{
 		Life:     p.Life,
-		Points:   p.Points,
 		UID:      p.UserID,
 		Username: p.Name,
 		Rank:     p.Rank,

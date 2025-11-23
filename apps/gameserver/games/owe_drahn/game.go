@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 
 	"gameserver/games/owe_drahn/database"
@@ -42,7 +43,7 @@ type GameStateDTO struct {
 	CurrentTurn  string            `json:"currentTurn"`
 	Over         bool              `json:"over"`
 	CurrentValue int               `json:"currentValue"`
-	SideBets     []*models.SideBet `json:"bets"`
+	SideBets     []*models.SideBet `json:"sideBets"`
 }
 
 func (s *GameState) ToDTO() *GameStateDTO {
@@ -78,7 +79,7 @@ type SidebetProposalPayload struct {
 	Amount     float64 `json:"amount"`
 }
 
-type SidebetAcceptPayload struct {
+type SidebetIdPayload struct {
 	BetId string `json:"betId"`
 }
 
@@ -433,7 +434,7 @@ func (g *Game) handleHandshake(client interfaces.Client, state *GameState, paylo
 	return nil
 }
 
-func (g *Game) handleProposeSideBet(client interfaces.Client, state *GameState, payload []byte) (*models.SideBet, error) {
+func (g *Game) handleProposeSideBet(client interfaces.Client, state *GameState, payload []byte) (*string, error) {
 	var betPayload SidebetProposalPayload
 	if err := json.Unmarshal(payload, &betPayload); err != nil {
 
@@ -470,6 +471,7 @@ func (g *Game) handleProposeSideBet(client interfaces.Client, state *GameState, 
 	}
 
 	bet := &models.SideBet{
+		ID:             uuid.New().String(),
 		ChallengerID:   challengerId,
 		ChallengerName: challenger.Name,
 		OpponentID:     opponentID,
@@ -479,22 +481,44 @@ func (g *Game) handleProposeSideBet(client interfaces.Client, state *GameState, 
 	}
 
 	state.SideBets = append(state.SideBets, bet)
-	return bet, nil
+	return &bet.ID, nil
 }
 
-func (g *Game) handleAcceptSideBet(client interfaces.Client, state *GameState, payload []byte) error {
+func (g *Game) handleAcceptSideBet(client interfaces.Client, state *GameState, payload []byte) (*string, error) {
 	return g.setSideBeStatus(client.ID(), state, models.BetStatusAccepted, payload)
 }
 
-func (g *Game) handleDeclineSideBet(client interfaces.Client, state *GameState, payload []byte) error {
+func (g *Game) handleDeclineSideBet(client interfaces.Client, state *GameState, payload []byte) (*string, error) {
 	return g.setSideBeStatus(client.ID(), state, models.BetStatusDeclined, payload)
 }
 
-func (g *Game) setSideBeStatus(clientId string, state *GameState, status models.BetStatus, payload []byte) error {
-	var acceptPayload SidebetAcceptPayload
-	if err := json.Unmarshal(payload, &acceptPayload); err != nil {
+func (g *Game) handleCancelSideBet(state *GameState, payload []byte) error {
+	var cancelPayload SidebetIdPayload
+	if err := json.Unmarshal(payload, &cancelPayload); err != nil {
 
 		return err
+	}
+
+	state.mu.Lock()
+	defer state.mu.Unlock()
+
+	newBets := make([]*models.SideBet, 0)
+	for _, bet := range state.SideBets {
+		if bet.ID != cancelPayload.BetId {
+			newBets = append(newBets, bet)
+		}
+	}
+
+	state.SideBets = newBets
+
+	return nil
+}
+
+func (g *Game) setSideBeStatus(clientId string, state *GameState, status models.BetStatus, payload []byte) (*string, error) {
+	var acceptPayload SidebetIdPayload
+	if err := json.Unmarshal(payload, &acceptPayload); err != nil {
+
+		return nil, err
 	}
 
 	state.mu.Lock()
@@ -509,17 +533,17 @@ func (g *Game) setSideBeStatus(clientId string, state *GameState, status models.
 	}
 
 	if sideBet == nil {
-		return errors.New("side bet not found")
+		return nil, errors.New("side bet not found")
 	}
 
 	if sideBet.OpponentID != clientId {
-		return errors.New("player can not manage bets from other players")
+		return nil, errors.New("player can not manage bets from other players")
 	}
 
 	log.Debug().Str("challenger", sideBet.ChallengerID).Str("opponentId", sideBet.OpponentID).Str("betId", sideBet.ID).Any("status", status).Float64("amount", sideBet.Amount).Msg("setting side bet status")
 	sideBet.Status = status
 
-	return nil
+	return &acceptPayload.BetId, nil
 }
 
 func (g *Game) resolveSideBets(state *GameState) {

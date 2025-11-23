@@ -26,6 +26,7 @@ import Player from "./Player/Player";
 import PlayerStandings from "./PlayerStandings/PlayerStandings";
 import RollButton from "./RollButton/RollButton";
 import RolledDice from "./RolledDice/RolledDice.jsx";
+import SideBetsPanel from "./SideBets/SideBetsPanel";
 import { useGameConnection } from "./useGameConnection.js";
 
 const MIN_VAL_TO_OWE_DRAHN = 10;
@@ -300,6 +301,7 @@ const Game = () => {
             <Settings className="settings" />
             <GameInfo />
             <PlayerStandings />
+            <SideBetsPanel />
         </div>
     );
 };

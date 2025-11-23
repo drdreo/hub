@@ -575,6 +575,137 @@ func TestOweDrahnSideBet_DeclineWrongPlayer(t *testing.T) {
 		t.Errorf("Expected bet status to remain Pending when wrong player declines, got %d", bet.Status)
 	}
 }
+
+func TestOweDrahnSideBet_CancelValid(t *testing.T) {
+	helper := testicles.NewTestHelper(t)
+	dbServiceMock := &database.DatabaseServiceMock{}
+	g := NewGame(dbServiceMock)
+	helper.RegisterGame(g)
+	playerIds := helper.SetupGameRoom("owedrahn", 2)
+	player1ID := playerIds[0]
+	player2ID := playerIds[1]
+	testRoom, err := helper.GetRoom()
+	if err != nil {
+		t.Fatalf("Failed to get room: %v", err)
+	}
+	state := testRoom.State().(*GameState)
+
+	state.SideBets = append(state.SideBets, &models.SideBet{
+		ID:           "bet1",
+		ChallengerID: player1ID,
+		OpponentID:   player2ID,
+		Amount:       5,
+		Status:       models.BetStatusPending,
+	})
+
+	payload := interfaces.M{
+		"betId": "bet1",
+	}
+	helper.SendMessage(player1ID, "sidebet_cancel", payload)
+	state = testRoom.State().(*GameState)
+
+	// Verify bet was removed
+	if len(state.SideBets) != 0 {
+		t.Errorf("Expected 0 side bets after cancel, got %d", len(state.SideBets))
+	}
+}
+
+func TestOweDrahnSideBet_CancelNonExistentBet(t *testing.T) {
+	helper := testicles.NewTestHelper(t)
+	dbServiceMock := &database.DatabaseServiceMock{}
+	g := NewGame(dbServiceMock)
+	helper.RegisterGame(g)
+	playerIds := helper.SetupGameRoom("owedrahn", 2)
+	player1ID := playerIds[0]
+	testRoom, err := helper.GetRoom()
+	if err != nil {
+		t.Fatalf("Failed to get room: %v", err)
+	}
+	state := testRoom.State().(*GameState)
+
+	payload := interfaces.M{
+		"betId": "non-existent-bet",
+	}
+	helper.SendMessage(player1ID, "sidebet_cancel", payload)
+	state = testRoom.State().(*GameState)
+
+	if len(state.SideBets) != 0 {
+		t.Errorf("Expected 0 side bets, got %d", len(state.SideBets))
+	}
+}
+
+func TestOweDrahnSideBet_CancelMultipleBets(t *testing.T) {
+	helper := testicles.NewTestHelper(t)
+	dbServiceMock := &database.DatabaseServiceMock{}
+	g := NewGame(dbServiceMock)
+	helper.RegisterGame(g)
+	playerIds := helper.SetupGameRoom("owedrahn", 3)
+	player1ID := playerIds[0]
+	player2ID := playerIds[1]
+	player3ID := playerIds[2]
+	testRoom, err := helper.GetRoom()
+	if err != nil {
+		t.Fatalf("Failed to get room: %v", err)
+	}
+	state := testRoom.State().(*GameState)
+
+	// Create multiple bets
+	state.SideBets = append(state.SideBets, &models.SideBet{
+		ID:           "bet1",
+		ChallengerID: player1ID,
+		OpponentID:   player2ID,
+		Amount:       5,
+		Status:       models.BetStatusPending,
+	})
+	state.SideBets = append(state.SideBets, &models.SideBet{
+		ID:           "bet2",
+		ChallengerID: player1ID,
+		OpponentID:   player3ID,
+		Amount:       3,
+		Status:       models.BetStatusPending,
+	})
+	state.SideBets = append(state.SideBets, &models.SideBet{
+		ID:           "bet3",
+		ChallengerID: player2ID,
+		OpponentID:   player3ID,
+		Amount:       2,
+		Status:       models.BetStatusAccepted,
+	})
+
+	// Cancel bet2
+	payload := interfaces.M{
+		"betId": "bet2",
+	}
+	helper.SendMessage(player1ID, "sidebet_cancel", payload)
+	state = testRoom.State().(*GameState)
+
+	// Verify only bet2 was removed
+	if len(state.SideBets) != 2 {
+		t.Fatalf("Expected 2 side bets after cancel, got %d", len(state.SideBets))
+	}
+
+	// Verify bet1 and bet3 still exist
+	foundBet1 := false
+	foundBet3 := false
+	for _, bet := range state.SideBets {
+		if bet.ID == "bet1" {
+			foundBet1 = true
+		}
+		if bet.ID == "bet3" {
+			foundBet3 = true
+		}
+		if bet.ID == "bet2" {
+			t.Error("bet2 should have been removed")
+		}
+	}
+	if !foundBet1 {
+		t.Error("bet1 should still exist")
+	}
+	if !foundBet3 {
+		t.Error("bet3 should still exist")
+	}
+}
+
 func TestOweDrahnSideBet_ResolveBothPlayersAlive(t *testing.T) {
 	helper := testicles.NewTestHelper(t)
 	dbServiceMock := &database.DatabaseServiceMock{}
