@@ -208,7 +208,10 @@ func (g *Game) handleRoll(room interfaces.Room) error {
 	if total > 15 {
 		player.Life = 0
 		state.CurrentValue = 0
+		// Main bet is always 1
 		player.Balance -= 1
+		// Resolve any side bets involving the dead player
+		g.resolveSideBets(state)
 	}
 
 	if player.IsChoosing {
@@ -521,6 +524,50 @@ func (g *Game) setSideBeStatus(clientId string, state *GameState, status models.
 
 func (g *Game) resolveSideBets(state *GameState) error {
 	log.Debug().Msg("resolving all side bets")
+
+	state.mu.Lock()
+	defer state.mu.Unlock()
+
+	// Iterate through all side bets
+	for _, bet := range state.SideBets {
+		// Only resolve accepted bets
+		if bet.Status != models.BetStatusAccepted {
+			continue
+		}
+
+		challenger := state.Players[bet.ChallengerID]
+		opponent := state.Players[bet.OpponentID]
+
+		// Check if challenger lost (life = 0)
+		if challenger.Life == 0 {
+			// Opponent wins, transfer bet amount
+			challenger.Balance -= bet.Amount
+			opponent.Balance += bet.Amount
+			bet.Status = models.BetStatusResolved
+			log.Debug().
+				Str("winner", opponent.Name).
+				Str("loser", challenger.Name).
+				Float64("amount", bet.Amount).
+				Msg("side bet resolved - challenger lost")
+			continue
+		}
+
+		// Check if opponent lost (life = 0)
+		if opponent.Life == 0 {
+			// Challenger wins, transfer bet amount
+			opponent.Balance -= bet.Amount
+			challenger.Balance += bet.Amount
+			bet.Status = models.BetStatusResolved
+			log.Debug().
+				Str("winner", challenger.Name).
+				Str("loser", opponent.Name).
+				Float64("amount", bet.Amount).
+				Msg("side bet resolved - opponent lost")
+			continue
+		}
+
+		// If both players are still alive, don't resolve the bet yet
+	}
 
 	return nil
 }

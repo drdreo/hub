@@ -285,7 +285,7 @@ func TestOweDrahnSideBet_ResolveChallengerWins(t *testing.T) {
 	player1 := state.Players[player1ID]
 	player2 := state.Players[player2ID]
 	player1.Balance = 10
-	player2.Balance = 10
+	player2.Balance = -10
 
 	state.SideBets = append(state.SideBets, &models.SideBet{
 		ID:           "bet1",
@@ -301,7 +301,7 @@ func TestOweDrahnSideBet_ResolveChallengerWins(t *testing.T) {
 
 	// Verify balances
 	testicles.AssertFloatEquals(t, player1.Balance, 15, "expected player1 balance")
-	testicles.AssertFloatEquals(t, player2.Balance, 5, "expected player2 balance")
+	testicles.AssertFloatEquals(t, player2.Balance, -15, "expected player2 balance")
 
 	if state.SideBets[0].Status != models.BetStatusResolved {
 		t.Errorf("Expected bet status Resolved, got %d", state.SideBets[0].Status)
