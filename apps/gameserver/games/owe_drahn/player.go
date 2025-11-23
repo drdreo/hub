@@ -15,7 +15,7 @@ type Player struct {
 	IsReady     bool                `json:"ready"`
 	IsChoosing  bool                `json:"choosing"`
 	IsConnected bool                `json:"connected"`
-	Score       int                 `json:"score"` // how often the player won/lost
+	Balance     float64             `json:"balance"` // total wins/losses
 }
 
 func NewPlayer(id string, name string) *Player {
@@ -24,7 +24,7 @@ func NewPlayer(id string, name string) *Player {
 		Name:    name,
 		Life:    6,
 		IsReady: false,
-		Score:   0,
+		Balance: 0,
 	}
 }
 

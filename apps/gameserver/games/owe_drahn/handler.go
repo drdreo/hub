@@ -178,7 +178,7 @@ func (g *Game) HandleMessage(client interfaces.Client, room interfaces.Room, msg
 	return nil
 }
 
-func (g *Game) broadcastGameEvent(room interfaces.Room, eventName string, payload interfaces.M) {
+func (g *Game) broadcastGameEvent(room interfaces.Room, eventName string, payload interface{}) {
 	msg := protocol.NewSuccessResponse(eventName, payload)
 	room.Broadcast(msg)
 }
@@ -186,7 +186,7 @@ func (g *Game) broadcastGameEvent(room interfaces.Room, eventName string, payloa
 // broadcastGameState sends the current game state to all clients in the room
 func (g *Game) broadcastGameState(room interfaces.Room) {
 	state := room.State().(*GameState)
-	g.broadcastGameEvent(room, "game_state", state.ToMap())
+	g.broadcastGameEvent(room, "game_state", state.ToDTO())
 }
 
 func (g *Game) broadcastPlayerUpdate(room interfaces.Room, players map[string]*Player, playersOrder []string, currentTurn string, updateUI bool) {

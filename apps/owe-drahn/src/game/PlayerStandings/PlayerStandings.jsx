@@ -5,8 +5,8 @@ const PlayerStandings = () => {
     const players = useSelector(state => state.game.players);
     const enabled = useSelector(state => state.settings.standings.enabled);
 
-    const hasScore = players.every(player => player.score != 0);
-    if (!hasScore || !enabled) {
+    const hasBalance = players.every(player => player.balance != 0);
+    if (!hasBalance || !enabled) {
         return null;
     }
     return (
@@ -15,8 +15,8 @@ const PlayerStandings = () => {
                 {players.map((player, idx) => (
                     <li key={idx}>
                         <span>{player.username}</span>
-                        <span className={`score ${player.score > 0 ? "positive" : ""}`}>
-                            {player.score}
+                        <span className={`balance ${player.balance > 0 ? "positive" : ""}`}>
+                            {player.balance}
                         </span>
                     </li>
                 ))}

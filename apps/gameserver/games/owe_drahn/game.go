@@ -6,11 +6,13 @@ import (
 	"errors"
 	"gameserver/games/owe_drahn/database"
 	"gameserver/games/owe_drahn/models"
+	"gameserver/games/owe_drahn/utils"
 	"gameserver/internal/interfaces"
 	"gameserver/internal/protocol"
+	"gameserver/internal/testicles"
 	"github.com/rs/zerolog/log"
-	"math/rand"
 	"sort"
+	"sync"
 	"time"
 )
 
@@ -19,26 +21,37 @@ type Game struct {
 }
 
 type GameState struct {
-	Ctx         context.Context
-	Players     map[string]*Player `json:"players"`
-	PlayerOrder []string           `json:"playerOrder"`
-	Started     bool               `json:"started"`
-	CurrentTurn string             `json:"currentTurn"`
-	Over        bool               `json:"over"`
-
-	Rolls        []models.Roll `json:"rolls"`
-	CurrentValue int           `json:"currentValue"`
-	StartedAt    time.Time     `json:"startedAt"`
-	FinishedAt   time.Time     `json:"finishedAt"`
+	mu           sync.RWMutex
+	Ctx          context.Context
+	Players      map[string]*Player
+	PlayerOrder  []string
+	Started      bool
+	CurrentTurn  string
+	Over         bool
+	CurrentValue int
+	Rolls        []models.Roll
+	SideBets     []*models.SideBet
+	StartedAt    time.Time
+	FinishedAt   time.Time
 }
 
-func (s *GameState) ToMap() interfaces.M {
-	return interfaces.M{
-		"players":      mapPlayersToArray(s.Players, s.PlayerOrder),
-		"started":      s.Started,
-		"over":         s.Over,
-		"currentValue": s.CurrentValue,
-		"currentTurn":  s.CurrentTurn,
+type GameStateDTO struct {
+	Players      []*Player         `json:"players"`
+	Started      bool              `json:"started"`
+	CurrentTurn  string            `json:"currentTurn"`
+	Over         bool              `json:"over"`
+	CurrentValue int               `json:"currentValue"`
+	SideBets     []*models.SideBet `json:"bets"`
+}
+
+func (s *GameState) ToDTO() *GameStateDTO {
+	return &GameStateDTO{
+		Players:      mapPlayersToArray(s.Players, s.PlayerOrder),
+		Started:      s.Started,
+		Over:         s.Over,
+		CurrentValue: s.CurrentValue,
+		CurrentTurn:  s.CurrentTurn,
+		SideBets:     s.SideBets,
 	}
 }
 
@@ -143,7 +156,7 @@ func (g *Game) HasPlayers(state *GameState) bool {
 	return len(state.Players) > 0
 }
 
-func (g *Game) Reset(state *GameState) {
+func (g *Game) reset(state *GameState) {
 	log.Info().Msg("resetting game")
 
 	state.Started = false
@@ -160,12 +173,7 @@ func (g *Game) start(state *GameState) {
 	state.Started = true
 	state.StartedAt = time.Now()
 
-	// Randomly select the starting player
-	playerIDs := make([]string, 0, len(state.Players))
-	for id := range state.Players {
-		playerIDs = append(playerIDs, id)
-	}
-	state.CurrentTurn = playerIDs[rand.Intn(len(playerIDs))]
+	g.setNextPlayerRandom(state)
 
 	log.Debug().Str("currentTurn", state.CurrentTurn).Msg("starting game")
 }
@@ -174,7 +182,7 @@ func (g *Game) handleRoll(room interfaces.Room) error {
 	state := room.State().(*GameState)
 	player := g.GetCurrentPlayer(state)
 
-	dice := random(1, 6)
+	dice := utils.Random(1, 6)
 	// Rule of 3, doesn't count
 	if dice != 3 {
 		state.CurrentValue += dice
@@ -190,7 +198,7 @@ func (g *Game) handleRoll(room interfaces.Room) error {
 	if total > 15 {
 		player.Life = 0
 		state.CurrentValue = 0
-		player.Score -= 1
+		player.Balance -= 1
 	}
 
 	if player.IsChoosing {
@@ -274,7 +282,7 @@ func (g *Game) setNextPlayer(room interfaces.Room, state *GameState) error {
 
 	if len(alivePlayers) <= 1 {
 		winner := alivePlayers[0]
-		winner.Score += len(state.Players) - 1 // add winnings to the winner, -1 for their own bet
+		winner.Balance += float64(len(state.Players) - 1) // add winnings to the winner, -1 for their own bet
 		g.gameOver(room, winner.Name, state)
 	} else {
 		// Find the next player who is still alive
@@ -308,15 +316,13 @@ func (g *Game) setNextPlayer(room interfaces.Room, state *GameState) error {
 
 // setNextPlayerRandom selects a random player to be the next player.
 // Should only be used at the start when we have no other current player yet.
-func (g *Game) setNextPlayerRandom(room interfaces.Room, state *GameState) {
+func (g *Game) setNextPlayerRandom(state *GameState) {
 	if len(state.PlayerOrder) == 0 {
 		log.Error().Msg("no players while trying to set next random player")
 		return
 	}
-	randomIdx := random(0, len(state.PlayerOrder)-1)
+	randomIdx := utils.Random(0, len(state.PlayerOrder)-1)
 	state.CurrentTurn = state.PlayerOrder[randomIdx]
-
-	//g.broadcastPlayerUpdate(room, state.Players, state.CurrentTurn, false)
 }
 
 func (g *Game) getSortedPlayerIDs(state *GameState) []string {
@@ -344,8 +350,8 @@ func (g *Game) gameOver(room interfaces.Room, winner string, state *GameState) {
 	g.dbService.StoreGame(state.Ctx, state.ToDBGame())
 	// restart after 5s
 	time.AfterFunc(5*time.Second, func() {
-		g.Reset(state)
-		g.broadcastGameEvent(room, "gameInit", state.ToMap())
+		g.reset(state)
+		g.broadcastGameEvent(room, "gameInit", state.ToDTO())
 	})
 }
 
@@ -372,9 +378,7 @@ func (g *Game) handleReady(client interfaces.Client, state *GameState, payload [
 
 	if g.IsEveryoneReady(state) {
 		g.start(state)
-
 		g.broadcastGameEvent(client.Room(), "gameStarted", nil)
-		g.setNextPlayerRandom(client.Room(), state)
 		// reset everyones ready state for UI purposes
 		for _, p := range state.Players {
 			p.IsReady = false
@@ -423,9 +427,41 @@ func (g *Game) handleHandshake(client interfaces.Client, state *GameState, paylo
 	p.IsConnected = true
 }
 
-// random returns a random number between min and max (inclusive)
-func random(min int, max int) int {
-	return rand.Intn(max-min+1) + min
+func (g *Game) handleProposeSideBet(client interfaces.Client, state *GameState, payload []byte) (*models.SideBet, error) {
+	log.Debug().Str("clientID", client.ID()).Msg("player proposes side bet")
+
+	// challengerId, opponentId string, amount int
+
+	return nil, nil
+}
+
+func (g *Game) handleAcceptSideBet(client interfaces.Client, state *GameState, payload []byte) error {
+	// betId string, actingPlayerId string
+	//	log.Debug().Str("challenger", challengerId).Str("opponentId", opponentId).Str("betId", betId).Int("amount", amount).Msg("player accepted side bet")
+
+	return nil
+}
+
+func (g *Game) handleDeclineSideBet(client interfaces.Client, state *GameState, payload []byte) error {
+	log.Debug().Str("clientId", client.ID()).Msg("player declined side bet")
+
+	return nil
+}
+
+func (g *Game) resolveSideBets(state *GameState) error {
+	log.Debug().Msg("resolving all side bets")
+
+	return nil
+}
+
+func (g *Game) ValidateZeroSum(state *GameState) bool {
+	players := state.Players
+	total := 0.0
+	for _, player := range players {
+		total += player.Balance
+	}
+	// Should always be 0
+	return testicles.FloatEquals(total, 0.0)
 }
 
 func mapPlayersToArray(players map[string]*Player, playerOrder []string) []*Player {

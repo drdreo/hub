@@ -55,3 +55,21 @@ type Roll struct {
 	Dice   int              `json:"dice"`
 	Total  int              `json:"total"`
 }
+
+type BetStatus int
+
+const (
+	BetStatusPending BetStatus = iota
+	BetStatusAccepted
+	BetStatusDeclined
+	BetStatusResolved
+)
+
+// SideBet tracks the specific wager between two players
+type SideBet struct {
+	ID           string
+	ChallengerID string
+	OpponentID   string
+	Amount       float64
+	Status       BetStatus
+}

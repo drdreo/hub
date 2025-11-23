@@ -2,6 +2,7 @@ package utils
 
 import (
 	"gameserver/games/owe_drahn/models"
+	"math/rand"
 )
 
 // DefaultStats returns default player statistics
@@ -82,4 +83,9 @@ func ExtractPlayerStats(uid string, game models.DBGame) models.PlayerStatAggrega
 	}
 
 	return aggregation
+}
+
+// Random returns a random number between min and max (inclusive)
+func Random(min, max int) int {
+	return rand.Intn(max-min+1) + min
 }
