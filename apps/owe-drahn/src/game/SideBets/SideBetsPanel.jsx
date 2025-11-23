@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import { toggleSideBets } from "../../settings/settings.actions";
 import ActiveBets from "./ActiveBets";
 import IncomingBets from "./IncomingBets";
 import PendingProposals from "./PendingProposals";
@@ -7,17 +8,17 @@ import SideBetProposal from "./SideBetProposal";
 import "./SideBetsPanel.scss";
 
 const SideBetsPanel = () => {
-    const [isOpen, setIsOpen] = useState(false);
+    const dispatch = useDispatch();
     const [showProposalForm, setShowProposalForm] = useState(false);
     const [selectedOpponent, setSelectedOpponent] = useState(null);
 
     const { sideBets, players, started } = useSelector(state => state.game);
     const clientId = useSelector(state => state.socket.clientId);
+    const isOpen = useSelector(state => state.settings.sideBets?.open || false);
 
-    // Only show during ready-up phase
-    if (started) {
-        return null;
-    }
+    // Only show FAB during ready-up phase
+    const showFAB = !started;
+    const showProposalSection = !started;
 
     // Filter bets by status
     const activeBets = sideBets.filter(bet => bet.status === 1);
@@ -37,23 +38,25 @@ const SideBetsPanel = () => {
     };
 
     const togglePanel = () => {
-        setIsOpen(!isOpen);
+        dispatch(toggleSideBets());
     };
 
     return (
         <>
-            {/* Floating Action Button */}
-            <button
-                className="sidebet-fab"
-                onClick={togglePanel}
-                aria-label="Side Bets">
-                Side Bets{" "}
-                {activeBets.length + pendingBets.length + incomingBets.length > 0 && (
-                    <span className="badge">
-                        {activeBets.length + pendingBets.length + incomingBets.length}
-                    </span>
-                )}
-            </button>
+            {/* Floating Action Button - Only show during ready-up phase */}
+            {showFAB && (
+                <button
+                    className="sidebet-fab"
+                    onClick={togglePanel}
+                    aria-label="Side Bets">
+                    Side Bets{" "}
+                    {activeBets.length + pendingBets.length + incomingBets.length > 0 && (
+                        <span className="badge">
+                            {activeBets.length + pendingBets.length + incomingBets.length}
+                        </span>
+                    )}
+                </button>
+            )}
 
             {/* Backdrop */}
             <div
@@ -98,25 +101,40 @@ const SideBetsPanel = () => {
                         />
                     )}
 
-                    {/* Proposal section */}
-                    <div className="sidebet-section">
-                        <h3>Propose Side Bet</h3>
-                        <div className="player-select">
-                            <p>Select an opponent:</p>
-                            <div className="player-list">
-                                {players
-                                    .filter(p => p.id !== clientId)
-                                    .map(player => (
-                                        <button
-                                            key={player.id}
-                                            className="player-btn"
-                                            onClick={() => handlePlayerSelect(player)}>
-                                            {player.username}
-                                        </button>
-                                    ))}
+                    {/* Proposal section or game-started message */}
+                    {showProposalSection ? (
+                        <div className="sidebet-section">
+                            <h3>Propose Side Bet</h3>
+                            <div className="player-select">
+                                <p>Select an opponent:</p>
+                                <div className="player-list">
+                                    {players
+                                        .filter(p => p.id !== clientId)
+                                        .map(player => (
+                                            <button
+                                                key={player.id}
+                                                className="player-btn"
+                                                onClick={() => handlePlayerSelect(player)}>
+                                                {player.username}
+                                            </button>
+                                        ))}
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    ) : (
+                        <div className="sidebet-section">
+                            <p
+                                style={{
+                                    color: "rgba(255, 255, 255, 0.6)",
+                                    textAlign: "center",
+                                    padding: "20px",
+                                    fontSize: "14px",
+                                    fontStyle: "italic"
+                                }}>
+                                New side bets can only be placed before the game starts.
+                            </p>
+                        </div>
+                    )}
 
                     {players.filter(p => p.id !== clientId).length === 0 && (
                         <p className="no-players">Waiting for other players to join...</p>

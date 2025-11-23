@@ -25,7 +25,7 @@
     bottom: 80px;
     right: 20px;
     padding: 12px 20px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #3556ca 0%, #764ba2 100%);
     color: white;
     border: none;
     border-radius: 24px;
@@ -218,7 +218,6 @@
     }
 }
 
-// Player selection
 .player-select {
     p {
         color: rgba(255, 255, 255, 0.7);
@@ -259,7 +258,7 @@
 // Desktop styles
 @media (min-width: 768px) {
     .sidebet-fab {
-        bottom: 20px;
+        bottom: 40px;
         right: 20px;
     }
 

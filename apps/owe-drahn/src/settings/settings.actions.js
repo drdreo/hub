@@ -1,6 +1,7 @@
 export const TOGGLE_FEED = "TOGGLE_FEED";
 export const TOGGLE_SOUND = "TOGGLE_SOUND";
 export const TOGGLE_STANDINGS = "TOGGLE_STANDINGS";
+export const TOGGLE_SIDEBETS = "TOGGLE_SIDEBETS";
 
 export const toggleFeed = () => {
     return {
@@ -17,5 +18,11 @@ export const toggleSound = () => {
 export const toggleStandings = () => {
     return {
         type: TOGGLE_STANDINGS
+    };
+};
+
+export const toggleSideBets = () => {
+    return {
+        type: TOGGLE_SIDEBETS
     };
 };

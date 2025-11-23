@@ -11,7 +11,7 @@ const SideBetProposal = ({ opponent, onClose }) => {
     const handleSubmit = e => {
         e.preventDefault();
 
-        const betAmount = parseInt(amount, 10);
+        const betAmount = parseFloat(amount);
         if (isNaN(betAmount) || betAmount <= 0) {
             setError("Please enter a valid amount");
             return;
@@ -54,7 +54,9 @@ const SideBetProposal = ({ opponent, onClose }) => {
                                     setError("");
                                 }}
                                 placeholder="Enter amount"
-                                min="1"
+                                min="0"
+                                max="1000"
+                                step="any"
                                 autoFocus
                             />
                             {error && <p className="error-message">{error}</p>}
