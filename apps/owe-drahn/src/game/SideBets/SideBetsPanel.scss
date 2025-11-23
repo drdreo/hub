@@ -1,5 +1,24 @@
 @use "../../utils.scss";
 
+// Backdrop overlay
+.sidebet-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 940;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+
+    &.open {
+        opacity: 1;
+        pointer-events: auto;
+    }
+}
+
 // Floating Action Button
 .sidebet-fab {
     position: fixed;
@@ -240,18 +259,28 @@
 // Desktop styles
 @media (min-width: 768px) {
     .sidebet-fab {
-        display: none;
+        bottom: 20px;
+        right: 20px;
     }
 
     .sidebet-panel {
         position: fixed;
-        top: 80px;
-        right: 20px;
-        left: auto;
+        top: 50%;
+        left: 50%;
+        right: auto;
         bottom: auto;
-        width: 360px;
-        max-height: calc(100vh - 100px);
+        width: 480px;
+        max-height: 80vh;
         border-radius: 16px;
-        transform: none;
+        transform: translate(-50%, -50%) scale(0.9);
+        opacity: 0;
+        pointer-events: none;
+        transition: all 0.3s ease;
+
+        &.open {
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 1;
+            pointer-events: auto;
+        }
     }
 }

@@ -42,7 +42,7 @@ const SideBetsPanel = () => {
 
     return (
         <>
-            {/* Mobile: Floating Action Button */}
+            {/* Floating Action Button */}
             <button
                 className="sidebet-fab"
                 onClick={togglePanel}
@@ -54,6 +54,12 @@ const SideBetsPanel = () => {
                     </span>
                 )}
             </button>
+
+            {/* Backdrop */}
+            <div
+                className={`sidebet-backdrop ${isOpen ? "open" : ""}`}
+                onClick={togglePanel}
+            />
 
             {/* Modal */}
             <div className={`sidebet-panel ${isOpen ? "open" : ""}`}>
