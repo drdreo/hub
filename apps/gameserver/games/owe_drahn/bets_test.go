@@ -26,7 +26,7 @@ func TestOweDrahnSideBet_ProposeToSelf(t *testing.T) {
 		"opponentId": player1ID,
 		"amount":     3,
 	}
-	helper.SendMessage(player1ID, "proposeSideBet", payload)
+	helper.SendMessage(player1ID, "sidebet_propose", payload)
 	state := testRoom.State().(*GameState)
 	// Verify bet was NOT created
 	if len(state.SideBets) != 0 {
@@ -52,7 +52,7 @@ func TestOweDrahnSideBet_ProposeDuringGame(t *testing.T) {
 		"opponentId": player1ID,
 		"amount":     3,
 	}
-	helper.SendMessage(player1ID, "proposeSideBet", payload)
+	helper.SendMessage(player1ID, "sidebet_propose", payload)
 	state = testRoom.State().(*GameState)
 	// Verify bet was NOT created
 	if len(state.SideBets) != 0 {
@@ -86,7 +86,7 @@ func TestOweDrahnSideBet_ProposeInvalidAmount(t *testing.T) {
 			"opponentId": player2ID,
 			"amount":     tc.amount,
 		}
-		helper.SendMessage(player1ID, "proposeSideBet", payload)
+		helper.SendMessage(player1ID, "sidebet_propose", payload)
 		state := testRoom.State().(*GameState)
 		if len(state.SideBets) != 0 {
 			t.Errorf("Expected 0 side bets for %s amount %d, got %d", tc.description, tc.amount, len(state.SideBets))
@@ -111,7 +111,7 @@ func TestOweDrahnSideBet_ProposeValidBet(t *testing.T) {
 		"opponentId": player2ID,
 		"amount":     5,
 	}
-	helper.SendMessage(player1ID, "proposeSideBet", payload)
+	helper.SendMessage(player1ID, "sidebet_propose", payload)
 	state := testRoom.State().(*GameState)
 
 	// Verify bet was created
@@ -151,7 +151,7 @@ func TestOweDrahnSideBet_ProposeInvalidOpponent(t *testing.T) {
 		"opponentId": "non-existent-player-id",
 		"amount":     5,
 	}
-	helper.SendMessage(player1ID, "proposeSideBet", payload)
+	helper.SendMessage(player1ID, "sidebet_propose", payload)
 	state := testRoom.State().(*GameState)
 
 	// Verify bet was NOT created
@@ -185,7 +185,7 @@ func TestOweDrahnSideBet_AcceptValid(t *testing.T) {
 	payload := interfaces.M{
 		"betId": "bet1",
 	}
-	helper.SendMessage(player2ID, "acceptSideBet", payload)
+	helper.SendMessage(player2ID, "sidebet_accept", payload)
 	state = testRoom.State().(*GameState)
 
 	if len(state.SideBets) != 1 {
@@ -223,7 +223,7 @@ func TestOweDrahnSideBet_AcceptWrongPlayer(t *testing.T) {
 	payload := interfaces.M{
 		"betId": "bet1",
 	}
-	helper.SendMessage(player3ID, "acceptSideBet", payload)
+	helper.SendMessage(player3ID, "sidebet_accept", payload)
 	state = testRoom.State().(*GameState)
 	// Verify bet status is still Pending
 	bet := state.SideBets[0]
@@ -257,7 +257,7 @@ func TestOweDrahnSideBet_DeclineValid(t *testing.T) {
 	payload := interfaces.M{
 		"betId": "bet1",
 	}
-	helper.SendMessage(player2ID, "declineSideBet", payload)
+	helper.SendMessage(player2ID, "sidebet_decline", payload)
 	state = testRoom.State().(*GameState)
 	// Verify bet status changed to Declined
 	if len(state.SideBets) != 1 {
@@ -503,7 +503,7 @@ func TestOweDrahnSideBet_AcceptNonExistentBet(t *testing.T) {
 	payload := interfaces.M{
 		"betId": "non-existent-bet",
 	}
-	helper.SendMessage(player2ID, "acceptSideBet", payload)
+	helper.SendMessage(player2ID, "sidebet_accept", payload)
 	state = testRoom.State().(*GameState)
 
 	// Verify no bets exist
@@ -529,7 +529,7 @@ func TestOweDrahnSideBet_DeclineNonExistentBet(t *testing.T) {
 	payload := interfaces.M{
 		"betId": "non-existent-bet",
 	}
-	helper.SendMessage(player2ID, "declineSideBet", payload)
+	helper.SendMessage(player2ID, "sidebet_decline", payload)
 	state = testRoom.State().(*GameState)
 
 	// Verify no bets exist
@@ -566,7 +566,7 @@ func TestOweDrahnSideBet_DeclineWrongPlayer(t *testing.T) {
 	payload := interfaces.M{
 		"betId": "bet1",
 	}
-	helper.SendMessage(player3ID, "declineSideBet", payload)
+	helper.SendMessage(player3ID, "sidebet_decline", payload)
 	state = testRoom.State().(*GameState)
 
 	// Verify bet status is still Pending

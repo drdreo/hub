@@ -158,7 +158,7 @@ func (g *Game) HandleMessage(client interfaces.Client, room interfaces.Room, msg
 		g.broadcastGameState(room)
 		return nil
 
-	case "proposeSideBet":
+	case "sidebet_propose":
 		bet, err := g.handleProposeSideBet(client, state, payload)
 		if err != nil {
 			log.Error().Err(err).Msg("bet proposal failed")
@@ -167,14 +167,14 @@ func (g *Game) HandleMessage(client interfaces.Client, room interfaces.Room, msg
 		g.broadcastGameEvent(room, "sidebet_propose_result", bet)
 		g.broadcastGameState(room)
 		return nil
-	case "acceptSideBet":
+	case "sidebet_accept":
 		err := g.handleAcceptSideBet(client, state, payload)
 		if err != nil {
 			log.Error().Err(err).Msg("bet accept failed")
 			return err
 		}
 		return nil
-	case "declineSideBet":
+	case "sidebet_decline":
 		err := g.handleDeclineSideBet(client, state, payload)
 		if err != nil {
 			log.Error().Err(err).Msg("bet decline failed")
