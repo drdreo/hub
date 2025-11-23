@@ -4,11 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"time"
+
+	"github.com/rs/zerolog/log"
+
 	"gameserver/games/owe_drahn/database"
 	"gameserver/internal/interfaces"
 	"gameserver/internal/protocol"
-	"github.com/rs/zerolog/log"
-	"time"
 )
 
 type GameConfig struct {
@@ -139,12 +141,45 @@ func (g *Game) HandleMessage(client interfaces.Client, room interfaces.Room, msg
 	// Handle pre-game messages that don't require turn validation
 	switch msgType {
 	case "handshake":
-		g.handleHandshake(client, state, payload)
+		err := g.handleHandshake(client, state, payload)
+		if err != nil {
+			log.Error().Err(err).Msg("ready failed")
+			return err
+		}
 		g.broadcastGameState(room)
 		return nil
 	case "ready":
-		g.handleReady(client, state, payload)
+		err := g.handleReady(client, state, payload)
+		if err != nil {
+			log.Error().Err(err).Msg("ready failed")
+			return err
+		}
+
 		g.broadcastGameState(room)
+		return nil
+
+	case "proposeSideBet":
+		bet, err := g.handleProposeSideBet(client, state, payload)
+		if err != nil {
+			log.Error().Err(err).Msg("bet proposal failed")
+			return err
+		}
+		g.broadcastGameEvent(room, "sidebet_propose_result", bet)
+		g.broadcastGameState(room)
+		return nil
+	case "acceptSideBet":
+		err := g.handleAcceptSideBet(client, state, payload)
+		if err != nil {
+			log.Error().Err(err).Msg("bet accept failed")
+			return err
+		}
+		return nil
+	case "declineSideBet":
+		err := g.handleDeclineSideBet(client, state, payload)
+		if err != nil {
+			log.Error().Err(err).Msg("bet decline failed")
+			return err
+		}
 		return nil
 	}
 
@@ -166,7 +201,7 @@ func (g *Game) HandleMessage(client interfaces.Client, room interfaces.Room, msg
 	case "loseLife":
 		g.handleLoseLife(client, state)
 	case "chooseNextPlayer":
-		if err = g.handleChooseNextPlayer(client, state, payload); err != nil {
+		if err = g.handleChooseNextPlayer(state, payload); err != nil {
 			log.Error().Err(err).Msg("chooseNextPlayer failed")
 			return ErrNextPlayerInvalid
 		}

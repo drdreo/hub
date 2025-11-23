@@ -4,16 +4,17 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"sort"
+	"sync"
+	"time"
+
+	"github.com/rs/zerolog/log"
+
 	"gameserver/games/owe_drahn/database"
 	"gameserver/games/owe_drahn/models"
 	"gameserver/games/owe_drahn/utils"
 	"gameserver/internal/interfaces"
-	"gameserver/internal/protocol"
 	"gameserver/internal/testicles"
-	"github.com/rs/zerolog/log"
-	"sort"
-	"sync"
-	"time"
 )
 
 type Game struct {
@@ -70,6 +71,11 @@ type HandshakePayload struct {
 
 type NextPlayerPayload struct {
 	NextPlayerId string `json:"nextPlayerId"`
+}
+
+type SidebetProposalPayload struct {
+	OpponentId string  `json:"opponentId"`
+	Amount     float64 `json:"amount"`
 }
 
 func (g *Game) AddPlayer(id string, name string, state *GameState) {
@@ -223,7 +229,7 @@ func (g *Game) handleRoll(room interfaces.Room) error {
  *  2. He is choosing. Is set after he "drahs owe"
  *  3. Chosen Player is still alive. (prevent choosing of already lost players)
  */
-func (g *Game) handleChooseNextPlayer(client interfaces.Client, state *GameState, payload []byte) error {
+func (g *Game) handleChooseNextPlayer(state *GameState, payload []byte) error {
 	var nextPlayerData NextPlayerPayload
 	if err := json.Unmarshal(payload, &nextPlayerData); err != nil {
 		return errors.New("invalid nextPlayer format")
@@ -241,8 +247,6 @@ func (g *Game) handleChooseNextPlayer(client interfaces.Client, state *GameState
 		state.CurrentTurn = nextPlayerData.NextPlayerId
 	}
 
-	//g.broadcastPlayerUpdate(client.Room(), state.Players, state.CurrentTurn, true)
-	//g.broadcastGameState(client.Room())
 	return nil
 }
 
@@ -306,11 +310,6 @@ func (g *Game) setNextPlayer(room interfaces.Room, state *GameState) error {
 		}
 	}
 
-	if !state.Over {
-		//g.broadcastPlayerUpdate(room, state.Players, state.CurrentTurn, false)
-		//g.broadcastGameState(room)
-	}
-
 	return nil
 }
 
@@ -364,11 +363,10 @@ func (g *Game) SetStatsOnPlayer(clientId string, userId string, stats *models.Pl
 	player.Stats = stats
 }
 
-func (g *Game) handleReady(client interfaces.Client, state *GameState, payload []byte) {
+func (g *Game) handleReady(client interfaces.Client, state *GameState, payload []byte) error {
 	var ready bool
 	if err := json.Unmarshal(payload, &ready); err != nil {
-		client.Send(protocol.NewErrorResponse("error", "Invalid ready format"))
-		return
+		return errors.New("invalid ready format")
 	}
 
 	log.Debug().Str("clientID", client.ID()).Bool("ready", ready).Msg("player sends ready")
@@ -385,7 +383,7 @@ func (g *Game) handleReady(client interfaces.Client, state *GameState, payload [
 		}
 	}
 
-	//g.broadcastPlayerUpdate(client.Room(), state.Players, state.CurrentTurn, true)
+	return nil
 }
 
 func (g *Game) handleLoseLife(client interfaces.Client, state *GameState) {
@@ -405,16 +403,15 @@ func (g *Game) handleLoseLife(client interfaces.Client, state *GameState) {
 //
 // When a client loads the game page, they send a handshake event.
 // We connect the Client back to the Player if it was one.
-func (g *Game) handleHandshake(client interfaces.Client, state *GameState, payload []byte) {
+func (g *Game) handleHandshake(client interfaces.Client, state *GameState, payload []byte) error {
 	p := g.GetPlayer(client.ID(), state)
 	if p == nil {
-		return
+		return errors.New("client is not a player")
 	}
 
 	var handshake HandshakePayload
 	if err := json.Unmarshal(payload, &handshake); err != nil {
-		client.Send(protocol.NewErrorResponse("error", "Invalid handshake format"))
-		return
+		return errors.New("invalid handshake format")
 	}
 	log.Debug().Str("clientId", client.ID()).Str("userId", handshake.UserID).Msg("handshake")
 	if handshake.UserID != "" {
@@ -425,14 +422,57 @@ func (g *Game) handleHandshake(client interfaces.Client, state *GameState, paylo
 		}
 	}
 	p.IsConnected = true
+
+	return nil
 }
 
 func (g *Game) handleProposeSideBet(client interfaces.Client, state *GameState, payload []byte) (*models.SideBet, error) {
-	log.Debug().Str("clientID", client.ID()).Msg("player proposes side bet")
+	var betPayload SidebetProposalPayload
+	if err := json.Unmarshal(payload, &betPayload); err != nil {
 
-	// challengerId, opponentId string, amount int
+		return nil, err
+	}
 
-	return nil, nil
+	challengerId := client.ID()
+	opponentID := betPayload.OpponentId
+	amount := betPayload.Amount
+	log.Debug().Str("challengerId", challengerId).Str("opponentId", opponentID).Float64("amount", amount).Msg("player proposes side bet")
+
+	if state.Started == true {
+
+		return nil, errors.New("can not propose bet. game already started")
+	}
+	if challengerId == opponentID {
+		return nil, errors.New("player can not propose bet to oneself")
+	}
+
+	if amount <= 0 {
+		return nil, errors.New("amount must be greater than 0")
+	}
+
+	state.mu.Lock()
+	defer state.mu.Unlock()
+
+	challenger, ok := state.Players[challengerId]
+	if !ok {
+		return nil, errors.New("challenger not found")
+	}
+	opponent, ok := state.Players[opponentID]
+	if !ok {
+		return nil, errors.New("opponent not found")
+	}
+
+	bet := &models.SideBet{
+		ChallengerID:   challengerId,
+		ChallengerName: challenger.Name,
+		OpponentID:     opponentID,
+		OpponentName:   opponent.Name,
+		Amount:         amount,
+		Status:         models.BetStatusPending,
+	}
+
+	state.SideBets = append(state.SideBets, bet)
+	return bet, nil
 }
 
 func (g *Game) handleAcceptSideBet(client interfaces.Client, state *GameState, payload []byte) error {

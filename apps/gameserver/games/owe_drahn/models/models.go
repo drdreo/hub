@@ -67,9 +67,11 @@ const (
 
 // SideBet tracks the specific wager between two players
 type SideBet struct {
-	ID           string
-	ChallengerID string
-	OpponentID   string
-	Amount       float64
-	Status       BetStatus
+	ID             string
+	ChallengerID   string
+	ChallengerName string
+	OpponentID     string
+	OpponentName   string
+	Amount         float64
+	Status         BetStatus
 }

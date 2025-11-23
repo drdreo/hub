@@ -1,14 +1,40 @@
 package owe_drahn
 
 import (
+	"testing"
+
 	"gameserver/games/owe_drahn/database"
 	"gameserver/games/owe_drahn/models"
 	"gameserver/internal/interfaces"
 	"gameserver/internal/testicles"
-	"testing"
 )
 
 func TestOweDrahnSideBet_ProposeToSelf(t *testing.T) {
+	helper := testicles.NewTestHelper(t)
+	dbServiceMock := &database.DatabaseServiceMock{}
+	g := NewGame(dbServiceMock)
+	helper.RegisterGame(g)
+	playerIds := helper.SetupGameRoom("owedrahn", 2)
+	player1ID := playerIds[0]
+
+	testRoom, err := helper.GetRoom()
+	if err != nil {
+		t.Fatalf("Failed to get room: %v", err)
+	}
+	// Player 1 tries to propose a side bet to themselves
+	payload := interfaces.M{
+		"opponentId": player1ID,
+		"amount":     3,
+	}
+	helper.SendMessage(player1ID, "proposeSideBet", payload)
+	state := testRoom.State().(*GameState)
+	// Verify bet was NOT created
+	if len(state.SideBets) != 0 {
+		t.Errorf("Expected 0 side bets when proposing to self, got %d", len(state.SideBets))
+	}
+}
+
+func TestOweDrahnSideBet_ProposeDuringGame(t *testing.T) {
 	helper := testicles.NewTestHelper(t)
 	dbServiceMock := &database.DatabaseServiceMock{}
 	g := NewGame(dbServiceMock)
@@ -20,16 +46,17 @@ func TestOweDrahnSideBet_ProposeToSelf(t *testing.T) {
 		t.Fatalf("Failed to get room: %v", err)
 	}
 	state := testRoom.State().(*GameState)
+	g.start(state)
 	// Player 1 tries to propose a side bet to themselves
 	payload := interfaces.M{
-		"opponentId": helper.Clients[player1ID].ID(),
+		"opponentId": player1ID,
 		"amount":     3,
 	}
 	helper.SendMessage(player1ID, "proposeSideBet", payload)
 	state = testRoom.State().(*GameState)
 	// Verify bet was NOT created
 	if len(state.SideBets) != 0 {
-		t.Errorf("Expected 0 side bets when proposing to self, got %d", len(state.SideBets))
+		t.Errorf("Expected 0 side bets when proposing while game is started, got %d", len(state.SideBets))
 	}
 }
 
@@ -45,7 +72,6 @@ func TestOweDrahnSideBet_ProposeInvalidAmount(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to get room: %v", err)
 	}
-	state := testRoom.State().(*GameState)
 
 	testCases := []struct {
 		amount      int
@@ -57,11 +83,11 @@ func TestOweDrahnSideBet_ProposeInvalidAmount(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		payload := interfaces.M{
-			"opponentId": helper.Clients[player2ID].ID(),
+			"opponentId": player2ID,
 			"amount":     tc.amount,
 		}
 		helper.SendMessage(player1ID, "proposeSideBet", payload)
-		state = testRoom.State().(*GameState)
+		state := testRoom.State().(*GameState)
 		if len(state.SideBets) != 0 {
 			t.Errorf("Expected 0 side bets for %s amount %d, got %d", tc.description, tc.amount, len(state.SideBets))
 		}
@@ -80,15 +106,13 @@ func TestOweDrahnSideBet_ProposeValidBet(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to get room: %v", err)
 	}
-	state := testRoom.State().(*GameState)
 
-	// Player 1 proposes a valid bet to Player 2
 	payload := interfaces.M{
-		"opponentId": helper.Clients[player2ID].ID(),
+		"opponentId": player2ID,
 		"amount":     5,
 	}
 	helper.SendMessage(player1ID, "proposeSideBet", payload)
-	state = testRoom.State().(*GameState)
+	state := testRoom.State().(*GameState)
 
 	// Verify bet was created
 	if len(state.SideBets) != 1 {
@@ -121,7 +145,6 @@ func TestOweDrahnSideBet_ProposeInvalidOpponent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to get room: %v", err)
 	}
-	state := testRoom.State().(*GameState)
 
 	// Player 1 tries to propose a bet to a non-existent player
 	payload := interfaces.M{
@@ -129,7 +152,7 @@ func TestOweDrahnSideBet_ProposeInvalidOpponent(t *testing.T) {
 		"amount":     5,
 	}
 	helper.SendMessage(player1ID, "proposeSideBet", payload)
-	state = testRoom.State().(*GameState)
+	state := testRoom.State().(*GameState)
 
 	// Verify bet was NOT created
 	if len(state.SideBets) != 0 {
@@ -153,8 +176,8 @@ func TestOweDrahnSideBet_AcceptValid(t *testing.T) {
 
 	state.SideBets = append(state.SideBets, &models.SideBet{
 		ID:           "bet1",
-		ChallengerID: helper.Clients[player1ID].ID(),
-		OpponentID:   helper.Clients[player2ID].ID(),
+		ChallengerID: player1ID,
+		OpponentID:   player2ID,
 		Amount:       5,
 		Status:       models.BetStatusPending,
 	})
@@ -191,8 +214,8 @@ func TestOweDrahnSideBet_AcceptWrongPlayer(t *testing.T) {
 
 	state.SideBets = append(state.SideBets, &models.SideBet{
 		ID:           "bet1",
-		ChallengerID: helper.Clients[player1ID].ID(),
-		OpponentID:   helper.Clients[player2ID].ID(),
+		ChallengerID: player1ID,
+		OpponentID:   player2ID,
 		Amount:       5,
 		Status:       models.BetStatusPending,
 	})
@@ -208,6 +231,7 @@ func TestOweDrahnSideBet_AcceptWrongPlayer(t *testing.T) {
 		t.Errorf("Expected bet status to remain Pending when wrong player accepts, got %d", bet.Status)
 	}
 }
+
 func TestOweDrahnSideBet_DeclineValid(t *testing.T) {
 	helper := testicles.NewTestHelper(t)
 	dbServiceMock := &database.DatabaseServiceMock{}
@@ -224,8 +248,8 @@ func TestOweDrahnSideBet_DeclineValid(t *testing.T) {
 
 	state.SideBets = append(state.SideBets, &models.SideBet{
 		ID:           "bet1",
-		ChallengerID: helper.Clients[player1ID].ID(),
-		OpponentID:   helper.Clients[player2ID].ID(),
+		ChallengerID: player1ID,
+		OpponentID:   player2ID,
 		Amount:       5,
 		Status:       models.BetStatusPending,
 	})
@@ -244,6 +268,7 @@ func TestOweDrahnSideBet_DeclineValid(t *testing.T) {
 		t.Errorf("Expected bet status Declined, got %d", bet.Status)
 	}
 }
+
 func TestOweDrahnSideBet_ResolveChallengerWins(t *testing.T) {
 	helper := testicles.NewTestHelper(t)
 	dbServiceMock := &database.DatabaseServiceMock{}
@@ -257,8 +282,8 @@ func TestOweDrahnSideBet_ResolveChallengerWins(t *testing.T) {
 		t.Fatalf("Failed to get room: %v", err)
 	}
 	state := testRoom.State().(*GameState)
-	player1 := state.Players[helper.Clients[player1ID].ID()]
-	player2 := state.Players[helper.Clients[player2ID].ID()]
+	player1 := state.Players[player1ID]
+	player2 := state.Players[player2ID]
 	player1.Balance = 10
 	player2.Balance = 10
 
@@ -300,8 +325,8 @@ func TestOweDrahnSideBet_ResolveOpponentWins(t *testing.T) {
 		t.Fatalf("Failed to get room: %v", err)
 	}
 	state := testRoom.State().(*GameState)
-	player1 := state.Players[helper.Clients[player1ID].ID()]
-	player2 := state.Players[helper.Clients[player2ID].ID()]
+	player1 := state.Players[player1ID]
+	player2 := state.Players[player2ID]
 	player1.Balance = 0
 	player2.Balance = 0
 
@@ -329,6 +354,7 @@ func TestOweDrahnSideBet_ResolveOpponentWins(t *testing.T) {
 		t.Error("Balance should maintain zero-sum after bet resolution")
 	}
 }
+
 func TestOweDrahnSideBet_ResolveMultipleBets(t *testing.T) {
 	helper := testicles.NewTestHelper(t)
 	dbServiceMock := &database.DatabaseServiceMock{}
@@ -343,15 +369,15 @@ func TestOweDrahnSideBet_ResolveMultipleBets(t *testing.T) {
 		t.Fatalf("Failed to get room: %v", err)
 	}
 	state := testRoom.State().(*GameState)
-	player1 := state.Players[helper.Clients[player1ID].ID()]
-	player2 := state.Players[helper.Clients[player2ID].ID()]
-	player3 := state.Players[helper.Clients[player3ID].ID()]
+	player1 := state.Players[player1ID]
+	player2 := state.Players[player2ID]
+	player3 := state.Players[player3ID]
 
 	player1.Balance = 0
 	player2.Balance = 0
 	player3.Balance = 0
 
-	// Player 1 bets 5 against Player 2
+	// Player 1 bets 5 against GetPlayer 2
 	state.SideBets = append(state.SideBets, &models.SideBet{
 		ID:           "bet1",
 		ChallengerID: player1.ID,
@@ -359,7 +385,7 @@ func TestOweDrahnSideBet_ResolveMultipleBets(t *testing.T) {
 		Amount:       5,
 		Status:       models.BetStatusAccepted,
 	})
-	// Player 1 bets 3 against Player 3
+	// Player 1 bets 3 against GetPlayer 3
 	state.SideBets = append(state.SideBets, &models.SideBet{
 		ID:           "bet2",
 		ChallengerID: player1.ID,
@@ -367,7 +393,7 @@ func TestOweDrahnSideBet_ResolveMultipleBets(t *testing.T) {
 		Amount:       2.5,
 		Status:       models.BetStatusAccepted,
 	})
-	// Player 2 bets 4 against Player 3
+	// Player 2 bets 4 against GetPlayer 3
 	state.SideBets = append(state.SideBets, &models.SideBet{
 		ID:           "bet3",
 		ChallengerID: player2.ID,
@@ -404,6 +430,7 @@ func TestOweDrahnSideBet_ResolveMultipleBets(t *testing.T) {
 		t.Error("Balance should maintain zero-sum after multiple bet resolutions")
 	}
 }
+
 func TestOweDrahnSideBet_OnlyResolvesAcceptedBets(t *testing.T) {
 	helper := testicles.NewTestHelper(t)
 	dbServiceMock := &database.DatabaseServiceMock{}
@@ -417,8 +444,8 @@ func TestOweDrahnSideBet_OnlyResolvesAcceptedBets(t *testing.T) {
 		t.Fatalf("Failed to get room: %v", err)
 	}
 	state := testRoom.State().(*GameState)
-	player1 := state.Players[helper.Clients[player1ID].ID()]
-	player2 := state.Players[helper.Clients[player2ID].ID()]
+	player1 := state.Players[player1ID]
+	player2 := state.Players[player2ID]
 	player1.Balance = 0
 	player2.Balance = 0
 
@@ -529,8 +556,8 @@ func TestOweDrahnSideBet_DeclineWrongPlayer(t *testing.T) {
 	// Create a pending bet between player 1 and 2
 	state.SideBets = append(state.SideBets, &models.SideBet{
 		ID:           "bet1",
-		ChallengerID: helper.Clients[player1ID].ID(),
-		OpponentID:   helper.Clients[player2ID].ID(),
+		ChallengerID: player1ID,
+		OpponentID:   player2ID,
 		Amount:       5,
 		Status:       models.BetStatusPending,
 	})
@@ -561,8 +588,8 @@ func TestOweDrahnSideBet_ResolveBothPlayersAlive(t *testing.T) {
 		t.Fatalf("Failed to get room: %v", err)
 	}
 	state := testRoom.State().(*GameState)
-	player1 := state.Players[helper.Clients[player1ID].ID()]
-	player2 := state.Players[helper.Clients[player2ID].ID()]
+	player1 := state.Players[player1ID]
+	player2 := state.Players[player2ID]
 	player1.Balance = 0
 	player2.Balance = 0
 
