@@ -177,7 +177,7 @@ func (g *Game) GetStories(state *GameState) []models.StoryDTO {
 			author = user.Name
 		}
 
-		stories = append(stories, story.ToDTO(author, true))
+		stories = append(stories, *story.ToDTO(author, true))
 	}
 	return stories
 }
@@ -264,7 +264,9 @@ func (g *Game) SendStoryUpdate(userID string, state *GameState, room interfaces.
 		return
 	}
 
-	var storyData models.StoryDTO
+	// intenionally a pointer, so that we can send an story_update with nil as well
+	// to reset the story data on the client
+	var storyData *models.StoryDTO
 
 	story := user.GetCurrentStory()
 	log.Debug().Any("story", story).Msg("sending story update")
@@ -277,9 +279,10 @@ func (g *Game) SendStoryUpdate(userID string, state *GameState, room interfaces.
 		}
 
 		storyData = story.ToDTO(author, false)
-		msg := protocol.NewSuccessResponse("story_update", storyData)
-		room.SendTo(msg, userID)
 	}
+
+	msg := protocol.NewSuccessResponse("story_update", storyData)
+	room.SendTo(msg, userID)
 }
 
 func (g *Game) SendUsersUpdate(state *GameState, room interfaces.Room) {
