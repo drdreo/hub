@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { DollarSign } from "lucide-react";
 import { toggleSideBets } from "../../settings/settings.actions";
 import ActiveBets from "./ActiveBets";
 import IncomingBets from "./IncomingBets";
@@ -49,6 +50,7 @@ const SideBetsPanel = () => {
                     className="sidebet-fab"
                     onClick={togglePanel}
                     aria-label="Side Bets">
+                    <DollarSign size={18} />
                     Side Bets{" "}
                     {activeBets.length + pendingBets.length + incomingBets.length > 0 && (
                         <span className="badge">

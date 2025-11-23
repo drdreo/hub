@@ -95,12 +95,14 @@
                         outline: none;
                         border-color: rgba(102, 126, 234, 0.8);
                         background: rgba(255, 255, 255, 0.15);
+                        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
                     }
 
                     &::placeholder {
                         color: rgba(255, 255, 255, 0.4);
                     }
                 }
+
 
                 .error-message {
                     color: #ef4444;

@@ -28,6 +28,7 @@ import RollButton from "./RollButton/RollButton";
 import RolledDice from "./RolledDice/RolledDice.jsx";
 import SideBetsPanel from "./SideBets/SideBetsPanel";
 import { useGameConnection } from "./useGameConnection.js";
+import WaitingForPlayers from "./WaitingForPlayers/WaitingForPlayers";
 
 const MIN_VAL_TO_OWE_DRAHN = 10;
 
@@ -274,7 +275,7 @@ const Game = () => {
 
     return (
         <div className="page-container">
-            <RolledDice />
+            {started ? <RolledDice /> : <WaitingForPlayers />}
 
             {controls}
 
