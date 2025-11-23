@@ -1,0 +1,18 @@
+// IncomingBets specific styles
+.sidebet-section.incoming {
+    .sidebet-card.incoming {
+        animation: pulse 2s infinite;
+    }
+}
+
+@keyframes pulse {
+    0%,
+    100% {
+        border-color: rgba(239, 68, 68, 0.5);
+        background: rgba(239, 68, 68, 0.1);
+    }
+    50% {
+        border-color: rgba(239, 68, 68, 0.8);
+        background: rgba(239, 68, 68, 0.15);
+    }
+}
