@@ -522,7 +522,7 @@ func (g *Game) setSideBeStatus(clientId string, state *GameState, status models.
 	return nil
 }
 
-func (g *Game) resolveSideBets(state *GameState) error {
+func (g *Game) resolveSideBets(state *GameState) {
 	log.Debug().Msg("resolving all side bets")
 
 	state.mu.Lock()
@@ -568,8 +568,6 @@ func (g *Game) resolveSideBets(state *GameState) error {
 
 		// If both players are still alive, don't resolve the bet yet
 	}
-
-	return nil
 }
 
 func (g *Game) ValidateZeroSum(state *GameState) bool {
