@@ -12,6 +12,10 @@ export const RECONNECT = "RECONNECT";
 export const RESET_RECONNECTED = "RESET_RECONNECTED";
 export const RECONNECTED = "RECONNECTED";
 export const CONNECTION_STATUS = "CONNECTION_STATUS";
+export const SIDEBET_PROPOSE = "SIDEBET_PROPOSE";
+export const SIDEBET_ACCEPT = "SIDEBET_ACCEPT";
+export const SIDEBET_DECLINE = "SIDEBET_DECLINE";
+export const SIDEBET_CANCEL = "SIDEBET_CANCEL";
 
 export const eventMap = {
     CONNECTION_HANDSHAKE: "handshake",
@@ -23,7 +27,11 @@ export const eventMap = {
     JOIN_ROOM: "join_room",
     JOINED_ROOM: "join_room_result",
     RECONNECT: "reconnect",
-    RECONNECTED: "reconnect_result"
+    RECONNECTED: "reconnect_result",
+    SIDEBET_PROPOSE: "sidebet_propose",
+    SIDEBET_ACCEPT: "sidebet_accept",
+    SIDEBET_DECLINE: "sidebet_decline",
+    SIDEBET_CANCEL: "sidebet_cancel"
 };
 
 export const handshake = uid => {
@@ -118,5 +126,33 @@ export const connectionStatus = status => {
     return {
         type: CONNECTION_STATUS,
         payload: status
+    };
+};
+
+export const proposeSideBet = (opponentId, amount) => {
+    return {
+        type: SIDEBET_PROPOSE,
+        data: { opponentId, amount }
+    };
+};
+
+export const acceptSideBet = betId => {
+    return {
+        type: SIDEBET_ACCEPT,
+        data: { betId }
+    };
+};
+
+export const declineSideBet = betId => {
+    return {
+        type: SIDEBET_DECLINE,
+        data: { betId }
+    };
+};
+
+export const cancelSideBet = betId => {
+    return {
+        type: SIDEBET_CANCEL,
+        data: { betId }
     };
 };

@@ -8,6 +8,7 @@ import (
 	"demo-cli/internal/config"
 	"demo-cli/internal/runner"
 	"demo-cli/internal/state"
+
 	"github.com/urfave/cli/v2"
 )
 

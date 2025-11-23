@@ -4,14 +4,18 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"sort"
+	"sync"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/rs/zerolog/log"
+
 	"gameserver/games/owe_drahn/database"
 	"gameserver/games/owe_drahn/models"
+	"gameserver/games/owe_drahn/utils"
 	"gameserver/internal/interfaces"
-	"gameserver/internal/protocol"
-	"github.com/rs/zerolog/log"
-	"math/rand"
-	"sort"
-	"time"
+	"gameserver/internal/testicles"
 )
 
 type Game struct {
@@ -19,26 +23,37 @@ type Game struct {
 }
 
 type GameState struct {
-	Ctx         context.Context
-	Players     map[string]*Player `json:"players"`
-	PlayerOrder []string           `json:"playerOrder"`
-	Started     bool               `json:"started"`
-	CurrentTurn string             `json:"currentTurn"`
-	Over        bool               `json:"over"`
-
-	Rolls        []models.Roll `json:"rolls"`
-	CurrentValue int           `json:"currentValue"`
-	StartedAt    time.Time     `json:"startedAt"`
-	FinishedAt   time.Time     `json:"finishedAt"`
+	mu           sync.RWMutex
+	Ctx          context.Context
+	Players      map[string]*Player
+	PlayerOrder  []string
+	Started      bool
+	CurrentTurn  string
+	Over         bool
+	CurrentValue int
+	Rolls        []models.Roll
+	SideBets     []*models.SideBet
+	StartedAt    time.Time
+	FinishedAt   time.Time
 }
 
-func (s *GameState) ToMap() interfaces.M {
-	return interfaces.M{
-		"players":      mapPlayersToArray(s.Players, s.PlayerOrder),
-		"started":      s.Started,
-		"over":         s.Over,
-		"currentValue": s.CurrentValue,
-		"currentTurn":  s.CurrentTurn,
+type GameStateDTO struct {
+	Players      []*Player         `json:"players"`
+	Started      bool              `json:"started"`
+	CurrentTurn  string            `json:"currentTurn"`
+	Over         bool              `json:"over"`
+	CurrentValue int               `json:"currentValue"`
+	SideBets     []*models.SideBet `json:"sideBets"`
+}
+
+func (s *GameState) ToDTO() *GameStateDTO {
+	return &GameStateDTO{
+		Players:      mapPlayersToArray(s.Players, s.PlayerOrder),
+		Started:      s.Started,
+		Over:         s.Over,
+		CurrentValue: s.CurrentValue,
+		CurrentTurn:  s.CurrentTurn,
+		SideBets:     s.SideBets,
 	}
 }
 
@@ -57,6 +72,15 @@ type HandshakePayload struct {
 
 type NextPlayerPayload struct {
 	NextPlayerId string `json:"nextPlayerId"`
+}
+
+type SidebetProposalPayload struct {
+	OpponentId string  `json:"opponentId"`
+	Amount     float64 `json:"amount"`
+}
+
+type SidebetIdPayload struct {
+	BetId string `json:"betId"`
 }
 
 func (g *Game) AddPlayer(id string, name string, state *GameState) {
@@ -143,7 +167,7 @@ func (g *Game) HasPlayers(state *GameState) bool {
 	return len(state.Players) > 0
 }
 
-func (g *Game) Reset(state *GameState) {
+func (g *Game) reset(state *GameState) {
 	log.Info().Msg("resetting game")
 
 	state.Started = false
@@ -160,12 +184,7 @@ func (g *Game) start(state *GameState) {
 	state.Started = true
 	state.StartedAt = time.Now()
 
-	// Randomly select the starting player
-	playerIDs := make([]string, 0, len(state.Players))
-	for id := range state.Players {
-		playerIDs = append(playerIDs, id)
-	}
-	state.CurrentTurn = playerIDs[rand.Intn(len(playerIDs))]
+	g.setNextPlayerRandom(state)
 
 	log.Debug().Str("currentTurn", state.CurrentTurn).Msg("starting game")
 }
@@ -174,7 +193,7 @@ func (g *Game) handleRoll(room interfaces.Room) error {
 	state := room.State().(*GameState)
 	player := g.GetCurrentPlayer(state)
 
-	dice := random(1, 6)
+	dice := utils.Random(1, 6)
 	// Rule of 3, doesn't count
 	if dice != 3 {
 		state.CurrentValue += dice
@@ -190,7 +209,10 @@ func (g *Game) handleRoll(room interfaces.Room) error {
 	if total > 15 {
 		player.Life = 0
 		state.CurrentValue = 0
-		player.Score -= 1
+		// Main bet is always 1
+		player.Balance -= 1
+		// Resolve any side bets involving the dead player
+		g.resolveSideBets(state)
 	}
 
 	if player.IsChoosing {
@@ -215,7 +237,7 @@ func (g *Game) handleRoll(room interfaces.Room) error {
  *  2. He is choosing. Is set after he "drahs owe"
  *  3. Chosen Player is still alive. (prevent choosing of already lost players)
  */
-func (g *Game) handleChooseNextPlayer(client interfaces.Client, state *GameState, payload []byte) error {
+func (g *Game) handleChooseNextPlayer(state *GameState, payload []byte) error {
 	var nextPlayerData NextPlayerPayload
 	if err := json.Unmarshal(payload, &nextPlayerData); err != nil {
 		return errors.New("invalid nextPlayer format")
@@ -233,8 +255,6 @@ func (g *Game) handleChooseNextPlayer(client interfaces.Client, state *GameState
 		state.CurrentTurn = nextPlayerData.NextPlayerId
 	}
 
-	//g.broadcastPlayerUpdate(client.Room(), state.Players, state.CurrentTurn, true)
-	//g.broadcastGameState(client.Room())
 	return nil
 }
 
@@ -274,7 +294,7 @@ func (g *Game) setNextPlayer(room interfaces.Room, state *GameState) error {
 
 	if len(alivePlayers) <= 1 {
 		winner := alivePlayers[0]
-		winner.Score += len(state.Players) - 1 // add winnings to the winner, -1 for their own bet
+		winner.Balance += float64(len(state.Players) - 1) // add winnings to the winner, -1 for their own bet
 		g.gameOver(room, winner.Name, state)
 	} else {
 		// Find the next player who is still alive
@@ -298,25 +318,18 @@ func (g *Game) setNextPlayer(room interfaces.Room, state *GameState) error {
 		}
 	}
 
-	if !state.Over {
-		//g.broadcastPlayerUpdate(room, state.Players, state.CurrentTurn, false)
-		//g.broadcastGameState(room)
-	}
-
 	return nil
 }
 
 // setNextPlayerRandom selects a random player to be the next player.
 // Should only be used at the start when we have no other current player yet.
-func (g *Game) setNextPlayerRandom(room interfaces.Room, state *GameState) {
+func (g *Game) setNextPlayerRandom(state *GameState) {
 	if len(state.PlayerOrder) == 0 {
 		log.Error().Msg("no players while trying to set next random player")
 		return
 	}
-	randomIdx := random(0, len(state.PlayerOrder)-1)
+	randomIdx := utils.Random(0, len(state.PlayerOrder)-1)
 	state.CurrentTurn = state.PlayerOrder[randomIdx]
-
-	//g.broadcastPlayerUpdate(room, state.Players, state.CurrentTurn, false)
 }
 
 func (g *Game) getSortedPlayerIDs(state *GameState) []string {
@@ -344,8 +357,8 @@ func (g *Game) gameOver(room interfaces.Room, winner string, state *GameState) {
 	g.dbService.StoreGame(state.Ctx, state.ToDBGame())
 	// restart after 5s
 	time.AfterFunc(5*time.Second, func() {
-		g.Reset(state)
-		g.broadcastGameEvent(room, "gameInit", state.ToMap())
+		g.reset(state)
+		g.broadcastGameEvent(room, "gameInit", state.ToDTO())
 	})
 }
 
@@ -358,11 +371,10 @@ func (g *Game) SetStatsOnPlayer(clientId string, userId string, stats *models.Pl
 	player.Stats = stats
 }
 
-func (g *Game) handleReady(client interfaces.Client, state *GameState, payload []byte) {
+func (g *Game) handleReady(client interfaces.Client, state *GameState, payload []byte) error {
 	var ready bool
 	if err := json.Unmarshal(payload, &ready); err != nil {
-		client.Send(protocol.NewErrorResponse("error", "Invalid ready format"))
-		return
+		return errors.New("invalid ready format")
 	}
 
 	log.Debug().Str("clientID", client.ID()).Bool("ready", ready).Msg("player sends ready")
@@ -372,16 +384,14 @@ func (g *Game) handleReady(client interfaces.Client, state *GameState, payload [
 
 	if g.IsEveryoneReady(state) {
 		g.start(state)
-
 		g.broadcastGameEvent(client.Room(), "gameStarted", nil)
-		g.setNextPlayerRandom(client.Room(), state)
 		// reset everyones ready state for UI purposes
 		for _, p := range state.Players {
 			p.IsReady = false
 		}
 	}
 
-	//g.broadcastPlayerUpdate(client.Room(), state.Players, state.CurrentTurn, true)
+	return nil
 }
 
 func (g *Game) handleLoseLife(client interfaces.Client, state *GameState) {
@@ -401,16 +411,15 @@ func (g *Game) handleLoseLife(client interfaces.Client, state *GameState) {
 //
 // When a client loads the game page, they send a handshake event.
 // We connect the Client back to the Player if it was one.
-func (g *Game) handleHandshake(client interfaces.Client, state *GameState, payload []byte) {
+func (g *Game) handleHandshake(client interfaces.Client, state *GameState, payload []byte) error {
 	p := g.GetPlayer(client.ID(), state)
 	if p == nil {
-		return
+		return errors.New("client is not a player")
 	}
 
 	var handshake HandshakePayload
 	if err := json.Unmarshal(payload, &handshake); err != nil {
-		client.Send(protocol.NewErrorResponse("error", "Invalid handshake format"))
-		return
+		return errors.New("invalid handshake format")
 	}
 	log.Debug().Str("clientId", client.ID()).Str("userId", handshake.UserID).Msg("handshake")
 	if handshake.UserID != "" {
@@ -421,11 +430,178 @@ func (g *Game) handleHandshake(client interfaces.Client, state *GameState, paylo
 		}
 	}
 	p.IsConnected = true
+
+	return nil
 }
 
-// random returns a random number between min and max (inclusive)
-func random(min int, max int) int {
-	return rand.Intn(max-min+1) + min
+func (g *Game) handleProposeSideBet(client interfaces.Client, state *GameState, payload []byte) (*string, error) {
+	var betPayload SidebetProposalPayload
+	if err := json.Unmarshal(payload, &betPayload); err != nil {
+
+		return nil, err
+	}
+
+	challengerId := client.ID()
+	opponentID := betPayload.OpponentId
+	amount := betPayload.Amount
+	log.Debug().Str("challengerId", challengerId).Str("opponentId", opponentID).Float64("amount", amount).Msg("player proposes side bet")
+
+	if state.Started == true {
+
+		return nil, errors.New("can not propose bet. game already started")
+	}
+	if challengerId == opponentID {
+		return nil, errors.New("player can not propose bet to oneself")
+	}
+
+	if amount <= 0 {
+		return nil, errors.New("amount must be greater than 0")
+	}
+
+	state.mu.Lock()
+	defer state.mu.Unlock()
+
+	challenger, ok := state.Players[challengerId]
+	if !ok {
+		return nil, errors.New("challenger not found")
+	}
+	opponent, ok := state.Players[opponentID]
+	if !ok {
+		return nil, errors.New("opponent not found")
+	}
+
+	bet := &models.SideBet{
+		ID:             uuid.New().String(),
+		ChallengerID:   challengerId,
+		ChallengerName: challenger.Name,
+		OpponentID:     opponentID,
+		OpponentName:   opponent.Name,
+		Amount:         amount,
+		Status:         models.BetStatusPending,
+	}
+
+	state.SideBets = append(state.SideBets, bet)
+	return &bet.ID, nil
+}
+
+func (g *Game) handleAcceptSideBet(client interfaces.Client, state *GameState, payload []byte) (*string, error) {
+	return g.setSideBeStatus(client.ID(), state, models.BetStatusAccepted, payload)
+}
+
+func (g *Game) handleDeclineSideBet(client interfaces.Client, state *GameState, payload []byte) (*string, error) {
+	return g.setSideBeStatus(client.ID(), state, models.BetStatusDeclined, payload)
+}
+
+func (g *Game) handleCancelSideBet(state *GameState, payload []byte) error {
+	var cancelPayload SidebetIdPayload
+	if err := json.Unmarshal(payload, &cancelPayload); err != nil {
+
+		return err
+	}
+
+	state.mu.Lock()
+	defer state.mu.Unlock()
+
+	newBets := make([]*models.SideBet, 0)
+	for _, bet := range state.SideBets {
+		if bet.ID != cancelPayload.BetId {
+			newBets = append(newBets, bet)
+		}
+	}
+
+	state.SideBets = newBets
+
+	return nil
+}
+
+func (g *Game) setSideBeStatus(clientId string, state *GameState, status models.BetStatus, payload []byte) (*string, error) {
+	var acceptPayload SidebetIdPayload
+	if err := json.Unmarshal(payload, &acceptPayload); err != nil {
+
+		return nil, err
+	}
+
+	state.mu.Lock()
+	defer state.mu.Unlock()
+
+	var sideBet *models.SideBet
+	for _, bet := range state.SideBets {
+		if bet.ID == acceptPayload.BetId {
+			sideBet = bet
+			break
+		}
+	}
+
+	if sideBet == nil {
+		return nil, errors.New("side bet not found")
+	}
+
+	if sideBet.OpponentID != clientId {
+		return nil, errors.New("player can not manage bets from other players")
+	}
+
+	log.Debug().Str("challenger", sideBet.ChallengerID).Str("opponentId", sideBet.OpponentID).Str("betId", sideBet.ID).Any("status", status).Float64("amount", sideBet.Amount).Msg("setting side bet status")
+	sideBet.Status = status
+
+	return &acceptPayload.BetId, nil
+}
+
+func (g *Game) resolveSideBets(state *GameState) {
+	log.Debug().Msg("resolving all side bets")
+
+	state.mu.Lock()
+	defer state.mu.Unlock()
+
+	// Iterate through all side bets
+	for _, bet := range state.SideBets {
+		// Only resolve accepted bets
+		if bet.Status != models.BetStatusAccepted {
+			continue
+		}
+
+		challenger := state.Players[bet.ChallengerID]
+		opponent := state.Players[bet.OpponentID]
+
+		// Check if challenger lost (life = 0)
+		if challenger.Life == 0 {
+			// Opponent wins, transfer bet amount
+			challenger.Balance -= bet.Amount
+			opponent.Balance += bet.Amount
+			bet.Status = models.BetStatusResolved
+			log.Debug().
+				Str("winner", opponent.Name).
+				Str("loser", challenger.Name).
+				Float64("amount", bet.Amount).
+				Msg("side bet resolved - challenger lost")
+			continue
+		}
+
+		// Check if opponent lost (life = 0)
+		if opponent.Life == 0 {
+			// Challenger wins, transfer bet amount
+			opponent.Balance -= bet.Amount
+			challenger.Balance += bet.Amount
+			bet.Status = models.BetStatusResolved
+			log.Debug().
+				Str("winner", challenger.Name).
+				Str("loser", opponent.Name).
+				Float64("amount", bet.Amount).
+				Msg("side bet resolved - opponent lost")
+			continue
+		}
+
+		// If both players are still alive, don't resolve the bet yet
+	}
+}
+
+func (g *Game) ValidateZeroSum(state *GameState) bool {
+	players := state.Players
+	total := 0.0
+	for _, player := range players {
+		total += player.Balance
+	}
+	// Should always be 0
+	return testicles.FloatEquals(total, 0.0)
 }
 
 func mapPlayersToArray(players map[string]*Player, playerOrder []string) []*Player {

@@ -11,11 +11,10 @@ type Player struct {
 	Rank        int                 `json:"rank"` // if the user was logged in, we can show their rank
 	Stats       *models.PlayerStats `json:"stats"`
 	Life        int                 `json:"life"`
-	Points      int                 `json:"points"`
 	IsReady     bool                `json:"ready"`
 	IsChoosing  bool                `json:"choosing"`
 	IsConnected bool                `json:"connected"`
-	Score       int                 `json:"score"` // how often the player won/lost
+	Balance     float64             `json:"balance"` // total wins/losses
 }
 
 func NewPlayer(id string, name string) *Player {
@@ -24,7 +23,7 @@ func NewPlayer(id string, name string) *Player {
 		Name:    name,
 		Life:    6,
 		IsReady: false,
-		Score:   0,
+		Balance: 0,
 	}
 }
 
@@ -42,7 +41,6 @@ func (p *Player) SetStats(stats *models.PlayerStats) {
 func (p *Player) ToFormattedPlayer() *models.FormattedPlayer {
 	return &models.FormattedPlayer{
 		Life:     p.Life,
-		Points:   p.Points,
 		UID:      p.UserID,
 		Username: p.Name,
 		Rank:     p.Rank,

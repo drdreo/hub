@@ -14,4 +14,18 @@
     &__over {
         color: utils.$warning-color;
     }
+
+    &__sidebet-proposed,
+    &__sidebet-accepted {
+        color: #a78bfa;
+
+        .sidebet-amount {
+            color: #fbbf24;
+            font-weight: 600;
+        }
+    }
+
+    &__sidebet-accepted {
+        color: #22c55e;
+    }
 }

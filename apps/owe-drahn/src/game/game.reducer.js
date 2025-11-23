@@ -1,3 +1,56 @@
+/**
+ * @typedef {Object} Player
+ * @property {string} uid - Player's DB user id
+ * @property {string} username - Player's name
+ * @property {number} rank - Player's rank
+ * @property {number} life - Number of lives remaining
+ * @property {boolean} connected - Whether player is connected
+ */
+
+/**
+ * @typedef {Object} DiceRoll
+ * @property {number[]} dice - Array of dice values
+ * @property {number} total - Total value of the roll
+ */
+
+/**
+ * @typedef {Object} SideBet
+ * @property {string} id - Side bet unique identifier
+ * @property {string} challengerId - ID of player who challenged to bet
+ * @property {string} challengerName - name of challenger
+ * @property {string} opponentId - ID of player who received the proposal
+ * @property {string} opponentName - name of opponent
+ * @property {number} amount - Amount of the bet
+ * @property {number} status - Status: 0 - 'pending', 1 - 'accepted', 2 -'declined', 3 -'resolved'
+ */
+
+/**
+ * @typedef {Object} GameInfo
+ * @property {string} message - Information message for the player
+ */
+
+/**
+ * @typedef {Object} GameState
+ * @property {DiceRoll | undefined} diceRoll - Latest server dice roll data
+ * @property {number[] | undefined} rolledDice - Dice values for UI
+ * @property {string} currentTurn - Current player's turn ID
+ * @property {number} currentValue - Server value
+ * @property {number} ui_currentValue - UI value
+ * @property {Player[]} players - Server state of players
+ * @property {Player[]} ui_players - UI state of players
+ * @property {boolean} started - Whether game has started
+ * @property {boolean} over - Whether game is over
+ * @property {GameInfo} gameInfo - Game information messages
+ * @property {SideBet[]} sideBets - Array of side bet objects
+ */
+
+/**
+ * @typedef {Object} GameAction
+ * @property {string} type - Action type
+ * @property {*} [payload] - Action payload
+ */
+
+/** @type {GameState} */
 const initialState = {
     diceRoll: undefined, // Latest server dice roll data
     rolledDice: undefined, // Dice values for UI
@@ -8,9 +61,16 @@ const initialState = {
     ui_players: [],
     started: false,
     over: false,
-    gameInfo: { message: "" }
+    gameInfo: { message: "" },
+    sideBets: [] // Array of side bet objects
 };
 
+/**
+ * Game reducer for managing Owe Drahn game state
+ * @param {GameState} state - Current game state
+ * @param {GameAction} action - Action to process
+ * @returns {GameState} Updated game state
+ */
 const gameReducer = (state = initialState, action) => {
     switch (action.type) {
         case "GAME_LEAVE":
@@ -37,7 +97,8 @@ const gameReducer = (state = initialState, action) => {
                 started: action.payload.started,
                 over: action.payload.over,
                 currentTurn: action.payload.currentTurn,
-                currentValue: action.payload.currentValue
+                currentValue: action.payload.currentValue,
+                sideBets: action.payload.sideBets ?? state.sideBets
             };
         case "GAME_OVER":
             return { ...state, over: true, started: false };
@@ -79,6 +140,28 @@ const gameReducer = (state = initialState, action) => {
 
         case "PLAYER_CHOOSE_NEXT":
             return { ...state, gameInfo: { message: "" } };
+
+        case "SIDEBET_PROPOSED":
+            return {
+                ...state,
+                sideBets: action.payload.bets || state.sideBets
+            };
+        case "SIDEBET_ACCEPTED":
+            return {
+                ...state,
+                sideBets: action.payload.bets || state.sideBets
+            };
+        case "SIDEBET_DECLINED":
+            return {
+                ...state,
+                sideBets: action.payload.bets || state.sideBets
+            };
+        case "SIDEBET_CANCELLED":
+            return {
+                ...state,
+                sideBets: action.payload.bets || state.sideBets
+            };
+
         default:
             return state;
     }

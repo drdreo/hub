@@ -1,4 +1,5 @@
 import {
+    DollarSign,
     ListOrdered,
     LogOut,
     MessageSquareOff,
@@ -13,7 +14,7 @@ import { useDispatch, useSelector } from "react-redux";
 import "./Settings.scss";
 import { useNavigate } from "react-router-dom";
 import { gameLeave } from "../game/game.actions";
-import { toggleFeed, toggleSound, toggleStandings } from "./settings.actions";
+import { toggleFeed, toggleSound, toggleStandings, toggleSideBets } from "./settings.actions";
 
 const Speaker = ({ disabled }) => (disabled ? <VolumeOff /> : <Volume2 />);
 const Feed = ({ disabled }) => (disabled ? <MessageSquareOff /> : <MessageSquareText />);
@@ -50,6 +51,7 @@ const Settings = props => {
     const handleToggleSound = () => dispatch(toggleSound());
     const handleToggleFeed = () => dispatch(toggleFeed());
     const handleToggleStandings = () => dispatch(toggleStandings());
+    const handleToggleSideBets = () => dispatch(toggleSideBets());
 
     const handleLeaveRoom = () => {
         const shouldLeave = window.confirm("Are you sure you want to leave this game?");
@@ -87,6 +89,12 @@ const Settings = props => {
                     className="menu__button"
                     onClick={handleToggleStandings}>
                     <Standing disabled={!standingsEnabled} />
+                </button>
+                <button
+                    className="menu__button"
+                    onClick={handleToggleSideBets}
+                    title="Side Bets">
+                    <DollarSign />
                 </button>
                 <button
                     className="menu__button"

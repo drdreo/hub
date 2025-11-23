@@ -44,7 +44,6 @@ type DBGame struct {
 
 type FormattedPlayer struct {
 	Life     int    `json:"life" firestore:"life"`
-	Points   int    `json:"points" firestore:"points"`
 	UID      string `json:"uid" firestore:"uid"`
 	Username string `json:"username" firestore:"username"`
 	Rank     int    `json:"rank" firestore:"rank"`
@@ -54,4 +53,24 @@ type Roll struct {
 	Player *FormattedPlayer `json:"player"`
 	Dice   int              `json:"dice"`
 	Total  int              `json:"total"`
+}
+
+type BetStatus int
+
+const (
+	BetStatusPending BetStatus = iota
+	BetStatusAccepted
+	BetStatusDeclined
+	BetStatusResolved
+)
+
+// SideBet tracks the specific wager between two players
+type SideBet struct {
+	ID             string    `json:"id"`
+	ChallengerID   string    `json:"challengerId"`
+	ChallengerName string    `json:"challengerName"`
+	OpponentID     string    `json:"opponentId"`
+	OpponentName   string    `json:"opponentName"`
+	Amount         float64   `json:"amount"`
+	Status         BetStatus `json:"status"`
 }

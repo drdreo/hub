@@ -35,6 +35,32 @@ const GameOverMessage = ({ winner }) => {
     return <div className="message message__over">{winner} won the game!</div>;
 };
 
+const SideBetProposedMessage = ({ challenger, opponent, amount }) => {
+    return (
+        <div className="message message__sidebet-proposed">
+            {challenger} proposed a <span className="sidebet-amount">${amount}</span> side bet to{" "}
+            {opponent}
+        </div>
+    );
+};
+
+const SideBetAcceptedMessage = ({ challenger, opponent, amount }) => {
+    return (
+        <div className="message message__sidebet-accepted">
+            {opponent} accepted {challenger}'s <span className="sidebet-amount">${amount}</span> side
+            bet!
+        </div>
+    );
+};
+
+const SideBetDeclinedMessage = ({ challenger, opponent }) => {
+    return (
+        <div className="message message__sidebet-declined">
+            {opponent} declined {challenger}'s side bet!
+        </div>
+    );
+};
+
 class FeedMessage extends Component {
     render() {
         const { message } = this.props;
@@ -70,6 +96,33 @@ class FeedMessage extends Component {
                 break;
             case "GAME_OVER":
                 msgContent = <GameOverMessage winner={message.winner} />;
+                break;
+            case "SIDEBET_PROPOSED":
+                console.log("SIDEBET_PROPOSED", message);
+                msgContent = (
+                    <SideBetProposedMessage
+                        challenger={message.challenger}
+                        opponent={message.opponent}
+                        amount={message.amount}
+                    />
+                );
+                break;
+            case "SIDEBET_ACCEPTED":
+                msgContent = (
+                    <SideBetAcceptedMessage
+                        challenger={message.challenger}
+                        opponent={message.opponent}
+                        amount={message.amount}
+                    />
+                );
+                break;
+            case "SIDEBET_DECLINED":
+                msgContent = (
+                    <SideBetDeclinedMessage
+                        challenger={message.challenger}
+                        opponent={message.opponent}
+                    />
+                );
                 break;
             default:
                 break;

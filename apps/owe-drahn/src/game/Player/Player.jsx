@@ -1,4 +1,4 @@
-import { Dice1, Dice2, Dice3, Dice4, Dice5, Dice6, Skull, Unplug } from "lucide-react";
+import { Dice1, Dice2, Dice3, Dice4, Dice5, Dice6, Dices, Skull, Unplug } from "lucide-react";
 import React from "react";
 import { useSelector } from "react-redux";
 import rank10 from "../../assets/images/ranks/rank10.png";
@@ -93,6 +93,7 @@ const Player = ({ player, isPlayersTurn, started, connected, choosing, onClick, 
                 <div
                     className="name"
                     title={player.username.length > 20 ? player.username : ""}>
+                    {isPlayersTurn && <Dices size={16} />}
                     <span>{player.username}</span>
                 </div>
 

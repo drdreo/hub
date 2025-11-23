@@ -1,0 +1,120 @@
+@use "../../utils.scss";
+
+.sidebet-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+}
+
+.sidebet-modal {
+    background: linear-gradient(135deg, rgba(30, 30, 50, 0.98) 0%, rgba(20, 20, 40, 0.98) 100%);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+
+    .sidebet-modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+        h3 {
+            margin: 0;
+            color: white;
+            font-size: 20px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 32px;
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            line-height: 1;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+
+            &:hover {
+                opacity: 1;
+            }
+        }
+    }
+
+    .sidebet-modal-content {
+        padding: 20px;
+
+        .opponent-info {
+            color: rgba(255, 255, 255, 0.9);
+            margin: 0 0 20px 0;
+            font-size: 15px;
+            line-height: 1.5;
+
+            strong {
+                color: white;
+                font-weight: 600;
+            }
+        }
+
+        form {
+            .form-group {
+                margin-bottom: 20px;
+
+                label {
+                    display: block;
+                    color: white;
+                    font-size: 14px;
+                    font-weight: 600;
+                    margin-bottom: 8px;
+                }
+
+                input {
+                    padding: 12px;
+                    background: rgba(255, 255, 255, 0.1);
+                    border: 1px solid rgba(255, 255, 255, 0.2);
+                    border-radius: 8px;
+                    color: white;
+                    font-size: 16px;
+                    transition: all 0.2s;
+
+                    &:focus {
+                        outline: none;
+                        border-color: rgba(102, 126, 234, 0.8);
+                        background: rgba(255, 255, 255, 0.15);
+                        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+                    }
+
+                    &::placeholder {
+                        color: rgba(255, 255, 255, 0.4);
+                    }
+                }
+
+                .error-message {
+                    color: #ef4444;
+                    font-size: 13px;
+                    margin: 6px 0 0 0;
+                }
+            }
+
+            .modal-actions {
+                display: flex;
+                gap: 12px;
+                justify-content: flex-end;
+            }
+        }
+    }
+}

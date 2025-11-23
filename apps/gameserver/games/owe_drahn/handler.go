@@ -4,11 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"time"
+
+	"github.com/rs/zerolog/log"
+
 	"gameserver/games/owe_drahn/database"
+	"gameserver/games/owe_drahn/models"
 	"gameserver/internal/interfaces"
 	"gameserver/internal/protocol"
-	"github.com/rs/zerolog/log"
-	"time"
 )
 
 type GameConfig struct {
@@ -52,6 +55,7 @@ func (g *Game) InitializeRoom(ctx context.Context, room interfaces.Room, options
 		PlayerOrder: make([]string, 0),
 		Started:     false,
 		CurrentTurn: "",
+		SideBets:    make([]*models.SideBet, 0),
 	}
 
 	room.SetState(&state)
@@ -127,6 +131,16 @@ func (g *Game) OnClientReconnect(client interfaces.Client, room interfaces.Room,
 		state.CurrentTurn = client.ID()
 	}
 
+	// patch all sideBet ids too
+	for i, bet := range state.SideBets {
+		if bet.ChallengerID == oldClientID {
+			state.SideBets[i].ChallengerID = client.ID()
+		}
+		if bet.OpponentID == oldClientID {
+			state.SideBets[i].OpponentID = client.ID()
+		}
+	}
+
 	room.SetState(state)
 	g.broadcastGameState(room)
 	return nil
@@ -139,12 +153,68 @@ func (g *Game) HandleMessage(client interfaces.Client, room interfaces.Room, msg
 	// Handle pre-game messages that don't require turn validation
 	switch msgType {
 	case "handshake":
-		g.handleHandshake(client, state, payload)
+		err := g.handleHandshake(client, state, payload)
+		if err != nil {
+			log.Error().Err(err).Msg("ready failed")
+			return err
+		}
 		g.broadcastGameState(room)
 		return nil
 	case "ready":
-		g.handleReady(client, state, payload)
+		err := g.handleReady(client, state, payload)
+		if err != nil {
+			log.Error().Err(err).Msg("ready failed")
+			return err
+		}
+
 		g.broadcastGameState(room)
+		return nil
+
+	case "sidebet_propose":
+		betId, err := g.handleProposeSideBet(client, state, payload)
+		if err != nil {
+			log.Error().Err(err).Msg("bet proposal failed")
+			return err
+		}
+		bets := state.SideBets
+		g.broadcastGameEvent(room, "sidebet_propose_result", interfaces.M{
+			"bets":  bets,
+			"betId": betId,
+		})
+		return nil
+	case "sidebet_accept":
+		betId, err := g.handleAcceptSideBet(client, state, payload)
+		if err != nil {
+			log.Error().Err(err).Msg("bet accept failed")
+			return err
+		}
+		bets := state.SideBets
+		g.broadcastGameEvent(room, "sidebet_accept_result", interfaces.M{
+			"bets":  bets,
+			"betId": betId,
+		})
+		return nil
+	case "sidebet_decline":
+		betId, err := g.handleDeclineSideBet(client, state, payload)
+		if err != nil {
+			log.Error().Err(err).Msg("bet decline failed")
+			return err
+		}
+		bets := state.SideBets
+		g.broadcastGameEvent(room, "sidebet_decline_result", interfaces.M{
+			"bets":  bets,
+			"betId": betId,
+		})
+		return nil
+
+	case "sidebet_cancel":
+		err := g.handleCancelSideBet(state, payload)
+		if err != nil {
+			log.Error().Err(err).Msg("bet cancel failed")
+			return err
+		}
+		bets := state.SideBets
+		g.broadcastGameEvent(room, "sidebet_cancel_result", bets)
 		return nil
 	}
 
@@ -166,7 +236,7 @@ func (g *Game) HandleMessage(client interfaces.Client, room interfaces.Room, msg
 	case "loseLife":
 		g.handleLoseLife(client, state)
 	case "chooseNextPlayer":
-		if err = g.handleChooseNextPlayer(client, state, payload); err != nil {
+		if err = g.handleChooseNextPlayer(state, payload); err != nil {
 			log.Error().Err(err).Msg("chooseNextPlayer failed")
 			return ErrNextPlayerInvalid
 		}
@@ -178,7 +248,7 @@ func (g *Game) HandleMessage(client interfaces.Client, room interfaces.Room, msg
 	return nil
 }
 
-func (g *Game) broadcastGameEvent(room interfaces.Room, eventName string, payload interfaces.M) {
+func (g *Game) broadcastGameEvent(room interfaces.Room, eventName string, payload interface{}) {
 	msg := protocol.NewSuccessResponse(eventName, payload)
 	room.Broadcast(msg)
 }
@@ -186,7 +256,7 @@ func (g *Game) broadcastGameEvent(room interfaces.Room, eventName string, payloa
 // broadcastGameState sends the current game state to all clients in the room
 func (g *Game) broadcastGameState(room interfaces.Room) {
 	state := room.State().(*GameState)
-	g.broadcastGameEvent(room, "game_state", state.ToMap())
+	g.broadcastGameEvent(room, "game_state", state.ToDTO())
 }
 
 func (g *Game) broadcastPlayerUpdate(room interfaces.Room, players map[string]*Player, playersOrder []string, currentTurn string, updateUI bool) {

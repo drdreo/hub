@@ -87,3 +87,31 @@ export const patchUIState = data => {
         payload: data
     };
 };
+
+export const sideBetProposed = data => {
+    return {
+        type: "SIDEBET_PROPOSED",
+        payload: data
+    };
+};
+
+export const sideBetAccepted = data => {
+    return {
+        type: "SIDEBET_ACCEPTED",
+        payload: data
+    };
+};
+
+export const sideBetDeclined = data => {
+    return {
+        type: "SIDEBET_DECLINED",
+        payload: data
+    };
+};
+
+export const sideBetCancelled = data => {
+    return {
+        type: "SIDEBET_CANCELLED",
+        payload: data
+    };
+};

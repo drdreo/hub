@@ -8,6 +8,7 @@ import (
 	"gameserver/internal/interfaces"
 	"gameserver/internal/room"
 	"gameserver/internal/router"
+	"math"
 	"testing"
 )
 
@@ -175,4 +176,42 @@ func (th *TestHelper) SetupGameRoom(gameType string, amountPlayers int) []string
 	th.ClearAllMessages()
 
 	return playerIds
+}
+
+// FloatEquals checks if two float64 values are equal within a small epsilon
+func FloatEquals(a, b float64) bool {
+	return FloatEqualsWithEpsilon(a, b, 1e-9)
+}
+
+// FloatEqualsWithEpsilon checks if two float64 values are equal within a specified epsilon
+func FloatEqualsWithEpsilon(a, b, epsilon float64) bool {
+	return math.Abs(a-b) < epsilon
+}
+
+// AssertFloatEquals asserts that two float64 values are equal within a small epsilon
+func AssertFloatEquals(t *testing.T, actual, expected float64, msgAndArgs ...interface{}) {
+	t.Helper()
+	if !FloatEquals(expected, actual) {
+		msg := fmt.Sprintf("Expected %f to equal %f (diff: %e)", actual, expected, math.Abs(expected-actual))
+		if len(msgAndArgs) > 0 {
+			if format, ok := msgAndArgs[0].(string); ok {
+				msg = fmt.Sprintf(format, msgAndArgs[1:]...) + ": " + msg
+			}
+		}
+		t.Error(msg)
+	}
+}
+
+// AssertFloatEqualsWithEpsilon asserts that two float64 values are equal within a specified epsilon
+func AssertFloatEqualsWithEpsilon(t *testing.T, expected, actual, epsilon float64, msgAndArgs ...interface{}) {
+	t.Helper()
+	if !FloatEqualsWithEpsilon(expected, actual, epsilon) {
+		msg := fmt.Sprintf("Expected %f to equal %f within epsilon %e (diff: %e)", actual, expected, epsilon, math.Abs(expected-actual))
+		if len(msgAndArgs) > 0 {
+			if format, ok := msgAndArgs[0].(string); ok {
+				msg = fmt.Sprintf(format, msgAndArgs[1:]...) + ": " + msg
+			}
+		}
+		t.Error(msg)
+	}
 }
