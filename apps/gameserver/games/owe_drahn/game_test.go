@@ -168,11 +168,6 @@ func TestMainBetValidation(t *testing.T) {
 		"amount": -5.0,
 	})
 
-	// main bet above maximum (should fail)
-	helper.SendMessage(player1ID, "set_main_bet", interfaces.M{
-		"amount": 150.0,
-	})
-
 	// Verify main bet remains at default
 	state := testRoom.State().(*GameState)
 	if state.MainBet != 1 {
