@@ -31,6 +31,7 @@ type GameState struct {
 	CurrentTurn  string
 	Over         bool
 	CurrentValue int
+	MainBet      float64
 	Rolls        []models.Roll
 	SideBets     []*models.SideBet
 	StartedAt    time.Time
@@ -43,6 +44,7 @@ type GameStateDTO struct {
 	CurrentTurn  string            `json:"currentTurn"`
 	Over         bool              `json:"over"`
 	CurrentValue int               `json:"currentValue"`
+	MainBet      float64           `json:"mainBet"`
 	SideBets     []*models.SideBet `json:"sideBets"`
 }
 
@@ -52,6 +54,7 @@ func (s *GameState) ToDTO() *GameStateDTO {
 		Started:      s.Started,
 		Over:         s.Over,
 		CurrentValue: s.CurrentValue,
+		MainBet:      s.MainBet,
 		CurrentTurn:  s.CurrentTurn,
 		SideBets:     s.SideBets,
 	}
@@ -81,6 +84,10 @@ type SidebetProposalPayload struct {
 
 type SidebetIdPayload struct {
 	BetId string `json:"betId"`
+}
+
+type MainBetPayload struct {
+	Amount float64 `json:"amount"`
 }
 
 func (g *Game) AddPlayer(id string, name string, state *GameState) {
@@ -174,6 +181,7 @@ func (g *Game) reset(state *GameState) {
 	state.Over = false
 	state.CurrentValue = 0
 	state.CurrentTurn = ""
+	state.MainBet = 1
 	for _, player := range state.Players {
 		player.Reset()
 	}
@@ -209,8 +217,8 @@ func (g *Game) handleRoll(room interfaces.Room) error {
 	if total > 15 {
 		player.Life = 0
 		state.CurrentValue = 0
-		// Main bet is always 1
-		player.Balance -= 1
+		// Deduct main bet from player balance
+		player.Balance -= state.MainBet
 		// Resolve any side bets involving the dead player
 		g.resolveSideBets(state)
 	}
@@ -294,7 +302,7 @@ func (g *Game) setNextPlayer(room interfaces.Room, state *GameState) error {
 
 	if len(alivePlayers) <= 1 {
 		winner := alivePlayers[0]
-		winner.Balance += float64(len(state.Players) - 1) // add winnings to the winner, -1 for their own bet
+		winner.Balance += state.MainBet * float64(len(state.Players)-1) // add winnings to the winner, -1 for their own bet
 		g.gameOver(room, winner.Name, state)
 	} else {
 		// Find the next player who is still alive
@@ -369,6 +377,26 @@ func (g *Game) SetStatsOnPlayer(clientId string, userId string, stats *models.Pl
 	player := g.GetPlayer(clientId, state)
 	player.UserID = userId
 	player.Stats = stats
+}
+
+func (g *Game) handleSetMainBet(state *GameState, payload []byte) error {
+	var mainBetData MainBetPayload
+	if err := json.Unmarshal(payload, &mainBetData); err != nil {
+		return errors.New("invalid main bet format")
+	}
+
+	if state.Started {
+		return errors.New("cannot change main bet after game has started")
+	}
+
+	if mainBetData.Amount <= 0 {
+		return errors.New("main bet must be greater than 0")
+	}
+
+	log.Debug().Float64("amount", mainBetData.Amount).Msg("setting main bet")
+	state.MainBet = mainBetData.Amount
+
+	return nil
 }
 
 func (g *Game) handleReady(client interfaces.Client, state *GameState, payload []byte) error {

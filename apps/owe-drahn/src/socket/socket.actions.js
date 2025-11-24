@@ -16,6 +16,7 @@ export const SIDEBET_PROPOSE = "SIDEBET_PROPOSE";
 export const SIDEBET_ACCEPT = "SIDEBET_ACCEPT";
 export const SIDEBET_DECLINE = "SIDEBET_DECLINE";
 export const SIDEBET_CANCEL = "SIDEBET_CANCEL";
+export const SET_MAIN_BET = "SET_MAIN_BET";
 
 export const eventMap = {
     CONNECTION_HANDSHAKE: "handshake",
@@ -31,7 +32,8 @@ export const eventMap = {
     SIDEBET_PROPOSE: "sidebet_propose",
     SIDEBET_ACCEPT: "sidebet_accept",
     SIDEBET_DECLINE: "sidebet_decline",
-    SIDEBET_CANCEL: "sidebet_cancel"
+    SIDEBET_CANCEL: "sidebet_cancel",
+    SET_MAIN_BET: "set_main_bet"
 };
 
 export const handshake = uid => {
@@ -154,5 +156,12 @@ export const cancelSideBet = betId => {
     return {
         type: SIDEBET_CANCEL,
         data: { betId }
+    };
+};
+
+export const setMainBet = amount => {
+    return {
+        type: SET_MAIN_BET,
+        data: { amount }
     };
 };

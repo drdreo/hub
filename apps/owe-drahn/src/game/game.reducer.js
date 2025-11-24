@@ -57,6 +57,7 @@ const initialState = {
     currentTurn: "", // current players turn
     currentValue: 0, // Server value
     ui_currentValue: 0, // UI value
+    mainBet: 1, // Main bet amount
     players: [],
     ui_players: [],
     started: false,
@@ -98,6 +99,7 @@ const gameReducer = (state = initialState, action) => {
                 over: action.payload.over,
                 currentTurn: action.payload.currentTurn,
                 currentValue: action.payload.currentValue,
+                mainBet: action.payload.mainBet ?? state.mainBet,
                 sideBets: action.payload.sideBets ?? state.sideBets
             };
         case "GAME_OVER":

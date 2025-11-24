@@ -1,10 +1,11 @@
 package owe_drahn
 
 import (
+	"testing"
+
 	"gameserver/games/owe_drahn/database"
 	"gameserver/internal/interfaces"
 	"gameserver/internal/testicles"
-	"testing"
 )
 
 func TestOweDrahnIntegration(t *testing.T) {
@@ -98,5 +99,231 @@ func TestOweDrahnIntegration(t *testing.T) {
 
 	if player1.IsChoosing {
 		t.Errorf("Player 1 should no longer be in choosing state")
+	}
+}
+
+func TestMainBetSetting(t *testing.T) {
+	helper := testicles.NewTestHelper(t)
+	dbServiceMock := &database.DatabaseServiceMock{}
+	g := NewGame(dbServiceMock)
+	helper.RegisterGame(g)
+
+	playerIds := helper.SetupGameRoom("owedrahn", 2)
+	player1ID := playerIds[0]
+
+	testRoom, err := helper.GetRoom()
+	if err != nil {
+		t.Fatalf("Failed to get room: %v", err)
+	}
+
+	state := testRoom.State().(*GameState)
+
+	// Test default main bet is 1
+	if state.MainBet != 1 {
+		t.Errorf("Expected default main bet to be 1, got %f", state.MainBet)
+	}
+
+	// Test setting valid main bet before game starts
+	helper.SendMessage(player1ID, "set_main_bet", interfaces.M{
+		"amount": 5.0,
+	})
+
+	state = testRoom.State().(*GameState)
+	if state.MainBet != 5.0 {
+		t.Errorf("Expected main bet to be 5, got %f", state.MainBet)
+	}
+
+	// Test setting main bet to different valid value
+	helper.SendMessage(player1ID, "set_main_bet", interfaces.M{
+		"amount": 10.5,
+	})
+
+	state = testRoom.State().(*GameState)
+	if state.MainBet != 10.5 {
+		t.Errorf("Expected main bet to be 10.5, got %f", state.MainBet)
+	}
+}
+
+func TestMainBetValidation(t *testing.T) {
+	helper := testicles.NewTestHelper(t)
+	dbServiceMock := &database.DatabaseServiceMock{}
+	g := NewGame(dbServiceMock)
+	helper.RegisterGame(g)
+
+	playerIds := helper.SetupGameRoom("owedrahn", 2)
+	player1ID := playerIds[0]
+
+	testRoom, err := helper.GetRoom()
+	if err != nil {
+		t.Fatalf("Failed to get room: %v", err)
+	}
+
+	// main bet to 0 (should fail)
+	helper.SendMessage(player1ID, "set_main_bet", interfaces.M{
+		"amount": 0.0,
+	})
+
+	// negative value (should fail)
+	helper.SendMessage(player1ID, "set_main_bet", interfaces.M{
+		"amount": -5.0,
+	})
+
+	// main bet above maximum (should fail)
+	helper.SendMessage(player1ID, "set_main_bet", interfaces.M{
+		"amount": 150.0,
+	})
+
+	// Verify main bet remains at default
+	state := testRoom.State().(*GameState)
+	if state.MainBet != 1 {
+		t.Errorf("Expected main bet to remain 1 after failed attempts, got %f", state.MainBet)
+	}
+}
+
+func TestMainBetCannotChangeAfterGameStarts(t *testing.T) {
+	helper := testicles.NewTestHelper(t)
+	dbServiceMock := &database.DatabaseServiceMock{}
+	g := NewGame(dbServiceMock)
+	helper.RegisterGame(g)
+
+	playerIds := helper.SetupGameRoom("owedrahn", 2)
+	player1ID := playerIds[0]
+	player2ID := playerIds[1]
+
+	testRoom, err := helper.GetRoom()
+	if err != nil {
+		t.Fatalf("Failed to get room: %v", err)
+	}
+
+	// Set main bet before game starts
+	helper.SendMessage(player1ID, "set_main_bet", interfaces.M{
+		"amount": 5.0,
+	})
+
+	state := testRoom.State().(*GameState)
+	if state.MainBet != 5.0 {
+		t.Errorf("Expected main bet to be 5, got %f", state.MainBet)
+	}
+
+	helper.SendMessage(player1ID, "ready", true)
+	helper.SendMessage(player2ID, "ready", true)
+
+	state = testRoom.State().(*GameState)
+	if !state.Started {
+		t.Fatal("Game should have started")
+	}
+
+	// Try to change main bet after game started (should fail)
+	helper.SendMessage(player1ID, "set_main_bet", interfaces.M{
+		"amount": 10.0,
+	})
+
+	// Verify main bet hasn't changed
+	state = testRoom.State().(*GameState)
+	if state.MainBet != 5.0 {
+		t.Errorf("Expected main bet to remain 5 after game started, got %f", state.MainBet)
+	}
+}
+
+func TestMainBetAffectsBalance(t *testing.T) {
+	helper := testicles.NewTestHelper(t)
+	dbServiceMock := &database.DatabaseServiceMock{}
+	g := NewGame(dbServiceMock)
+	helper.RegisterGame(g)
+
+	playerIds := helper.SetupGameRoom("owedrahn", 3)
+	player1ID := playerIds[0]
+	player2ID := playerIds[1]
+	player3ID := playerIds[2]
+
+	testRoom, err := helper.GetRoom()
+	if err != nil {
+		t.Fatalf("Failed to get room: %v", err)
+	}
+
+	// Set main bet to 5
+	helper.SendMessage(player1ID, "set_main_bet", interfaces.M{
+		"amount": 5.0,
+	})
+
+	// Start the game
+	helper.SendMessage(player1ID, "ready", true)
+	helper.SendMessage(player2ID, "ready", true)
+	helper.SendMessage(player3ID, "ready", true)
+
+	state := testRoom.State().(*GameState)
+
+	// Simulate player 1 losing (going over 15)
+	state.CurrentTurn = helper.Clients[player1ID].ID()
+	state.CurrentValue = 16
+	player1 := state.Players[helper.Clients[player1ID].ID()]
+	player1.Life = 0
+	player1.Balance -= state.MainBet
+	testRoom.SetState(state)
+
+	// Verify player 1 lost 5 from balance
+	if player1.Balance != -5.0 {
+		t.Errorf("Expected player 1 balance to be -5, got %f", player1.Balance)
+	}
+
+	// Simulate player 2 losing
+	state = testRoom.State().(*GameState)
+	state.CurrentTurn = helper.Clients[player2ID].ID()
+	player2 := state.Players[helper.Clients[player2ID].ID()]
+	player2.Life = 0
+	player2.Balance -= state.MainBet
+	testRoom.SetState(state)
+
+	// Verify player 2 lost 5 from balance
+	if player2.Balance != -5.0 {
+		t.Errorf("Expected player 2 balance to be -5, got %f", player2.Balance)
+	}
+
+	// Player 3 wins - should get 10 (5 from each loser)
+	player3 := state.Players[helper.Clients[player3ID].ID()]
+	player3.Balance += state.MainBet * float64(len(state.Players)-1)
+	testRoom.SetState(state)
+
+	if player3.Balance != 10.0 {
+		t.Errorf("Expected player 3 balance to be 10, got %f", player3.Balance)
+	}
+
+	// Verify zero-sum
+	state = testRoom.State().(*GameState)
+	if !g.ValidateZeroSum(state) {
+		t.Error("Game should maintain zero-sum balance")
+	}
+}
+
+func TestMainBetResetsAfterGame(t *testing.T) {
+	helper := testicles.NewTestHelper(t)
+	dbServiceMock := &database.DatabaseServiceMock{}
+	g := NewGame(dbServiceMock)
+	helper.RegisterGame(g)
+
+	playerIds := helper.SetupGameRoom("owedrahn", 2)
+	player1ID := playerIds[0]
+
+	testRoom, err := helper.GetRoom()
+	if err != nil {
+		t.Fatalf("Failed to get room: %v", err)
+	}
+
+	// Set main bet to 7
+	helper.SendMessage(player1ID, "set_main_bet", interfaces.M{
+		"amount": 7.0,
+	})
+
+	state := testRoom.State().(*GameState)
+	if state.MainBet != 7.0 {
+		t.Errorf("Expected main bet to be 7, got %f", state.MainBet)
+	}
+
+	// Reset the game
+	g.reset(state)
+
+	// Verify main bet is reset to 1
+	if state.MainBet != 1.0 {
+		t.Errorf("Expected main bet to reset to 1, got %f", state.MainBet)
 	}
 }

@@ -41,6 +41,7 @@ import {
     RECONNECT,
     reconnected,
     roomError,
+    SET_MAIN_BET,
     SIDEBET_ACCEPT,
     SIDEBET_CANCEL,
     SIDEBET_DECLINE,
@@ -148,6 +149,10 @@ export function createSocketMiddleware() {
 
                 case RECONNECT:
                     connectionManager.send(eventMap[RECONNECT], action.data);
+                    break;
+
+                case SET_MAIN_BET:
+                    connectionManager.send(eventMap[SET_MAIN_BET], action.data);
                     break;
 
                 case SIDEBET_PROPOSE:

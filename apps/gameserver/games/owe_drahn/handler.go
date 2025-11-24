@@ -55,6 +55,7 @@ func (g *Game) InitializeRoom(ctx context.Context, room interfaces.Room, options
 		PlayerOrder: make([]string, 0),
 		Started:     false,
 		CurrentTurn: "",
+		MainBet:     1,
 		SideBets:    make([]*models.SideBet, 0),
 	}
 
@@ -167,6 +168,14 @@ func (g *Game) HandleMessage(client interfaces.Client, room interfaces.Room, msg
 			return err
 		}
 
+		g.broadcastGameState(room)
+		return nil
+	case "set_main_bet":
+		err := g.handleSetMainBet(state, payload)
+		if err != nil {
+			log.Error().Err(err).Msg("set main bet failed")
+			return err
+		}
 		g.broadcastGameState(room)
 		return nil
 
