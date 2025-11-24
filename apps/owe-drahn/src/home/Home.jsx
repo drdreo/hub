@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom"; // Use this hook for navigation
 import { useFirebase } from "../auth/Firebase"; // Custom hook for Firebase context
@@ -75,18 +75,26 @@ const Home = () => {
         }
     }, [joinError, room]);
 
+    const debouncedUpdateUsernameCallback = useCallback(
+        debounce(username => {
+            // Ensure authUser is available before trying to update the database
+            if (authUser && firebase) {
+                console.log("Saving username:", username);
+                firebase.userUpdate(authUser.uid, { username });
+            }
+        }, 200),
+        // If authUser or firebase change, we need a new function instance.
+        [authUser, firebase]
+    );
+
     const updateUsername = evt => {
         const newUsername = evt.target.value;
         setUsername(newUsername);
 
         if (authUser) {
-            updateDBUsername(newUsername);
+            debouncedUpdateUsernameCallback(newUsername);
         }
     };
-
-    const updateDBUsername = debounce(username => {
-        firebase.user(authUser.uid).update({ username });
-    }, 200);
 
     const onRoomClick = (room, started) => {
         if (started) {

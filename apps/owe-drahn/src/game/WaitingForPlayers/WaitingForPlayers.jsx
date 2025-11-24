@@ -1,5 +1,6 @@
-import { useSelector } from "react-redux";
 import { Clock } from "lucide-react";
+import { useSelector } from "react-redux";
+import MainBetInput from "./MainBetInput";
 import "./WaitingForPlayers.scss";
 
 const WaitingForPlayers = () => {
@@ -22,6 +23,8 @@ const WaitingForPlayers = () => {
                     </span>
                     <span className="count-label">ready</span>
                 </div>
+
+                <MainBetInput />
             </div>
         </div>
     );
