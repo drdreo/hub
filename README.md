@@ -1,67 +1,69 @@
 # Hub
 
-<a alt="Nx logo" href="https://nx.dev" target="_blank" rel="noreferrer"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="45"></a>
+**One monorepo to rule them all.**
 
-✨ Your new, shiny [Nx workspace](https://nx.dev) is almost ready ✨.
+Hub is the single home for my side projects — web games, web servers, and CLIs — built around **one generic game server** that any client (web, mobile, CLI) can plug into, regardless of stack.
 
-[Learn more about this workspace setup and its capabilities](https://nx.dev/nx-api/js?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or run `npx nx graph` to visually explore what was created. Now, let's get you up to speed!
+## Goal
 
-### Folder Structure
+- **Stop reinventing infrastructure.** Connection management, rooms, reconnection, message routing, and lobby state are solved *once* in `apps/gameserver` (Go, WebSocket, plugin-based) and reused by every game.
+- **Games are plugins.** A new game implements a small `Game` interface (`HandleMessage`, `InitializeRoom`, `OnClientJoin/Leave`) and registers itself. The server handles the rest.
+- **Clients are interchangeable.** Any frontend or CLI that speaks the wire protocol (`{ type, data }` envelopes over WebSocket) can join a room.
+- **Shared tooling.** Nx orchestrates builds, lint, and tests across Go and TypeScript. Each app stays deployable on its own (Cloudflare for the web clients, Docker/Railway for the APIs).
+
+## Layout
 
 ```
-libs/
-├── tell-it/
-│   ├── web/                # Angular-specific libraries
-│   │   ├── feature/        # Angular feature libraries
-│   │   ├── ui/             # Angular UI components
-│   │   └── data-access/    # Angular services
-│   ├── api/                # NestJS-specific libraries
-│   │   ├── feature/        # NestJS feature modules
-│   │   └── data-access/    # NestJS services, repositories
-│   └── shared/             # Shared between web and api
-│       ├── models/         # Shared interfaces/types
-│       └── util/           # Shared utilities
-├── shared/                 # Cross-domain shared code
+apps/
+├── gameserver/      # Go WebSocket server — the generic core (rooms, sessions, registry)
+│   └── games/       # Plugin games: dicegame, owe_drahn, tictactoe, tell_it
+├── owe-drahn/       # React + Vite web client (deployed to Cloudflare Pages)
+├── tell-it-api/     # NestJS API (legacy, pre-gameserver)
+└── demo-cli/        # Go CLI client to automate demos
+
+packages/
+└── tell-it/         # Shared TS libs (api / shared / web)
 ```
 
-To run any task with Nx use:
+See [`apps/gameserver/README.md`](./apps/gameserver/README.md) for the wire protocol, room lifecycle, and reconnection flow.
+
+
+### Yet to be migrated projects
+
+- **Poker** → A texas hold'em variant https://github.com/drdreo/poker
+- **KCDice** → A farkle KCD2 inpsired dice game https://github.com/drdreo/dicegame (Angular frontend migration blocked by TS reference vs alias support)
+
+## Common commands
 
 ```sh
-npx nx <target> <project-name>
+nx affected -t build           # build everything touched by current changes
+nx affected -t test            # test everything touched
+nx affected -t lint
+nx format:check                # or: nx format:write
+
+nx test <project>              # single project, e.g. nx test owe-drahn
+nx <target> <project>          # generic form
+
+# Go-specific (gameserver / demo-cli)
+cd apps/gameserver && go test ./...
 ```
 
-These targets are either [inferred automatically](https://nx.dev/concepts/inferred-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or defined in the `project.json` or `package.json` files.
-
-[More about running tasks in the docs &raquo;](https://nx.dev/features/run-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+Targets are either inferred by Nx or defined per-project in `project.json` / `package.json`.
 
 ## Deploying
 
-To deploy an application:
-
-```
-nx deploy
+```sh
+nx deploy <project>
 ```
 
-For APIs, dockerfiles are used to generate docker images.
-Make sure to correctly setup the registry to allow the repo to push images.
-Manage package settings > Choose repo > Role: Admin
+- **Web clients** → Cloudflare (via the local `@hub/plugin:cloudflare` executor and `wrangler`).
+- **APIs** → Docker images pushed to GHCR, deployed to Railway (via `@hub/plugin:deploy-docker`).
 
-[Learn more about Nx release &raquo;](hhttps://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+## TypeScript project references
 
-## Keep TypeScript project references up to date
-
-Nx automatically updates TypeScript [project references](https://www.typescriptlang.org/docs/handbook/project-references.html) in `tsconfig.json` files to ensure they remain accurate based on your project dependencies (`import` or `require` statements). This sync is automatically done when running tasks such as `build` or `typecheck`, which require updated references to function correctly.
-
-To manually trigger the process to sync the project graph dependencies information to the TypeScript project references, run the following command:
+Nx keeps `tsconfig.json` references in sync with the import graph automatically on `build` / `typecheck`. To force a sync or verify in CI:
 
 ```sh
-npx nx sync
+npx nx sync          # write
+npx nx sync:check    # verify (CI)
 ```
-
-You can enforce that the TypeScript project references are always in the correct state when running in CI by adding a step to your CI job configuration that runs the following command:
-
-```sh
-npx nx sync:check
-```
-
-[Learn more about nx sync](https://nx.dev/reference/nx-commands#sync)
